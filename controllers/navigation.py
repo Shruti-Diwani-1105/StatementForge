@@ -135,7 +135,7 @@ class NavigationController(QMainWindow):
         if user:
             self.profile_window.load_user_data(user)
             
-        self.profile_window.show()
+        self.profile_window.showMaximized()
         self.hide()
 
     def close_profile_window(self):

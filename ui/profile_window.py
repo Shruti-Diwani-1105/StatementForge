@@ -22,7 +22,7 @@ class ProfileWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("My Profile - StatementForge")
-        self.setFixedSize(1100, 780)
+        self.setMinimumSize(1100, 750)
         self.setStyleSheet("QMainWindow { background-color: #F6F8FC; }")
 
         # Central Widget
