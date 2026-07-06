@@ -237,8 +237,15 @@ class DashboardScreen(QWidget):
             row = idx // cols
             col = idx % cols
             card = CustomCard(title, desc, f"assets/icons/{icon}.png", icon_bg)
-            # Connect card click triggers to Coming Soon modal
-            card.clicked.connect(lambda t=title: self.show_coming_soon(t))
+            
+            # Map dashboard cards to their respective pages, fallback to coming soon
+            if title == "Upload Statement":
+                card.clicked.connect(lambda: self.switch_dashboard_page("upload"))
+            elif title == "History Logs":
+                card.clicked.connect(lambda: self.switch_dashboard_page("history"))
+            else:
+                card.clicked.connect(lambda t=title: self.show_coming_soon(t))
+                
             grid_layout.addWidget(card, row, col)
             
         modules_layout.addWidget(grid_widget)

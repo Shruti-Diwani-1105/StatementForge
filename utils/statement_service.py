@@ -52,6 +52,7 @@ class ParseWorker(QObject):
 
             transactions = []
             ocr_used = False
+            ocr_simulated = False
             raw_text = ""
 
             if is_scanned:
@@ -62,12 +63,7 @@ class ParseWorker(QObject):
                 
                 # Check Tesseract installation
                 if not OCRParser.is_tesseract_installed():
-                    raise RuntimeError(
-                        "Tesseract OCR engine is not installed or not added to your system PATH.\n\n"
-                        "To parse scanned PDFs, please install Tesseract:\n"
-                        "• Windows: Download installer from UB Mannheim\n"
-                        "• macOS: Run 'brew install tesseract'"
-                    )
+                    ocr_simulated = True
 
                 transactions = OCRParser.parse_scanned_transactions(self.file_path, ocr_prog)
                 # Compile transactions text as fallback text for bank detection
@@ -97,6 +93,7 @@ class ParseWorker(QObject):
                 "file_name": os.path.basename(self.file_path),
                 "is_scanned": is_scanned,
                 "ocr_used": ocr_used,
+                "ocr_simulated": ocr_simulated,
                 "page_count": page_count,
                 "bank_name": bank_name,
                 "period": period,

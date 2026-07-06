@@ -504,7 +504,13 @@ class UploadStatementWidget(QWidget):
         
         self.bank_lbl.setText(f"Bank: {payload['bank_name']}")
         type_str = "Scanned PDF (OCR)" if payload["is_scanned"] else "Digital PDF"
-        self.type_lbl.setText(f"Type: {type_str}")
+        if payload.get("ocr_simulated"):
+            type_str += " [Simulated]"
+            self.type_lbl.setText(f"Type: {type_str}\n(Tesseract OCR not found)")
+            self.type_lbl.setStyleSheet("font-size: 11px; color: #EF4444; border: none; font-weight: 600;")
+        else:
+            self.type_lbl.setText(f"Type: {type_str}")
+            self.type_lbl.setStyleSheet("font-size: 12px; color: #64748B; border: none;")
 
         # 2. Reset table filters and sorting
         self.search_input.clear()
