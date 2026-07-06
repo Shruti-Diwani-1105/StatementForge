@@ -171,15 +171,15 @@ QFrame#LoginCard, QFrame#RegisterCard {
     border-radius: 16px;
 }
 
-/* Sidebar Dark Mode styling */
+/* Sidebar Light Mode styling */
 #SidebarFrame {
-    background-color: #0F172A; /* Deep Slate Blue */
-    border-right: none;
+    background-color: #FFFFFF;
+    border-right: 1px solid #E2E8F0;
 }
 
 QPushButton#SidebarButton {
     background: transparent;
-    color: #94A3B8; /* Slate 400 */
+    color: #475569; /* Slate 600 */
     border: none;
     border-left: 3px solid transparent; /* Hidden vertical indicator */
     border-top-left-radius: 0px;
@@ -193,20 +193,20 @@ QPushButton#SidebarButton {
 }
 
 QPushButton#SidebarButton:hover {
-    background-color: #1E293B; /* Slate 800 */
-    color: #F8FAFC;
+    background-color: #F1F5F9; /* Slate 100 */
+    color: #0F172A; /* Slate 900 */
 }
 
 QPushButton#SidebarButton:checked {
-    background-color: #1E293B; /* Selected state */
-    color: #FFFFFF;
-    border-left: 3px solid #3B82F6; /* Glowing blue indicator bar */
+    background-color: #EFF6FF; /* Selected state (Blue 50) */
+    color: #2563EB; /* Selected Blue */
+    border-left: 3px solid #2563EB; /* Primary blue indicator bar */
     font-weight: 600;
 }
 
 QPushButton#LogoutButton {
     background: transparent;
-    color: #F87171; /* Coral Red */
+    color: #EF4444; /* Slate Red */
     border: none;
     border-radius: 8px;
     font-weight: 500;
@@ -216,8 +216,8 @@ QPushButton#LogoutButton {
 }
 
 QPushButton#LogoutButton:hover {
-    background-color: #7F1D1D; /* Deep red background */
-    color: #FEF2F2;
+    background-color: #FEF2F2; /* Soft red background */
+    color: #991B1B; /* Darker red */
 }
 
 /* Search Box topbar */

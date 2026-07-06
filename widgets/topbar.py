@@ -80,14 +80,28 @@ class TopBar(QFrame):
         name_details = QVBoxLayout()
         name_details.setSpacing(0)
         
-        user_name = QLabel("John Doe")
-        user_name.setStyleSheet("font-weight: 600; font-size: 13px; color: #0F172A; border: none;")
+        self.user_name = QLabel("John Doe")
+        self.user_name.setStyleSheet("font-weight: 600; font-size: 13px; color: #0F172A; border: none;")
         
         user_role = QLabel("Administrator")
         user_role.setStyleSheet("font-size: 11px; color: #64748B; border: none;")
         
-        name_details.addWidget(user_name)
+        name_details.addWidget(self.user_name)
         name_details.addWidget(user_role)
         profile_layout.addLayout(name_details)
         
         layout.addLayout(profile_layout)
+
+    def update_profile(self, full_name):
+        """Updates the profile name and calculates the initials for the avatar badge."""
+        self.user_name.setText(full_name)
+        
+        # Calculate avatar initials
+        parts = [p.strip() for p in full_name.split() if p.strip()]
+        if len(parts) >= 2:
+            initials = parts[0][0].upper() + parts[-1][0].upper()
+        elif len(parts) == 1:
+            initials = parts[0][:2].upper()
+        else:
+            initials = "U"
+        self.avatar.setText(initials)

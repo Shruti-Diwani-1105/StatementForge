@@ -84,7 +84,9 @@ class NavigationController(QMainWindow):
         self.register_screen.clear_fields()
         self.stacked_widget.setCurrentIndex(2)
 
-    def show_dashboard_page(self):
+    def show_dashboard_page(self, user_details):
+        # Update user profile in dashboard
+        self.dashboard_screen.set_user_profile(user_details)
         # Reset dashboard page index to the home Dashboard tab view
         self.dashboard_screen.switch_dashboard_page("dashboard")
         self.stacked_widget.setCurrentIndex(3)

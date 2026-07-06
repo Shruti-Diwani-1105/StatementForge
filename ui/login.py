@@ -8,7 +8,7 @@ class LoginScreen(QWidget):
     Login screen with email, password fields, validation logic,
     and redirection anchors to Register and Forgot Password.
     """
-    loginSuccess = pyqtSignal()
+    loginSuccess = pyqtSignal(dict)
     gotoRegister = pyqtSignal()
     gotoWelcome = pyqtSignal()
 
@@ -150,7 +150,7 @@ class LoginScreen(QWidget):
             return
             
         self.error_label.setVisible(False)
-        self.loginSuccess.emit()
+        self.loginSuccess.emit(user_details)
 
     def show_forgot_password_dialog(self):
         # Custom popup for forgotten passwords placeholder

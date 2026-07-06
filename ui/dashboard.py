@@ -73,6 +73,19 @@ class DashboardScreen(QWidget):
             # Sync sidebar checked state if called programmatically
             self.sidebar.set_active_page(key)
 
+    def set_user_profile(self, user_details):
+        """Updates the dashboard greeting and topbar initials avatar with user details."""
+        full_name = user_details.get("name", "User")
+        
+        # Update TopBar details
+        if hasattr(self, "topbar") and self.topbar is not None:
+            self.topbar.update_profile(full_name)
+            
+        # Update Welcome Greeting first name
+        first_name = full_name.split()[0] if full_name.strip() else "User"
+        if hasattr(self, "welcome_lbl") and self.welcome_lbl is not None:
+            self.welcome_lbl.setText(f"Welcome Back, {first_name}!")
+
     def show_coming_soon(self, module_name):
         """Displays a professional message box for unimplemented features."""
         msg_box = QMessageBox(self)
@@ -106,11 +119,11 @@ class DashboardScreen(QWidget):
         # Header Greeting
         header_layout = QVBoxLayout()
         header_layout.setSpacing(4)
-        welcome_lbl = QLabel("Welcome Back, John!")
-        welcome_lbl.setStyleSheet("font-size: 26px; font-weight: 700; color: #0F172A; letter-spacing: -0.5px;")
+        self.welcome_lbl = QLabel("Welcome Back, John!")
+        self.welcome_lbl.setStyleSheet("font-size: 26px; font-weight: 700; color: #0F172A; letter-spacing: -0.5px;")
         sub_lbl = QLabel("Here's an overview of your local financial statements parser activities.")
         sub_lbl.setStyleSheet("font-size: 13px; color: #64748B;")
-        header_layout.addWidget(welcome_lbl)
+        header_layout.addWidget(self.welcome_lbl)
         header_layout.addWidget(sub_lbl)
         page_layout.addLayout(header_layout)
         
