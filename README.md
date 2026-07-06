@@ -266,8 +266,11 @@ statementforge
 ## 👨‍💻 Author
 
 **Kinjal Rajyaguru**
+
 **Shruti Diwani**
+
 **Priyanshi Prajapati**
+
 **Sneha Vasava**
 
 
