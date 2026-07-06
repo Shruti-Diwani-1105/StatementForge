@@ -85,6 +85,26 @@ class DashboardScreen(QWidget):
         first_name = full_name.split()[0] if full_name.strip() else "User"
         if hasattr(self, "welcome_lbl") and self.welcome_lbl is not None:
             self.welcome_lbl.setText(f"Welcome Back, {first_name}!")
+            
+        # Refresh dashboard stats dynamically
+        self.update_dashboard_stats()
+
+    def update_dashboard_stats(self):
+        """Fetches dynamic metrics from HistoryService and updates dashboard labels."""
+        from utils.history_service import HistoryService
+        from utils.user_session import UserSession
+        
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else None
+        
+        stats = HistoryService.get_stats(user_id)
+        
+        if hasattr(self, "stats_processed_lbl") and self.stats_processed_lbl is not None:
+            self.stats_processed_lbl.setText(str(stats["processed"]))
+        if hasattr(self, "stats_verified_lbl") and self.stats_verified_lbl is not None:
+            self.stats_verified_lbl.setText(f"{stats['verified']:,}")
+        if hasattr(self, "stats_exported_lbl") and self.stats_exported_lbl is not None:
+            self.stats_exported_lbl.setText(str(stats["exported"]))
 
     def show_coming_soon(self, module_name):
         """Displays a professional message box for unimplemented features."""
@@ -131,37 +151,55 @@ class DashboardScreen(QWidget):
         metrics_layout = QHBoxLayout()
         metrics_layout.setSpacing(24)
         
-        stats_data = [
-            ("Statements Processed", "0", "#2563EB"),
-            ("Transactions Verified", "0", "#16A34A"),
-            ("Reports Exported", "0", "#EA580C")
-        ]
+        # Statements Processed
+        card1 = QFrame()
+        card1.setObjectName("MetricCard")
+        card1.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
+        card1_layout = QVBoxLayout(card1)
+        card1_layout.setContentsMargins(20, 20, 20, 20)
+        card1_layout.setSpacing(8)
+        t_lbl1 = QLabel("Statements Processed")
+        t_lbl1.setStyleSheet("font-size: 13px; font-weight: 600; color: #64748B;")
+        self.stats_processed_lbl = QLabel("0")
+        self.stats_processed_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #2563EB;")
+        card1_layout.addWidget(t_lbl1)
+        card1_layout.addWidget(self.stats_processed_lbl)
+        metrics_layout.addWidget(card1)
         
-        for title, val, color in stats_data:
-            card = QFrame()
-            card.setObjectName("MetricCard")
-            card.setStyleSheet(f"""
-                QFrame#MetricCard {{
-                    background-color: #FFFFFF;
-                    border: 1px solid #E2E8F0;
-                    border-top: 4px solid {color}; /* Colored top border accent */
-                    border-radius: 12px;
-                }}
-            """)
-            card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(20, 20, 20, 20)
-            card_layout.setSpacing(8)
-            
-            t_lbl = QLabel(title)
-            t_lbl.setStyleSheet("font-size: 13px; font-weight: 600; color: #64748B;")
-            v_lbl = QLabel(val)
-            v_lbl.setStyleSheet(f"font-size: 28px; font-weight: 700; color: {color};")
-            
-            card_layout.addWidget(t_lbl)
-            card_layout.addWidget(v_lbl)
-            metrics_layout.addWidget(card)
-            
+        # Transactions Verified
+        card2 = QFrame()
+        card2.setObjectName("MetricCard")
+        card2.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
+        card2_layout = QVBoxLayout(card2)
+        card2_layout.setContentsMargins(20, 20, 20, 20)
+        card2_layout.setSpacing(8)
+        t_lbl2 = QLabel("Transactions Verified")
+        t_lbl2.setStyleSheet("font-size: 13px; font-weight: 600; color: #64748B;")
+        self.stats_verified_lbl = QLabel("0")
+        self.stats_verified_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #16A34A;")
+        card2_layout.addWidget(t_lbl2)
+        card2_layout.addWidget(self.stats_verified_lbl)
+        metrics_layout.addWidget(card2)
+        
+        # Reports Exported
+        card3 = QFrame()
+        card3.setObjectName("MetricCard")
+        card3.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
+        card3_layout = QVBoxLayout(card3)
+        card3_layout.setContentsMargins(20, 20, 20, 20)
+        card3_layout.setSpacing(8)
+        t_lbl3 = QLabel("Reports Exported")
+        t_lbl3.setStyleSheet("font-size: 13px; font-weight: 600; color: #64748B;")
+        self.stats_exported_lbl = QLabel("0")
+        self.stats_exported_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #EA580C;")
+        card3_layout.addWidget(t_lbl3)
+        card3_layout.addWidget(self.stats_exported_lbl)
+        metrics_layout.addWidget(card3)
+        
         page_layout.addLayout(metrics_layout)
+        
+        # Initial stats population
+        self.update_dashboard_stats()
         
         # 2. Main content split (Module Grid on left, Recent Activity on right)
         content_split = QHBoxLayout()
@@ -241,105 +279,11 @@ class DashboardScreen(QWidget):
         self.page_stack.addWidget(scroll_area)
 
     def create_upload_page(self):
-        """Upload Page mockup with drag-and-drop zone representation."""
-        page = QWidget()
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(32, 24, 32, 32)
-        page_layout.setSpacing(24)
-        
-        header_lbl = QLabel("Upload Bank Statement")
-        header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A;")
-        sub_lbl = QLabel("Upload digital or scanned bank statements to extract details offline.")
-        sub_lbl.setStyleSheet("color: #64748B; font-size: 13px;")
-        
-        page_layout.addWidget(header_lbl)
-        page_layout.addWidget(sub_lbl)
-        
-        # Drag Drop dashed zone mockup
-        drop_zone = QFrame()
-        drop_zone.setObjectName("DropZone")
-        drop_zone.setStyleSheet("""
-            QFrame#DropZone {
-                background-color: #FFFFFF;
-                border: 2px dashed #CBD5E1;
-                border-radius: 16px;
-            }
-            QFrame#DropZone:hover {
-                border-color: #3B82F6;
-                background-color: #EFF6FF;
-            }
-        """)
-        
-        zone_layout = QVBoxLayout(drop_zone)
-        zone_layout.setContentsMargins(40, 60, 40, 60)
-        zone_layout.setSpacing(16)
-        zone_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        upload_icon = QLabel()
-        upload_pixmap = QPixmap("assets/icons/upload.png")
-        if not upload_pixmap.isNull():
-            upload_icon.setPixmap(upload_pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        upload_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        zone_layout.addWidget(upload_icon)
-        
-        prompt_lbl = QLabel("Drag & Drop your statement PDF here")
-        prompt_lbl.setStyleSheet("font-size: 16px; font-weight: 600; color: #0F172A;")
-        prompt_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        zone_layout.addWidget(prompt_lbl)
-        
-        help_lbl = QLabel("Supports PDF, JPEG, and PNG (Max 25MB)")
-        help_lbl.setStyleSheet("font-size: 12px; color: #94A3B8;")
-        help_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        zone_layout.addWidget(help_lbl)
-        
-        browse_btn = PrimaryButton("Browse Files")
-        browse_btn.setFixedWidth(160)
-        browse_btn.clicked.connect(lambda: self.show_coming_soon("File Browser"))
-        zone_layout.addWidget(browse_btn)
-        
-        page_layout.addWidget(drop_zone)
-        
-        # Supported Banks Row
-        banks_layout = QVBoxLayout()
-        banks_layout.setSpacing(12)
-        
-        banks_title = QLabel("Supported Financial Institutions")
-        banks_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #64748B; margin-top: 10px;")
-        banks_layout.addWidget(banks_title)
-        
-        pills_layout = QHBoxLayout()
-        pills_layout.setSpacing(10)
-        
-        banks_list = [
-            ("Chase Bank", "#EFF6FF", "#2563EB"),
-            ("Bank of America", "#FEF2F2", "#DC2626"),
-            ("Wells Fargo", "#FFF7ED", "#EA580C"),
-            ("Citi Bank", "#F0FDFA", "#0D9488"),
-            ("HSBC", "#F8FAFC", "#475569")
-        ]
-        
-        for name, bg_color, text_color in banks_list:
-            pill = QLabel(name)
-            pill.setStyleSheet(f"""
-                QLabel {{
-                    background-color: {bg_color};
-                    color: {text_color};
-                    font-weight: 600;
-                    font-size: 12px;
-                    padding: 6px 14px;
-                    border-radius: 14px;
-                    border: 1px solid {text_color}22;
-                }}
-            """)
-            pills_layout.addWidget(pill)
-            
-        pills_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        banks_layout.addLayout(pills_layout)
-        page_layout.addLayout(banks_layout)
-        
-        page_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        
-        self.page_stack.addWidget(page)
+        """Creates the interactive PDF Upload Statement module."""
+        from ui.upload_statement import UploadStatementWidget
+        self.upload_widget = UploadStatementWidget(self)
+        self.upload_widget.processingCompleted.connect(self.update_dashboard_stats)
+        self.page_stack.addWidget(self.upload_widget)
 
     def create_history_page(self):
         """History Page mockup displaying a clean, populated transactions table structure."""
