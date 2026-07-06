@@ -1,0 +1,263 @@
+/* ==========================================================================
+   StatementForge Premium Styling Theme
+   SaaS Aesthetic with Dark-Mode Sidebar & Clean Layouts
+   ========================================================================= */
+
+/* Base Application Styling */
+QWidget {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    color: #0F172A; /* Slate 900 */
+}
+
+/* Backgrounds */
+QMainWindow {
+    background-color: #F8FAFC; /* Slate 50 */
+}
+
+/* Page Specific Backgrounds */
+QWidget#WelcomeBackground, QWidget#LoginBackground, QWidget#RegisterBackground {
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, 
+                                      stop: 0 #F8FAFC, 
+                                      stop: 0.4 #F1F5F9, 
+                                      stop: 1 #EFF6FF); /* Mesh slate-blue gradient */
+}
+
+/* Base Card / Container styling */
+QFrame.CardFrame {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0; /* Slate 200 */
+    border-radius: 16px;
+}
+
+/* Heading Typography */
+QLabel#ScreenTitle {
+    font-size: 26px;
+    font-weight: 700;
+    color: #0F172A;
+    letter-spacing: -0.5px;
+}
+
+QLabel#ScreenSubtitle {
+    font-size: 14px;
+    color: #64748B; /* Slate 500 */
+}
+
+/* Input Fields */
+QLineEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #CBD5E1; /* Slate 300 */
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #0F172A;
+    selection-background-color: #3B82F6;
+}
+
+QLineEdit:hover {
+    border-color: #94A3B8; /* Slate 400 */
+}
+
+QLineEdit:focus {
+    border-color: #2563EB; /* Primary Blue */
+    background-color: #FFFFFF;
+}
+
+QLineEdit::placeholder {
+    color: #94A3B8;
+}
+
+/* Buttons Styling */
+QPushButton#PrimaryButton {
+    background-color: #2563EB; /* Primary Blue */
+    color: #FFFFFF;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    padding: 11px 22px;
+}
+
+QPushButton#PrimaryButton:hover {
+    background-color: #1D4ED8; /* Hover Darker Blue */
+}
+
+QPushButton#PrimaryButton:pressed {
+    background-color: #1E40AF;
+}
+
+QPushButton#PrimaryButton:disabled {
+    background-color: #93C5FD;
+    color: #EFF6FF;
+}
+
+QPushButton#SecondaryButton {
+    background-color: #FFFFFF;
+    color: #475569; /* Slate 600 */
+    border: 1px solid #E2E8F0; /* Slate 200 */
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 10px 20px;
+}
+
+QPushButton#SecondaryButton:hover {
+    background-color: #F8FAFC;
+    color: #0F172A;
+    border-color: #CBD5E1;
+}
+
+QPushButton#SecondaryButton:pressed {
+    background-color: #F1F5F9;
+    border-color: #94A3B8;
+}
+
+QPushButton#LinkButton {
+    background: transparent;
+    color: #2563EB;
+    border: none;
+    font-weight: 600;
+    padding: 5px;
+    text-align: left;
+}
+
+QPushButton#LinkButton:hover {
+    color: #1D4ED8;
+    text-decoration: underline;
+}
+
+/* Checkbox styling */
+QCheckBox {
+    spacing: 8px;
+    color: #475569;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border: 1px solid #CBD5E1;
+    border-radius: 5px;
+    background-color: #FFFFFF;
+}
+
+QCheckBox::indicator:hover {
+    border-color: #2563EB;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #2563EB;
+    border-color: #2563EB;
+}
+
+/* Progress Bar */
+QProgressBar {
+    background-color: #E2E8F0;
+    border: none;
+    border-radius: 6px;
+    text-align: center;
+    color: transparent;
+    height: 8px;
+}
+
+QProgressBar::chunk {
+    background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, 
+                                      stop: 0 #3B82F6, 
+                                      stop: 1 #2563EB); /* Cyan/Blue gradient progress */
+    border-radius: 6px;
+}
+
+/* Auth Cards Styling (Login & Register) */
+QFrame#LoginCard, QFrame#RegisterCard {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-top: 4px solid #2563EB; /* Premium top blue indicator line */
+    border-radius: 16px;
+}
+
+/* Sidebar Dark Mode styling */
+#SidebarFrame {
+    background-color: #0F172A; /* Deep Slate Blue */
+    border-right: none;
+}
+
+QPushButton#SidebarButton {
+    background: transparent;
+    color: #94A3B8; /* Slate 400 */
+    border: none;
+    border-left: 3px solid transparent; /* Hidden vertical indicator */
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    font-weight: 500;
+    padding: 11px 18px;
+    text-align: left;
+    margin-right: 12px;
+}
+
+QPushButton#SidebarButton:hover {
+    background-color: #1E293B; /* Slate 800 */
+    color: #F8FAFC;
+}
+
+QPushButton#SidebarButton:checked {
+    background-color: #1E293B; /* Selected state */
+    color: #FFFFFF;
+    border-left: 3px solid #3B82F6; /* Glowing blue indicator bar */
+    font-weight: 600;
+}
+
+QPushButton#LogoutButton {
+    background: transparent;
+    color: #F87171; /* Coral Red */
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 11px 18px;
+    text-align: left;
+    margin-right: 12px;
+}
+
+QPushButton#LogoutButton:hover {
+    background-color: #7F1D1D; /* Deep red background */
+    color: #FEF2F2;
+}
+
+/* Search Box topbar */
+QLineEdit#SearchBox {
+    background-color: #F1F5F9;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 8px 12px 8px 36px;
+}
+
+QLineEdit#SearchBox:focus {
+    background-color: #FFFFFF;
+    border-color: #3B82F6;
+}
+
+/* Notification topbar button */
+QPushButton#NotificationButton {
+    background: transparent;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 6px;
+}
+
+QPushButton#NotificationButton:hover {
+    background-color: #F1F5F9;
+}
+
+/* Table Widget styling */
+QTableWidget {
+    background-color: #FFFFFF;
+    border: none;
+    gridline-color: #F1F5F9;
+    border-radius: 8px;
+}
+
+QHeaderView::section {
+    background-color: #F8FAFC;
+    color: #475569;
+    font-weight: 600;
+    padding: 8px;
+    border: none;
+    border-bottom: 1px solid #E2E8F0;
+}
