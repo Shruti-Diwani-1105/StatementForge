@@ -6,11 +6,13 @@ from ui.welcome_screen import WelcomeScreen
 from ui.login import LoginScreen
 from ui.register import RegisterScreen
 from ui.dashboard import DashboardScreen
+from utils.user_session import UserSession
 
 class NavigationController(QMainWindow):
     """
     Main Window container for StatementForge. Manages the top-level
-    stacked widgets and coordinates transitions between screens.
+    stacked widgets and coordinates transitions between screens,
+    including the dedicated ProfileWindow.
     """
     def __init__(self):
         super().__init__()
@@ -47,6 +49,9 @@ class NavigationController(QMainWindow):
         self.stacked_widget.addWidget(self.register_screen)
         self.stacked_widget.addWidget(self.dashboard_screen)
         
+        self.profile_window = None
+        self.profile_controller = None
+
         # Connect Navigation Signals
         self.connect_signals()
         
@@ -70,6 +75,9 @@ class NavigationController(QMainWindow):
         
         # Dashboard Page transitions
         self.dashboard_screen.logoutRequested.connect(self.handle_logout)
+        
+        # Connect Topbar User Profile Click
+        self.dashboard_screen.topbar.profile_widget.clicked.connect(self.open_profile_window)
 
     # --- Transition Helpers ---
 
@@ -85,6 +93,9 @@ class NavigationController(QMainWindow):
         self.stacked_widget.setCurrentIndex(2)
 
     def show_dashboard_page(self, user_details):
+        # Start user session
+        UserSession.start_session(user_details)
+        
         # Update user profile in dashboard
         self.dashboard_screen.set_user_profile(user_details)
         # Reset dashboard page index to the home Dashboard tab view
@@ -92,7 +103,59 @@ class NavigationController(QMainWindow):
         self.stacked_widget.setCurrentIndex(3)
 
     def handle_logout(self):
+        # Clear User Session
+        UserSession.clear_session()
+        
+        # Close profile window if active
+        if self.profile_window is not None:
+            self.profile_window.close()
+            self.profile_window = None
+            self.profile_controller = None
+
         # Clear fields and redirect
         self.login_screen.clear_fields()
         self.register_screen.clear_fields()
         self.show_welcome_page()
+
+    def open_profile_window(self):
+        """Hides dashboard and opens the dedicated Profile Window."""
+        from ui.profile_window import ProfileWindow
+        from controllers.profile_controller import ProfileController
+
+        if self.profile_window is None:
+            self.profile_window = ProfileWindow()
+            self.profile_controller = ProfileController(self.profile_window)
+            
+            # Connect signals
+            self.profile_window.back_to_dashboard.connect(self.close_profile_window)
+            self.profile_window.logout_requested.connect(self.handle_profile_logout)
+            self.profile_window.profile_updated.connect(self.sync_profile_details)
+
+        user = UserSession.get_current_user()
+        if user:
+            self.profile_window.load_user_data(user)
+            
+        self.profile_window.show()
+        self.hide()
+
+    def close_profile_window(self):
+        """Hides the Profile Window and restores the main window dashboard view."""
+        if self.profile_window is not None:
+            self.profile_window.hide()
+            
+        # Re-sync welcome label & topbar details
+        user = UserSession.get_current_user()
+        if user:
+            self.dashboard_screen.set_user_profile(user)
+            
+        self.show()
+
+    def handle_profile_logout(self):
+        """Redirects logout events originating from the profile window."""
+        if self.profile_window is not None:
+            self.profile_window.hide()
+        self.handle_logout()
+
+    def sync_profile_details(self, user_details):
+        """Syncs updated details in real-time onto the dashboard layout."""
+        self.dashboard_screen.set_user_profile(user_details)

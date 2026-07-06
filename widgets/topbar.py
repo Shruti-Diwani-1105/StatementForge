@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLineEdit, QLabel, QPushButton, QSpacerItem, QSizePolicy
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon, QCursor
 
 class SearchBar(QLineEdit):
@@ -22,6 +22,66 @@ class SearchBar(QLineEdit):
         super().resizeEvent(event)
         # Center icon vertically inside the text field
         self.icon_label.move(12, (self.height() - 16) // 2)
+
+
+class ClickableProfileWidget(QFrame):
+    """Single clickable user profile widget featuring hover and cursor animations."""
+    clicked = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("ClickableProfileWidget")
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        
+        self.setStyleSheet("""
+            QFrame#ClickableProfileWidget {
+                background-color: transparent;
+                border-radius: 8px;
+                border: none;
+            }
+            QFrame#ClickableProfileWidget:hover {
+                background-color: #EFF6FF; /* Soft Blue hover highlight */
+            }
+        """)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 6, 12, 6)
+        layout.setSpacing(10)
+
+        # Large-ish circular avatar badge
+        self.avatar = QLabel("")
+        self.avatar.setFixedSize(36, 36)
+        self.avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.avatar.setStyleSheet("""
+            QLabel {
+                background-color: #2563EB; /* Solid Blue Background */
+                color: #FFFFFF;
+                font-weight: 700;
+                font-size: 15px;
+                border-radius: 18px;
+                border: none;
+            }
+        """)
+        layout.addWidget(self.avatar)
+
+        # Profile Full Name
+        self.user_name = QLabel("")
+        self.user_name.setStyleSheet("font-weight: 600; font-size: 13px; color: #0F172A; border: none; background: transparent;")
+        layout.addWidget(self.user_name)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
+    def update_profile(self, full_name):
+        """Displays user's full name and first letter of name in avatar."""
+        self.user_name.setText(full_name)
+        
+        initial = ""
+        if full_name.strip():
+            initial = full_name.strip()[0].upper()
+        self.avatar.setText(initial)
 
 
 class TopBar(QFrame):
@@ -56,52 +116,10 @@ class TopBar(QFrame):
         self.noti_btn.setFixedSize(36, 36)
         layout.addWidget(self.noti_btn)
         
-        # 3. Profile Group
-        profile_layout = QHBoxLayout()
-        profile_layout.setSpacing(10)
-        
-        # Initials badge (circular avatar)
-        self.avatar = QLabel("JD")
-        self.avatar.setFixedSize(36, 36)
-        self.avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.avatar.setStyleSheet("""
-            QLabel {
-                background-color: #3B82F6;
-                color: #FFFFFF;
-                font-weight: 600;
-                font-size: 13px;
-                border-radius: 18px;
-                border: none;
-            }
-        """)
-        profile_layout.addWidget(self.avatar)
-        
-        # Profile Name details
-        name_details = QVBoxLayout()
-        name_details.setSpacing(0)
-        
-        self.user_name = QLabel("John Doe")
-        self.user_name.setStyleSheet("font-weight: 600; font-size: 13px; color: #0F172A; border: none;")
-        
-        user_role = QLabel("Administrator")
-        user_role.setStyleSheet("font-size: 11px; color: #64748B; border: none;")
-        
-        name_details.addWidget(self.user_name)
-        name_details.addWidget(user_role)
-        profile_layout.addLayout(name_details)
-        
-        layout.addLayout(profile_layout)
+        # 3. Clickable Profile Group
+        self.profile_widget = ClickableProfileWidget()
+        layout.addWidget(self.profile_widget)
 
     def update_profile(self, full_name):
-        """Updates the profile name and calculates the initials for the avatar badge."""
-        self.user_name.setText(full_name)
-        
-        # Calculate avatar initials
-        parts = [p.strip() for p in full_name.split() if p.strip()]
-        if len(parts) >= 2:
-            initials = parts[0][0].upper() + parts[-1][0].upper()
-        elif len(parts) == 1:
-            initials = parts[0][:2].upper()
-        else:
-            initials = "U"
-        self.avatar.setText(initials)
+        """Updates the active user's avatar letter and name details."""
+        self.profile_widget.update_profile(full_name)

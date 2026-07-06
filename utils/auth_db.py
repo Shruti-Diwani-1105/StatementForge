@@ -12,9 +12,13 @@ class AuthDB:
     _users = {
         "xyz@gmail.com": {
             "name": "Default User",
-            "phone": "+91 99999 99999",
+            "phone": "9999999999",
             "password": "Password123!",
-            "hashed_password": None
+            "hashed_password": None,
+            "username": "defaultuser",
+            "role": "user",
+            "status": "active",
+            "created_at": datetime.datetime.utcnow() - datetime.timedelta(days=2)
         }
     }
 
@@ -77,6 +81,7 @@ class AuthDB:
                     "full_name": name.strip(),
                     "email": email_clean,
                     "phone": phone.strip(),
+                    "username": email_clean.split('@')[0],
                     "password": hashed_password.decode('utf-8'),
                     "created_at": datetime.datetime.utcnow(),
                     "role": "user",
@@ -93,8 +98,12 @@ class AuthDB:
         cls._users[email_clean] = {
             "name": name.strip(),
             "phone": phone.strip(),
+            "username": email_clean.split('@')[0],
             "password": password,
-            "hashed_password": hashed_password
+            "hashed_password": hashed_password,
+            "role": "user",
+            "status": "active",
+            "created_at": datetime.datetime.utcnow()
         }
         return True
 
@@ -120,11 +129,20 @@ class AuthDB:
 
                 try:
                     if bcrypt.checkpw(password.encode('utf-8'), stored_hash_str.encode('utf-8')):
-                        # Build user dict to return to caller
+                        now = datetime.datetime.utcnow()
+                        # Update last_login in MongoDB Atlas
+                        collection.update_one({"_id": user["_id"]}, {"$set": {"last_login": now}})
+                        
                         user_details = {
+                            "id": str(user.get("_id", "")),
                             "name": user.get("full_name", ""),
+                            "email": user.get("email", ""),
                             "phone": user.get("phone", ""),
-                            "email": user.get("email", "")
+                            "username": user.get("username", user.get("email", "").split('@')[0]),
+                            "role": user.get("role", "user"),
+                            "status": user.get("status", "active"),
+                            "created_at": user.get("created_at", now),
+                            "last_login": now
                         }
                         return True, "Login successful!", user_details
                 except Exception as ex:
@@ -140,14 +158,33 @@ class AuthDB:
 
         user = cls._users[email_clean]
         stored_hash = user.get("hashed_password")
+        valid = False
         if stored_hash:
             try:
                 if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
-                    return True, "Login successful!", user
+                    valid = True
             except Exception:
                 pass
+        elif user["password"] == password:
+            valid = True
 
-        if user["password"] == password:
-            return True, "Login successful!", user
+        if valid:
+            now = datetime.datetime.utcnow()
+            user["last_login"] = now
+            if "created_at" not in user:
+                user["created_at"] = now - datetime.timedelta(days=2)
+                
+            user_details = {
+                "id": email_clean,
+                "name": user.get("name", "User"),
+                "email": email_clean,
+                "phone": user.get("phone", ""),
+                "username": user.get("username", email_clean.split('@')[0]),
+                "role": user.get("role", "user"),
+                "status": user.get("status", "active"),
+                "created_at": user.get("created_at", now),
+                "last_login": now
+            }
+            return True, "Login successful!", user_details
 
         return False, "Incorrect password. Please try again.", None
