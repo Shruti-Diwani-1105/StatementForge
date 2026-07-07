@@ -9,9 +9,4 @@ __pycache__/
 # OS-generated files
 .DS_Store
 Thumbs.db
-
-# Scratch files
-scratch/
-
-# Excel spreadsheets
-*.xlsx
+.venv/

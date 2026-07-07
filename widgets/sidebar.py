@@ -34,7 +34,9 @@ class Sidebar(QFrame):
         title_info.setSpacing(0)
         
         app_title = QLabel("StatementForge")
-        app_title.setStyleSheet("font-weight: 700; font-size: 16px; color: #0F172A;")
+        app_title.setMinimumHeight(24)
+        app_title.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        app_title.setStyleSheet("font-weight: 700; font-size: 16px; color: #0F172A; border: 0px solid transparent; padding-bottom: 2px;")
         
         app_version = QLabel("v1.0")
         app_version.setStyleSheet("font-size: 11px; color: #64748B;")

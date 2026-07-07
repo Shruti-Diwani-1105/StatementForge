@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QSpacerItem, QSizePolicy, QMessageBox, QFrame
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QPixmap, QCursor
+from PyQt6.QtGui import QPixmap, QCursor, QAction, QIcon
 from widgets.custom_button import PrimaryButton, SecondaryButton, LinkButton
 
 class LoginScreen(QWidget):
@@ -71,6 +71,7 @@ class LoginScreen(QWidget):
         email_label.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
         self.email_input = QLineEdit()
         self.email_input.setPlaceholderText("xyz@gmail.com")
+        self.email_input.setText("xyz@gmail.com")
         form_layout.addWidget(email_label)
         form_layout.addWidget(self.email_input)
         
@@ -90,6 +91,15 @@ class LoginScreen(QWidget):
         self.pass_input = QLineEdit()
         self.pass_input.setPlaceholderText("••••••••")
         self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.pass_input.setText("Password123!")
+        
+        # Add show/hide password toggle action
+        self.show_pass_action = QAction(self.pass_input)
+        self.eye_closed_icon = QIcon("assets/icons/eye_closed.png")
+        self.eye_open_icon = QIcon("assets/icons/eye.png")
+        self.show_pass_action.setIcon(self.eye_closed_icon)
+        self.pass_input.addAction(self.show_pass_action, QLineEdit.ActionPosition.TrailingPosition)
+        self.show_pass_action.triggered.connect(self.toggle_password_visibility)
         
         form_layout.addLayout(pass_layout)
         form_layout.addWidget(self.pass_input)
@@ -167,8 +177,19 @@ class LoginScreen(QWidget):
         """)
         msg_box.exec()
 
+    def toggle_password_visibility(self):
+        """Toggles the password field between hidden and visible text."""
+        if self.pass_input.echoMode() == QLineEdit.EchoMode.Password:
+            self.pass_input.setEchoMode(QLineEdit.EchoMode.Normal)
+            self.show_pass_action.setIcon(self.eye_open_icon)
+        else:
+            self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
+            self.show_pass_action.setIcon(self.eye_closed_icon)
+
     def clear_fields(self):
         """Resets credentials and error alerts when displaying the page anew."""
-        self.email_input.clear()
-        self.pass_input.clear()
+        self.email_input.setText("xyz@gmail.com")
+        self.pass_input.setText("Password123!")
+        self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.show_pass_action.setIcon(self.eye_closed_icon)
         self.error_label.setVisible(False)

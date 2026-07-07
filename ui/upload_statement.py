@@ -1,89 +1,53 @@
 import os
 import sys
 import datetime
+import subprocess
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton,
     QFileDialog, QTableWidget, QTableWidgetItem, QHeaderView, QLineEdit,
-    QSpacerItem, QSizePolicy, QStackedWidget, QDialog, QProgressBar, QMessageBox, QGridLayout
+    QSpacerItem, QSizePolicy, QStackedWidget, QDialog, QProgressBar, QMessageBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QStandardPaths
-from PyQt6.QtGui import QPixmap, QCursor
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QStandardPaths
+from PyQt6.QtGui import QPixmap, QIcon, QCursor
 
-from services.statement_service import StatementService
+from utils.statement_service import StatementService
+from utils.excel_generator import ExcelGenerator
+from utils.history_service import HistoryService
 from utils.user_session import UserSession
 
-
 class LoadingProgressDialog(QDialog):
-    """Centered progress dialog displaying a vertical checklist of steps (1-6)."""
+    """Centered progress dialog displayed during background thread parsing."""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Processing Statement")
-        self.setFixedSize(400, 360)
+        self.setFixedSize(380, 160)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
         self.setStyleSheet("QDialog { background-color: #FFFFFF; border-radius: 12px; }")
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 28, 28, 28)
-        layout.setSpacing(12)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
 
-        self.title_label = QLabel("Parsing financial statement...")
-        self.title_label.setStyleSheet("font-size: 15px; font-weight: 700; color: #0F172A;")
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.title_label)
-
-        self.steps = [
-            "Step 1: Uploading PDF",
-            "Step 2: Reading PDF",
-            "Step 3: OCR (if required)",
-            "Step 4: Google Gemini Analysis",
-            "Step 5: Generating Excel",
-            "Step 6: Saving File"
-        ]
-
-        self.step_labels = []
-        self.step_icons = []
-
-        for step in self.steps:
-            row = QHBoxLayout()
-            row.setSpacing(10)
-            
-            icon = QLabel("○")
-            icon.setStyleSheet("font-size: 15px; color: #94A3B8;")
-            icon.setFixedWidth(20)
-            row.addWidget(icon)
-            
-            label = QLabel(step)
-            label.setStyleSheet("font-size: 13px; color: #94A3B8; font-weight: 500;")
-            row.addWidget(label)
-            row.addStretch()
-            
-            layout.addLayout(row)
-            self.step_icons.append(icon)
-            self.step_labels.append(label)
-
-        layout.addSpacing(8)
+        self.label = QLabel("Extracting financial data...")
+        self.label.setStyleSheet("font-size: 13px; font-weight: 600; color: #334155;")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.label)
 
         self.progress_bar = QProgressBar()
-        self.progress_bar.setFixedHeight(6)
+        self.progress_bar.setFixedHeight(8)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
                 background-color: #E2E8F0;
                 border: none;
-                border-radius: 3px;
+                border-radius: 4px;
             }
             QProgressBar::chunk {
                 background-color: #2563EB;
-                border-radius: 3px;
+                border-radius: 4px;
             }
         """)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setValue(0)
         layout.addWidget(self.progress_bar)
-
-        self.status_lbl = QLabel("Initializing...")
-        self.status_lbl.setStyleSheet("font-size: 11px; color: #64748B;")
-        self.status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.status_lbl)
 
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setFixedSize(90, 28)
@@ -110,243 +74,6 @@ class LoadingProgressDialog(QDialog):
         btn_container.addStretch()
         layout.addLayout(btn_container)
 
-    def set_step_status(self, step_idx, status):
-        """
-        Updates step status indicators.
-        step_idx is 1-indexed (1 to 6)
-        status can be: "pending", "running", "success", "skipped", "failed"
-        """
-        i = step_idx - 1
-        if i < 0 or i >= len(self.step_labels):
-            return
-
-        if status == "running":
-            self.step_icons[i].setText("⚡")
-            self.step_icons[i].setStyleSheet("font-size: 15px; color: #2563EB; font-weight: bold;")
-            self.step_labels[i].setStyleSheet("font-size: 13px; color: #0F172A; font-weight: 600;")
-            self.status_lbl.setText(f"Running: {self.steps[i]}...")
-            self.progress_bar.setValue(int((step_idx - 0.5) / 6.0 * 100))
-        elif status == "success":
-            self.step_icons[i].setText("✓")
-            self.step_icons[i].setStyleSheet("font-size: 15px; color: #10B981; font-weight: bold;")
-            self.step_labels[i].setStyleSheet("font-size: 13px; color: #10B981; font-weight: 500;")
-            self.progress_bar.setValue(int(step_idx / 6.0 * 100))
-        elif status == "skipped":
-            self.step_icons[i].setText("✓")
-            self.step_icons[i].setStyleSheet("font-size: 15px; color: #94A3B8; font-weight: bold;")
-            self.step_labels[i].setStyleSheet("font-size: 13px; color: #94A3B8; font-style: italic;")
-            self.progress_bar.setValue(int(step_idx / 6.0 * 100))
-        elif status == "failed":
-            self.step_icons[i].setText("✗")
-            self.step_icons[i].setStyleSheet("font-size: 15px; color: #EF4444; font-weight: bold;")
-            self.step_labels[i].setStyleSheet("font-size: 13px; color: #EF4444; font-weight: 600;")
-            self.status_lbl.setText(f"Failed at: {self.steps[i]}")
-
-
-class ErrorDialog(QDialog):
-    """Beautiful, custom styled error dialog for specific exception messages."""
-    def __init__(self, error_type, message, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(error_type)
-        self.setFixedSize(460, 240)
-        self.setStyleSheet("QDialog { background-color: #FFFFFF; border-radius: 12px; }")
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
-
-        header = QHBoxLayout()
-        header.setSpacing(14)
-        
-        # Red warning icon
-        icon = QLabel("⚠️")
-        icon.setStyleSheet("font-size: 28px; color: #EF4444;")
-        header.addWidget(icon)
-        
-        title_lbl = QLabel(error_type)
-        title_lbl.setStyleSheet("font-size: 16px; font-weight: 700; color: #1E293B;")
-        header.addWidget(title_lbl)
-        header.addStretch()
-        layout.addLayout(header)
-
-        msg_lbl = QLabel(message)
-        msg_lbl.setWordWrap(True)
-        msg_lbl.setStyleSheet("font-size: 13px; color: #475569; line-height: 18px;")
-        layout.addWidget(msg_lbl)
-
-        layout.addStretch()
-
-        btn = QPushButton("OK")
-        btn.setFixedSize(100, 34)
-        btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        btn.setStyleSheet("""
-            QPushButton {
-                background-color: #EF4444;
-                color: white;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 13px;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #DC2626;
-            }
-        """)
-        btn.clicked.connect(self.accept)
-        
-        btn_lay = QHBoxLayout()
-        btn_lay.addStretch()
-        btn_lay.addWidget(btn)
-        layout.addLayout(btn_lay)
-
-
-class SuccessDialog(QDialog):
-    """Beautiful dialog displaying file extraction statistics and action buttons."""
-    def __init__(self, file_name, file_location, processing_time, bank_name, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Excel Generated Successfully")
-        self.setFixedSize(500, 380)
-        self.setStyleSheet("QDialog { background-color: #FFFFFF; border-radius: 12px; }")
-
-        self.excel_path = file_location
-        self.folder_path = os.path.dirname(file_location)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 28, 28, 28)
-        layout.setSpacing(16)
-
-        icon = QLabel("✓")
-        icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon.setFixedSize(54, 54)
-        icon.setStyleSheet("""
-            background-color: #ECFDF5;
-            color: #10B981;
-            font-size: 28px;
-            font-weight: bold;
-            border-radius: 27px;
-            border: 1px solid #A7F3D0;
-        """)
-        layout.addWidget(icon, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        title = QLabel("Excel Generated Successfully")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 18px; font-weight: 800; color: #059669;")
-        layout.addWidget(title)
-
-        card = QFrame()
-        card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;")
-        grid_lay = QGridLayout(card)
-        grid_lay.setContentsMargins(16, 16, 16, 16)
-        grid_lay.setSpacing(10)
-
-        labels = [
-            ("File Name:", file_name),
-            ("Excel Location:", file_location.replace("\\", "/")),
-            ("Processing Time:", f"{processing_time:.2f} seconds"),
-            ("Detected Bank:", bank_name)
-        ]
-
-        for row, (lbl, val) in enumerate(labels):
-            l = QLabel(lbl)
-            l.setStyleSheet("font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase;")
-            v = QLabel(val)
-            v.setWordWrap(True)
-            v.setStyleSheet("font-size: 12px; font-weight: 600; color: #0F172A;")
-            
-            grid_lay.addWidget(l, row, 0)
-            grid_lay.addWidget(v, row, 1)
-
-        layout.addWidget(card)
-
-        # Action Buttons
-        btn_box = QHBoxLayout()
-        btn_box.setSpacing(10)
-        btn_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.open_excel_btn = QPushButton("Open Excel")
-        self.open_excel_btn.setFixedHeight(38)
-        self.open_excel_btn.setFixedWidth(130)
-        self.open_excel_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.open_excel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2563EB;
-                color: white;
-                border-radius: 6px;
-                font-weight: 600;
-                font-size: 13px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #1D4ED8; }
-        """)
-        self.open_excel_btn.clicked.connect(self.open_excel)
-
-        self.open_folder_btn = QPushButton("Open Folder")
-        self.open_folder_btn.setFixedHeight(38)
-        self.open_folder_btn.setFixedWidth(120)
-        self.open_folder_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.open_folder_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #FFFFFF;
-                color: #475569;
-                border: 1px solid #CBD5E1;
-                border-radius: 6px;
-                font-weight: 600;
-                font-size: 13px;
-            }
-            QPushButton:hover { background-color: #F8FAFC; color: #0F172A; }
-        """)
-        self.open_folder_btn.clicked.connect(self.open_folder)
-
-        self.close_btn = QPushButton("Close")
-        self.close_btn.setFixedHeight(38)
-        self.close_btn.setFixedWidth(90)
-        self.close_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.close_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #F1F5F9;
-                color: #475569;
-                border-radius: 6px;
-                font-weight: 600;
-                font-size: 13px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #E2E8F0; color: #0F172A; }
-        """)
-        self.close_btn.clicked.connect(self.accept)
-
-        btn_box.addWidget(self.open_excel_btn)
-        btn_box.addWidget(self.open_folder_btn)
-        btn_box.addWidget(self.close_btn)
-        layout.addLayout(btn_box)
-
-    def open_excel(self):
-        try:
-            if os.path.exists(self.excel_path):
-                if os.name == 'nt':
-                    os.startfile(self.excel_path)
-                elif sys.platform == 'darwin':
-                    import subprocess
-                    subprocess.run(["open", self.excel_path])
-                else:
-                    import subprocess
-                    subprocess.run(["xdg-open", self.excel_path])
-        except Exception as e:
-            print(f"Error opening Excel: {e}")
-
-    def open_folder(self):
-        try:
-            if os.path.exists(self.folder_path):
-                if os.name == 'nt':
-                    os.startfile(self.folder_path)
-                elif sys.platform == 'darwin':
-                    import subprocess
-                    subprocess.run(["open", self.folder_path])
-                else:
-                    import subprocess
-                    subprocess.run(["xdg-open", self.folder_path])
-        except Exception as e:
-            print(f"Error opening folder: {e}")
-
 
 class UploadStatementWidget(QWidget):
     """
@@ -358,7 +85,6 @@ class UploadStatementWidget(QWidget):
         super().__init__(parent)
         self.file_path = None
         self.parsed_data = None
-        self.active_thread = None
         
         # Pagination variables
         self.current_page = 0
@@ -375,6 +101,7 @@ class UploadStatementWidget(QWidget):
 
         self.init_upload_page()
         self.init_preview_page()
+        self.init_success_page()
 
     # ==========================================
     # PAGE 1: UPLOAD & DROP ZONE
@@ -387,7 +114,7 @@ class UploadStatementWidget(QWidget):
 
         header_lbl = QLabel("Upload Bank Statement")
         header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A;")
-        sub_lbl = QLabel("Upload digital or scanned bank statements to extract details offline using Google Gemini.")
+        sub_lbl = QLabel("Upload digital or scanned bank statements to extract details offline.")
         sub_lbl.setStyleSheet("color: #64748B; font-size: 13px;")
         
         layout.addWidget(header_lbl)
@@ -509,21 +236,19 @@ class UploadStatementWidget(QWidget):
 
     def process_selected_file(self, path):
         self.file_path = path
+        # Launch QThread worker
         self.loading_dialog = LoadingProgressDialog(self)
-        self.loading_dialog.title_label.setText("Extracting & Analyzing PDF Statement")
-
-        # Step tracking signals
+        
+        # Signals callbacks
         def on_started():
-            # Initial states
-            for i in range(1, 7):
-                self.loading_dialog.set_step_status(i, "pending")
+            self.loading_dialog.label.setText("Reading PDF layout...")
+            self.loading_dialog.progress_bar.setValue(0)
             self.loading_dialog.show()
 
-        def on_step_started(step_idx):
-            self.loading_dialog.set_step_status(step_idx, "running")
-
-        def on_step_completed(step_idx, status):
-            self.loading_dialog.set_step_status(step_idx, status)
+        def on_progress(current, total):
+            pct = int((current / total) * 100)
+            self.loading_dialog.label.setText(f"Extracting transactions: Page {current} of {total}...")
+            self.loading_dialog.progress_bar.setValue(pct)
 
         def on_finished(payload):
             self.loading_dialog.accept()
@@ -532,41 +257,24 @@ class UploadStatementWidget(QWidget):
 
         def on_error(err_msg):
             self.loading_dialog.reject()
-            self.show_error_popup(err_msg)
+            self.show_error_dialog("Parsing Failure", err_msg)
 
-        # Start background QThread
+        # Start thread
         self.active_thread = StatementService.start_parse(
-            path, on_started, on_step_started, on_step_completed, on_finished, on_error
+            path, on_started, on_progress, on_finished, on_error
         )
 
-    def show_error_popup(self, err_msg):
-        # Dynamically determine the error type for title mapping
-        err_lower = err_msg.lower()
-        if "password" in err_lower:
-            title = "Password Protected PDF"
-        elif "corrupt" in err_lower or "empty" in err_lower:
-            title = "Corrupted PDF"
-        elif "extension" in err_lower or "support" in err_lower:
-            title = "Unsupported PDF"
-        elif "gemini" in err_lower and "key" in err_lower:
-            title = "Gemini API Error"
-        elif "quota" in err_lower or "billing" in err_lower:
-            title = "Gemini API Error"
-        elif "connection" in err_lower or "internet" in err_lower or "network" in err_lower:
-            title = "Internet Error"
-        elif "tesseract" in err_lower or "ocr failure" in err_lower:
-            title = "OCR Failure"
-        elif "json" in err_lower or "xml" in err_lower:
-            title = "JSON Parsing Error"
-        elif "save" in err_lower or "write" in err_lower or "permission" in err_lower:
-            title = "Excel Save Error"
-        elif "mongo" in err_lower or "pymongo" in err_lower:
-            title = "MongoDB Error"
-        else:
-            title = "Processing Failure"
-
-        dialog = ErrorDialog(title, err_msg, self)
-        dialog.exec()
+    def show_error_dialog(self, title, message):
+        msg = QMessageBox(self)
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setStyleSheet("""
+            QMessageBox { background-color: #FFFFFF; }
+            QPushButton { background-color: #2563EB; color: white; border-radius: 6px; padding: 6px 12px; }
+            QPushButton:hover { background-color: #1D4ED8; }
+        """)
+        msg.exec()
 
     # ==========================================
     # PAGE 2: METADATA & PREVIEW TABLE
@@ -652,12 +360,12 @@ class UploadStatementWidget(QWidget):
         search_layout.addWidget(self.search_input)
         ts_layout.addLayout(search_layout)
 
-        # QTableWidget (5 columns: Date, Narration, Debit, Credit, Balance)
+        # QTableWidget
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["Date", "Narration", "Debit", "Credit", "Balance"])
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(["Row", "Date", "Narration", "Debit (Withdrawals)", "Credit (Deposits)", "Balance"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.table.setStyleSheet("border: 1px solid #E2E8F0; background-color: #FFFFFF; gridline-color: #F1F5F9;")
         
         # Connect header clicked for custom paginated sorting
@@ -714,21 +422,17 @@ class UploadStatementWidget(QWidget):
 
         layout.addWidget(table_section)
 
-        # Bottom Buttons Layout (Modular layout)
-        btn_wrapper = QVBoxLayout()
-        btn_wrapper.setSpacing(10)
-
-        # Primary actions & Coming soon buttons
-        row1_lay = QHBoxLayout()
-        row1_lay.setSpacing(12)
+        # Action Buttons
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(12)
 
         self.generate_btn = QPushButton("Generate Excel")
-        self.generate_btn.setFixedHeight(40)
-        self.generate_btn.setFixedWidth(150)
+        self.generate_btn.setFixedHeight(42)
+        self.generate_btn.setFixedWidth(160)
         self.generate_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.generate_btn.setStyleSheet("""
             QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:1 #1D4ED8);
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10B981, stop:1 #059669);
                 color: white;
                 border-radius: 8px;
                 font-weight: 700;
@@ -736,49 +440,33 @@ class UploadStatementWidget(QWidget):
                 border: none;
             }
             QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1D4ED8, stop:1 #1E40AF);
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #059669, stop:1 #047857);
             }
         """)
         self.generate_btn.clicked.connect(self.generate_excel_sheet)
-        row1_lay.addWidget(self.generate_btn)
 
-        coming_soon_buttons = [
-            "AI Report", "GST Report", "Tally Export", 
-            "Duplicate Finder", "History Logs", "Email Report"
-        ]
-        
-        self.cs_btn_widgets = []
-        for name in coming_soon_buttons:
-            btn = QPushButton(name)
-            btn.setFixedHeight(40)
-            btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            # Styled visually to convey 'Coming Soon' and disabled style
-            btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #F8FAFC;
-                    color: #94A3B8;
-                    border: 1px solid #E2E8F0;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    font-size: 12px;
-                }
-                QPushButton:hover {
-                    background-color: #F1F5F9;
-                    color: #475569;
-                }
-            """)
-            btn.clicked.connect(lambda checked, n=name: self.show_coming_soon_popup(n))
-            row1_lay.addWidget(btn)
-            self.cs_btn_widgets.append(btn)
-
-        btn_wrapper.addLayout(row1_lay)
-
-        # Standard navigation buttons (Cancel/Upload another)
-        row2_lay = QHBoxLayout()
-        row2_lay.addStretch()
+        self.upload_another_btn = QPushButton("Upload Another")
+        self.upload_another_btn.setFixedHeight(42)
+        self.upload_another_btn.setFixedWidth(140)
+        self.upload_another_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.upload_another_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FFFFFF;
+                color: #475569;
+                border: 1px solid #CBD5E1;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #F8FAFC;
+                color: #0F172A;
+            }
+        """)
+        self.upload_another_btn.clicked.connect(self.reset_to_upload)
 
         self.cancel_btn = QPushButton("Cancel")
-        self.cancel_btn.setFixedHeight(34)
+        self.cancel_btn.setFixedHeight(42)
         self.cancel_btn.setFixedWidth(100)
         self.cancel_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.cancel_btn.setStyleSheet("""
@@ -788,34 +476,21 @@ class UploadStatementWidget(QWidget):
                 border: 1px solid #FCA5A5;
                 border-radius: 8px;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
             }
             QPushButton:hover {
                 background-color: #FEF2F2;
             }
         """)
         self.cancel_btn.clicked.connect(self.reset_to_upload)
-        row2_lay.addWidget(self.cancel_btn)
 
-        btn_wrapper.addLayout(row2_lay)
-        layout.addLayout(btn_wrapper)
+        btn_row.addWidget(self.generate_btn)
+        btn_row.addWidget(self.upload_another_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(self.cancel_btn)
+        layout.addLayout(btn_row)
 
         self.stack.addWidget(self.preview_page)
-
-    def show_coming_soon_popup(self, feature_name):
-        """Displays a beautiful QMessageBox to denote coming soon modules."""
-        msg_box = QMessageBox(self)
-        msg_box.setWindowTitle("Coming Soon")
-        msg_box.setText(f"{feature_name} - Coming Soon")
-        msg_box.setInformativeText("This feature is currently under development and will be available in the next release.")
-        msg_box.setIcon(QMessageBox.Icon.Information)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-        msg_box.setStyleSheet("""
-            QMessageBox { background-color: #FFFFFF; }
-            QPushButton { background-color: #2563EB; color: white; border-radius: 6px; padding: 6px 12px; }
-            QPushButton:hover { background-color: #1D4ED8; }
-        """)
-        msg_box.exec()
 
     def show_preview_card(self):
         # 1. Update Preview Card labels
@@ -823,15 +498,12 @@ class UploadStatementWidget(QWidget):
         self.file_name_lbl.setText(payload["file_name"])
         
         # File Size formatting
-        size_bytes = 0
-        if os.path.exists(payload["file_path"]):
-            size_bytes = os.path.getsize(payload["file_path"])
+        size_bytes = os.path.path.getsize(payload["file_path"]) if os.path.exists(payload["file_path"]) else 0
         size_kb = size_bytes / 1024
         self.meta_lbl.setText(f"Pages: {payload['page_count']}  |  Size: {size_kb:.1f} KB")
         
         self.bank_lbl.setText(f"Bank: {payload['bank_name']}")
         type_str = "Scanned PDF (OCR)" if payload["is_scanned"] else "Digital PDF"
-        
         if payload.get("ocr_simulated"):
             type_str += " [Simulated]"
             self.type_lbl.setText(f"Type: {type_str}\n(Tesseract OCR not found)")
@@ -869,43 +541,43 @@ class UploadStatementWidget(QWidget):
         self.table.setRowCount(len(page_items))
 
         for row_idx, tx in enumerate(page_items):
+            # Row index number
+            num_item = QTableWidgetItem(str(start + row_idx + 1))
+            num_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            num_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            self.table.setItem(row_idx, 0, num_item)
+
             # Date
             date_item = QTableWidgetItem(tx["date"])
             date_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             date_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row_idx, 0, date_item)
+            self.table.setItem(row_idx, 1, date_item)
 
             # Narration
             narr_item = QTableWidgetItem(tx["narration"])
             narr_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row_idx, 1, narr_item)
+            self.table.setItem(row_idx, 2, narr_item)
 
             # Debit
-            deb = tx.get("debit", 0.0)
-            deb_val = f"₹ {deb:,.2f}" if deb > 0 else "-"
+            deb_val = f"₹ {tx['debit']:,.2f}" if tx['debit'] > 0 else "-"
             deb_item = QTableWidgetItem(deb_val)
             deb_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             deb_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row_idx, 2, deb_item)
+            self.table.setItem(row_idx, 3, deb_item)
 
             # Credit
-            cred = tx.get("credit", 0.0)
-            cred_val = f"₹ {cred:,.2f}" if cred > 0 else "-"
+            cred_val = f"₹ {tx['credit']:,.2f}" if tx['credit'] > 0 else "-"
             cred_item = QTableWidgetItem(cred_val)
             cred_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             cred_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row_idx, 3, cred_item)
+            self.table.setItem(row_idx, 4, cred_item)
 
             # Balance
-            bal_val = tx.get("balance")
-            if bal_val is not None:
-                bal_str = f"₹ {bal_val:,.2f}"
-            else:
-                bal_str = "-"
-            bal_item = QTableWidgetItem(bal_str)
+            bal_val = f"₹ {tx['balance']:,.2f}"
+            bal_item = QTableWidgetItem(bal_val)
             bal_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             bal_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row_idx, 4, bal_item)
+            self.table.setItem(row_idx, 5, bal_item)
 
         # Update labels and pagination buttons
         self.page_lbl.setText(f"Page {self.current_page + 1} of {self.total_pages}")
@@ -935,6 +607,10 @@ class UploadStatementWidget(QWidget):
         self.update_table_view()
 
     def on_header_clicked(self, logical_index):
+        if logical_index == 0:
+            # Row index clicked, don't sort
+            return
+            
         # Toggle sort order
         if self.sort_column == logical_index:
             self.sort_ascending = not self.sort_ascending
@@ -944,17 +620,16 @@ class UploadStatementWidget(QWidget):
 
         # Sort filtered transactions list in memory
         def get_sort_key(tx):
-            if logical_index == 0: # Date
+            if logical_index == 1: # Date
                 return tx["date"]
-            elif logical_index == 1: # Narration
+            elif logical_index == 2: # Narration
                 return tx["narration"].lower()
-            elif logical_index == 2: # Debit
-                return tx.get("debit", 0.0)
-            elif logical_index == 3: # Credit
-                return tx.get("credit", 0.0)
-            elif logical_index == 4: # Balance
-                val = tx.get("balance")
-                return val if val is not None else -9999999.0
+            elif logical_index == 3: # Debit
+                return tx["debit"]
+            elif logical_index == 4: # Credit
+                return tx["credit"]
+            elif logical_index == 5: # Balance
+                return tx["balance"]
             return 0
 
         self.filtered_transactions.sort(key=get_sort_key, reverse=not self.sort_ascending)
@@ -962,57 +637,191 @@ class UploadStatementWidget(QWidget):
         self.update_table_view()
 
     def generate_excel_sheet(self):
-        """Launches background thread for Excel workbook formatting and storage."""
-        user = UserSession.get_current_user()
-        user_id = user["id"] if user else "guest"
-
-        self.loading_dialog = LoadingProgressDialog(self)
-        self.loading_dialog.title_label.setText("Formatting & Saving Excel Sheet")
-
-        # Step tracking callbacks
-        def on_started():
-            # Steps 1-4 are pre-checked as complete
-            for i in range(1, 5):
-                self.loading_dialog.set_step_status(i, "success")
-            # Steps 5-6 are pending
-            self.loading_dialog.set_step_status(5, "pending")
-            self.loading_dialog.set_step_status(6, "pending")
-            self.loading_dialog.show()
-
-        def on_step_started(step_idx):
-            self.loading_dialog.set_step_status(step_idx, "running")
-
-        def on_step_completed(step_idx, status):
-            self.loading_dialog.set_step_status(step_idx, status)
-
-        def on_finished(excel_path):
-            self.loading_dialog.accept()
+        try:
+            payload = self.parsed_data
             
-            # Show the beautiful custom success dialog
-            success = SuccessDialog(
-                file_name=os.path.basename(excel_path),
-                file_location=excel_path,
-                processing_time=self.parsed_data["processing_time"],
-                bank_name=self.parsed_data["bank_name"],
-                parent=self
+            # Run excel generator
+            excel_path = ExcelGenerator.generate_excel(
+                payload["file_path"],
+                payload["bank_name"],
+                payload["account_holder"],
+                payload["period"],
+                payload["transactions"]
             )
-            success.exec()
             
-            # Reset view back to upload screen and emit finished
-            self.reset_to_upload()
+            # Save parsing run into MongoDB
+            user = UserSession.get_current_user()
+            user_id = user["id"] if user else "guest"
+            
+            HistoryService.save_record(
+                user_id=user_id,
+                file_name=payload["file_name"],
+                pdf_path=payload["file_path"],
+                excel_path=excel_path,
+                bank_name=payload["bank_name"],
+                period=payload["period"],
+                total_transactions=len(payload["transactions"]),
+                processing_time=payload["processing_time"],
+                ocr_used=payload["ocr_used"]
+            )
+            
+            # Show success page
+            self.show_success_page(excel_path)
+            
+            # Notify dashboard to refresh statistics counter in real time
             self.processingCompleted.emit()
 
-        def on_error(err_msg):
-            self.loading_dialog.reject()
-            self.show_error_popup(err_msg)
-
-        # Spawns generating & saving QThread worker
-        self.active_thread = StatementService.start_generate_excel(
-            user_id, self.parsed_data, on_started, on_step_started, on_step_completed, on_finished, on_error
-        )
+        except Exception as e:
+            self.show_error_dialog("Excel Generation Error", f"Could not create Excel spreadsheet:\n{e}")
 
     def reset_to_upload(self):
         self.file_path = None
         self.parsed_data = None
         self.search_input.clear()
         self.stack.setCurrentIndex(0)
+
+    # ==========================================
+    # PAGE 3: EXPORT SUCCESS
+    # ==========================================
+    def init_success_page(self):
+        self.success_page = QWidget()
+        layout = QVBoxLayout(self.success_page)
+        layout.setContentsMargins(40, 60, 40, 60)
+        layout.setSpacing(24)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        success_icon = QLabel("✓")
+        success_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        success_icon.setFixedSize(64, 64)
+        success_icon.setStyleSheet("""
+            background-color: #ECFDF5;
+            color: #10B981;
+            font-size: 32px;
+            font-weight: bold;
+            border-radius: 32px;
+            border: 1px solid #A7F3D0;
+        """)
+        layout.addWidget(success_icon, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        success_title = QLabel("Excel Generated Successfully")
+        success_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        success_title.setStyleSheet("font-size: 20px; font-weight: 800; color: #059669;")
+        layout.addWidget(success_title)
+
+        self.success_desc = QLabel("Your bank statement transactions have been saved.")
+        self.success_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.success_desc.setStyleSheet("font-size: 13px; color: #64748B; font-weight: 500;")
+        layout.addWidget(self.success_desc)
+
+        # Info card for Path
+        path_card = QFrame()
+        path_card.setFixedWidth(550)
+        path_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;")
+        path_lay = QVBoxLayout(path_card)
+        path_lay.setContentsMargins(14, 12, 14, 12)
+        
+        path_title = QLabel("Destination Path:")
+        path_title.setStyleSheet("font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase;")
+        self.path_val = QLabel("C:/")
+        self.path_val.setWordWrap(True)
+        self.path_val.setStyleSheet("font-size: 12px; font-weight: 600; color: #0F172A;")
+        
+        path_lay.addWidget(path_title)
+        path_lay.addWidget(self.path_val)
+        layout.addWidget(path_card, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # OS Action buttons
+        btn_box = QHBoxLayout()
+        btn_box.setSpacing(12)
+        btn_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.open_excel_btn = QPushButton("Open Excel Sheet")
+        self.open_excel_btn.setFixedHeight(40)
+        self.open_excel_btn.setFixedWidth(160)
+        self.open_excel_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.open_excel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2563EB;
+                color: white;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 13px;
+                border: none;
+            }
+            QPushButton:hover { background-color: #1D4ED8; }
+        """)
+        self.open_excel_btn.clicked.connect(self.open_excel_file)
+
+        self.open_folder_btn = QPushButton("Open Folder")
+        self.open_folder_btn.setFixedHeight(40)
+        self.open_folder_btn.setFixedWidth(140)
+        self.open_folder_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.open_folder_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FFFFFF;
+                color: #475569;
+                border: 1px solid #CBD5E1;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 13px;
+            }
+            QPushButton:hover { background-color: #F8FAFC; color: #0F172A; }
+        """)
+        self.open_folder_btn.clicked.connect(self.open_excel_folder)
+
+        self.close_success_btn = QPushButton("Close")
+        self.close_success_btn.setFixedHeight(40)
+        self.close_success_btn.setFixedWidth(100)
+        self.close_success_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.close_success_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #F1F5F9;
+                color: #475569;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 13px;
+                border: none;
+            }
+            QPushButton:hover { background-color: #E2E8F0; color: #0F172A; }
+        """)
+        self.close_success_btn.clicked.connect(self.reset_to_upload)
+
+        btn_box.addWidget(self.open_excel_btn)
+        btn_box.addWidget(self.open_folder_btn)
+        btn_box.addWidget(self.close_success_btn)
+        layout.addLayout(btn_box)
+
+        self.stack.addWidget(self.success_page)
+
+    def show_success_page(self, path):
+        self.generated_excel_path = path
+        # Normalize display path slashes
+        clean_path = path.replace("\\", "/")
+        self.path_val.setText(clean_path)
+        self.stack.setCurrentIndex(2)
+
+    def open_excel_file(self):
+        try:
+            if os.path.exists(self.generated_excel_path):
+                # Cross-platform open
+                if os.name == 'nt':
+                    os.startfile(self.generated_excel_path)
+                elif sys.platform == 'darwin':
+                    subprocess.run(["open", self.generated_excel_path])
+                else:
+                    subprocess.run(["xdg-open", self.generated_excel_path])
+        except Exception as e:
+            self.show_error_dialog("File Open Error", f"Could not launch spreadsheet application:\n{e}")
+
+    def open_excel_folder(self):
+        try:
+            folder = os.path.dirname(self.generated_excel_path)
+            if os.path.exists(folder):
+                if os.name == 'nt':
+                    os.startfile(folder)
+                elif sys.platform == 'darwin':
+                    subprocess.run(["open", folder])
+                else:
+                    subprocess.run(["xdg-open", folder])
+        except Exception as e:
+            self.show_error_dialog("Folder Open Error", f"Could not open containing directory:\n{e}")
