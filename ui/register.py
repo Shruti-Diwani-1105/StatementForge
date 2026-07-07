@@ -411,13 +411,7 @@ class RegisterScreen(QWidget):
         form_layout.setContentsMargins(40, 32, 40, 32)
         form_layout.setSpacing(10)
 
-        # Branding Header
-        header_widget = QWidget()
-        header_layout = QVBoxLayout(header_widget)
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(4)
-        header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
+        # Branding Header (Added directly to parent layout to prevent sizing/clipping bugs)
         logo_label = QLabel()
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_pixmap = QPixmap("assets/logo.png")
@@ -425,20 +419,19 @@ class RegisterScreen(QWidget):
             logo_label.setPixmap(logo_pixmap.scaled(
                 40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             ))
-        header_layout.addWidget(logo_label)
+        form_layout.addWidget(logo_label)
 
         title_label = QLabel("StatementForge")
         title_label.setMinimumHeight(34)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("font-size: 22px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px; border: 0px solid transparent; padding-bottom: 4px;")
-        header_layout.addWidget(title_label)
+        form_layout.addWidget(title_label)
 
         subtitle_label = QLabel("Create your account to securely manage and process financial statements.")
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle_label.setWordWrap(True)
         subtitle_label.setStyleSheet("font-size: 13px; color: #64748B; font-weight: 500;")
-        header_layout.addWidget(subtitle_label)
-        form_layout.addWidget(header_widget)
+        form_layout.addWidget(subtitle_label)
 
         # Inputs section
         self.name_input = PremiumInputGroup(
