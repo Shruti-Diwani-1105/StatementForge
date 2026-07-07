@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class GeminiService:
-    """Communicates with the Google Gemini API to analyze bank statement texts."""
+    """Communicates with the Google Gemini API or OpenAI API to analyze bank statement texts."""
     
     @classmethod
     def get_api_key(cls):
@@ -16,26 +16,8 @@ class GeminiService:
         return os.getenv("GEMINI_API_KEY")
 
     @classmethod
-    def parse_statement_text(cls, text):
-        """
-        Sends the statement text to Gemini API and gets structured JSON.
-        Returns a dictionary containing statement details and transaction rows.
-        """
-        api_key = cls.get_api_key()
-        if not api_key or not api_key.strip():
-            raise ValueError(
-                "Google Gemini API Key is missing.\n\n"
-                "Please configure GEMINI_API_KEY in the .env file."
-            )
-
-        try:
-            # Configure Google Generative AI
-            genai.configure(api_key=api_key)
-            
-            # Using production model: gemini-2.0-flash
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            
-            prompt = """You are an expert Financial Statement Parser.
+    def _get_prompt(cls):
+        return """You are an expert Financial Statement Parser.
 Analyze the uploaded bank statement.
 
 Automatically identify:
@@ -71,6 +53,44 @@ If Balance is empty return null.
 Do not explain anything.
 Return JSON only."""
 
+    @classmethod
+    def parse_statement_text(cls, text):
+        """
+        Sends the statement text to Gemini or OpenAI API and gets structured JSON.
+        Returns a dictionary containing statement details and transaction rows.
+        """
+        # Reload environment dynamically
+        load_dotenv(override=True)
+        
+        openai_key = os.getenv("OPENAI_API_KEY")
+        gemini_key = cls.get_api_key()
+
+        # If OPENAI_API_KEY is configured and not empty, use OpenAI
+        if openai_key and openai_key.strip():
+            print("GeminiService: OPENAI_API_KEY detected. Parsing with OpenAI GPT-4o-mini...")
+            return cls._parse_with_openai(text, openai_key.strip())
+
+        # Otherwise fallback/default to Gemini
+        if not gemini_key or not gemini_key.strip():
+            raise ValueError(
+                "API Key is missing.\n\n"
+                "Please configure either GEMINI_API_KEY or OPENAI_API_KEY in the .env file."
+            )
+
+        print("GeminiService: Parsing with Google Gemini...")
+        return cls._parse_with_gemini(text, gemini_key.strip())
+
+    @classmethod
+    def _parse_with_gemini(cls, text, api_key):
+        try:
+            # Configure Google Generative AI
+            genai.configure(api_key=api_key)
+            
+            # Using production model: gemini-2.0-flash
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            
+            prompt = cls._get_prompt()
+            
             # We request JSON specifically using generation_config
             generation_config = {
                 "response_mime_type": "application/json"
@@ -108,3 +128,38 @@ Return JSON only."""
                 raise RuntimeError("Google Gemini API quota exceeded. Please check your billing status or retry later.")
             else:
                 raise RuntimeError(f"Google Gemini API connection error: {e}")
+
+    @classmethod
+    def _parse_with_openai(cls, text, api_key):
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            
+            prompt = cls._get_prompt()
+            
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": f"Statement text to parse:\n{text}"}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            response_text = response.choices[0].message.content.strip()
+            
+            data = json.loads(response_text)
+            return data
+            
+        except json.JSONDecodeError as je:
+            raise RuntimeError(
+                f"Failed to parse transaction data from OpenAI. The AI model output was not valid JSON:\n{je}\n\nRaw Output:\n{response_text[:300]}..."
+            )
+        except Exception as e:
+            err_msg = str(e)
+            if "invalid_api_key" in err_msg or "Incorrect API key" in err_msg or "invalid api key" in err_msg.lower():
+                raise RuntimeError("Invalid OpenAI API Key. Please verify the key set in your .env file.")
+            elif "rate_limit" in err_msg or "429" in err_msg or "quota" in err_msg.lower():
+                raise RuntimeError("OpenAI API quota exceeded or rate limit hit. Please check your billing status or retry later.")
+            else:
+                raise RuntimeError(f"OpenAI API connection error: {e}")
