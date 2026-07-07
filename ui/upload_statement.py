@@ -35,7 +35,7 @@ class LoadingProgressDialog(QDialog):
             "Step 1: Uploading PDF",
             "Step 2: Reading PDF",
             "Step 3: OCR (if required)",
-            "Step 4: Google Gemini Analysis",
+            "Step 4: AI Analysis",
             "Step 5: Generating Excel",
             "Step 6: Saving File"
         ]
@@ -387,7 +387,7 @@ class UploadStatementWidget(QWidget):
 
         header_lbl = QLabel("Upload Bank Statement")
         header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A;")
-        sub_lbl = QLabel("Upload digital or scanned bank statements to extract details offline using Google Gemini.")
+        sub_lbl = QLabel("Upload digital or scanned bank statements to extract details offline using AI Analysis.")
         sub_lbl.setStyleSheet("color: #64748B; font-size: 13px;")
         
         layout.addWidget(header_lbl)

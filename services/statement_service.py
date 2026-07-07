@@ -87,7 +87,7 @@ Date         Narration                             Debit       Credit      Balan
             if not raw_text or not raw_text.strip():
                 raise ValueError("Could not extract any text from the PDF file. The file may contain unreadable content or image scans without Tesseract installed.")
 
-            # --- STEP 4: Google Gemini Analysis ---
+            # --- STEP 4: AI Analysis ---
             self.step_started.emit(4)
             
             # Call Gemini service
