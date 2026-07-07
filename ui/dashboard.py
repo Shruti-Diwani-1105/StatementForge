@@ -91,7 +91,7 @@ class DashboardScreen(QWidget):
 
     def update_dashboard_stats(self):
         """Fetches dynamic metrics from HistoryService and updates dashboard labels."""
-        from utils.history_service import HistoryService
+        from services.history_service import HistoryService
         from utils.user_session import UserSession
         
         user = UserSession.get_current_user()
@@ -105,6 +105,124 @@ class DashboardScreen(QWidget):
             self.stats_verified_lbl.setText(f"{stats['verified']:,}")
         if hasattr(self, "stats_exported_lbl") and self.stats_exported_lbl is not None:
             self.stats_exported_lbl.setText(str(stats["exported"]))
+            
+        if hasattr(self, "update_recent_activity_ui"):
+            self.update_recent_activity_ui(user_id)
+
+    def update_recent_activity_ui(self, user_id):
+        """Rebuilds the Recent Activity list widgets dynamically."""
+        if not hasattr(self, "activity_layout") or self.activity_layout is None:
+            return
+
+        # Clear layout first
+        while self.activity_layout.count():
+            item = self.activity_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            # If it's a spacer, taking it out is enough
+
+        # Re-add Title
+        act_title = QLabel("Recent Activity")
+        act_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 8px;")
+        self.activity_layout.addWidget(act_title)
+
+        # Fetch recent items
+        from services.history_service import HistoryService
+        import datetime
+        
+        recent = HistoryService.get_recent_activity(user_id, limit=5)
+        
+        if not recent:
+            self.activity_layout.addStretch()
+            empty_lbl = QLabel("No recent activity.")
+            empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_lbl.setStyleSheet("color: #94A3B8; font-size: 13px; font-weight: 500;")
+            self.activity_layout.addWidget(empty_lbl)
+            self.activity_layout.addStretch()
+        else:
+            # Helper for time ago
+            def time_ago(dt):
+                if not dt:
+                    return "some time ago"
+                if isinstance(dt, str):
+                    try:
+                        dt = datetime.datetime.fromisoformat(dt.replace("Z", "+00:00"))
+                    except Exception:
+                        return dt
+                
+                # Make naive for comparison
+                if dt.tzinfo is not None:
+                    dt = dt.replace(tzinfo=None)
+                now = datetime.datetime.utcnow()
+                diff = now - dt
+                seconds = diff.total_seconds()
+                if seconds < 60:
+                    return "Just now"
+                minutes = seconds / 60
+                if minutes < 60:
+                    return f"{int(minutes)}m ago"
+                hours = minutes / 60
+                if hours < 24:
+                    return f"{int(hours)}h ago"
+                days = hours / 24
+                if days < 7:
+                    return f"{int(days)}d ago"
+                return dt.strftime("%b %d")
+
+            for item in recent:
+                item_widget = QFrame()
+                item_widget.setObjectName("ActivityItem")
+                item_widget.setStyleSheet("""
+                    QFrame#ActivityItem {
+                        background-color: #F8FAFC;
+                        border: 1px solid #E2E8F0;
+                        border-radius: 8px;
+                    }
+                    QFrame#ActivityItem:hover {
+                        background-color: #EFF6FF;
+                        border-color: #DBEAFE;
+                    }
+                """)
+                item_lay = QHBoxLayout(item_widget)
+                item_lay.setContentsMargins(10, 8, 10, 8)
+                item_lay.setSpacing(10)
+
+                # Bullet check
+                bullet = QLabel("✓")
+                bullet.setFixedSize(20, 20)
+                bullet.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                bullet.setStyleSheet("""
+                    background-color: #ECFDF5;
+                    color: #10B981;
+                    font-size: 11px;
+                    font-weight: bold;
+                    border-radius: 10px;
+                    border: 1px solid #D1FAE5;
+                """)
+                item_lay.addWidget(bullet)
+
+                # Texts
+                text_lay = QVBoxLayout()
+                text_lay.setSpacing(2)
+                
+                # File Name
+                fn_lbl = QLabel(item["file_name"])
+                fn_lbl.setStyleSheet("font-size: 13px; font-weight: 600; color: #1E293B;")
+                
+                # Subtitle: Bank + Time
+                ago_str = time_ago(item["upload_date"])
+                sub_lbl = QLabel(f"{item['bank_name']} • {ago_str}")
+                sub_lbl.setStyleSheet("font-size: 11px; color: #64748B;")
+                
+                text_lay.addWidget(fn_lbl)
+                text_lay.addWidget(sub_lbl)
+                item_lay.addLayout(text_lay, stretch=1)
+                
+                self.activity_layout.addWidget(item_widget)
+
+            # Add expanding spacer at the end to push elements up
+            self.activity_layout.addStretch()
 
     def show_coming_soon(self, module_name):
         """Displays a professional message box for unimplemented features."""
@@ -252,34 +370,23 @@ class DashboardScreen(QWidget):
         content_split.addWidget(modules_container, stretch=3)
         
         # Right: Recent Activity Container
-        activity_card = QFrame()
-        activity_card.setObjectName("ActivityCard")
-        activity_card.setStyleSheet("""
+        self.activity_card = QFrame()
+        self.activity_card.setObjectName("ActivityCard")
+        self.activity_card.setStyleSheet("""
             QFrame#ActivityCard {
                 background-color: #FFFFFF;
                 border: 1px solid #E2E8F0;
                 border-radius: 12px;
             }
         """)
-        activity_layout = QVBoxLayout(activity_card)
-        activity_layout.setContentsMargins(20, 20, 20, 20)
-        activity_layout.setSpacing(16)
+        self.activity_layout = QVBoxLayout(self.activity_card)
+        self.activity_layout.setContentsMargins(20, 20, 20, 20)
+        self.activity_layout.setSpacing(12)
+        self.activity_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
-        act_title = QLabel("Recent Activity")
-        act_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #0F172A;")
-        activity_layout.addWidget(act_title)
+        # Initial population of recent activities will happen during stats update
         
-        activity_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        
-        # Placeholder for empty activity
-        empty_lbl = QLabel("No recent activity.")
-        empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        empty_lbl.setStyleSheet("color: #94A3B8; font-size: 13px; font-weight: 500;")
-        activity_layout.addWidget(empty_lbl)
-        
-        activity_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        
-        content_split.addWidget(activity_card, stretch=1)
+        content_split.addWidget(self.activity_card, stretch=1)
         page_layout.addLayout(content_split)
         
         scroll_area.setWidget(scroll_content)
