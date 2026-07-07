@@ -71,7 +71,6 @@ class LoginScreen(QWidget):
         email_label.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
         self.email_input = QLineEdit()
         self.email_input.setPlaceholderText("xyz@gmail.com")
-        self.email_input.setText("xyz@gmail.com")
         form_layout.addWidget(email_label)
         form_layout.addWidget(self.email_input)
         
@@ -91,7 +90,6 @@ class LoginScreen(QWidget):
         self.pass_input = QLineEdit()
         self.pass_input.setPlaceholderText("••••••••")
         self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.pass_input.setText("Password123!")
         
         # Add show/hide password toggle action
         self.show_pass_action = QAction(self.pass_input)
@@ -188,8 +186,8 @@ class LoginScreen(QWidget):
 
     def clear_fields(self):
         """Resets credentials and error alerts when displaying the page anew."""
-        self.email_input.setText("xyz@gmail.com")
-        self.pass_input.setText("Password123!")
+        self.email_input.clear()
+        self.pass_input.clear()
         self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.show_pass_action.setIcon(self.eye_closed_icon)
         self.error_label.setVisible(False)

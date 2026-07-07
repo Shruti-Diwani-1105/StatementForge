@@ -411,9 +411,8 @@ class RegisterScreen(QWidget):
         form_layout.setContentsMargins(40, 32, 40, 32)
         form_layout.setSpacing(10)
 
-        # Branding Header (Precisely 120px)
+        # Branding Header
         header_widget = QWidget()
-        header_widget.setFixedHeight(120)
         header_layout = QVBoxLayout(header_widget)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(4)
