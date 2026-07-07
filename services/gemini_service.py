@@ -12,6 +12,7 @@ class GeminiService:
     @classmethod
     def get_api_key(cls):
         """Fetches the Gemini API Key from the environment variables."""
+        load_dotenv(override=True)
         return os.getenv("GEMINI_API_KEY")
 
     @classmethod
@@ -31,8 +32,8 @@ class GeminiService:
             # Configure Google Generative AI
             genai.configure(api_key=api_key)
             
-            # Using latest production fast model: gemini-1.5-flash
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            # Using production model: gemini-2.0-flash
+            model = genai.GenerativeModel("gemini-2.0-flash")
             
             prompt = """You are an expert Financial Statement Parser.
 Analyze the uploaded bank statement.
