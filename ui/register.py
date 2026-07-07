@@ -429,8 +429,9 @@ class RegisterScreen(QWidget):
         header_layout.addWidget(logo_label)
 
         title_label = QLabel("StatementForge")
+        title_label.setMinimumHeight(34)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 22px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px;")
+        title_label.setStyleSheet("font-size: 22px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px; border: 0px solid transparent; padding-bottom: 4px;")
         header_layout.addWidget(title_label)
 
         subtitle_label = QLabel("Create your account to securely manage and process financial statements.")

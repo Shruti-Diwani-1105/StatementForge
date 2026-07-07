@@ -44,7 +44,9 @@ class WelcomeScreen(QWidget):
         left_header.addWidget(logo_label)
         
         app_name_label = QLabel("StatementForge")
-        app_name_label.setStyleSheet("font-weight: 700; font-size: 18px; color: #0F172A;")
+        app_name_label.setMinimumHeight(30)
+        app_name_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        app_name_label.setStyleSheet("font-weight: 700; font-size: 18px; color: #0F172A; border: 0px solid transparent; padding-bottom: 4px;")
         left_header.addWidget(app_name_label)
         header_layout.addLayout(left_header)
         
@@ -88,8 +90,9 @@ class WelcomeScreen(QWidget):
         hero_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         hero_title = QLabel("StatementForge")
+        hero_title.setMinimumHeight(64)
         hero_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hero_title.setStyleSheet("font-size: 42px; font-weight: 800; color: #0F172A; letter-spacing: -1px;")
+        hero_title.setStyleSheet("font-size: 42px; font-weight: 800; color: #0F172A; letter-spacing: -1px; border: 0px solid transparent; padding-bottom: 8px;")
         
         hero_subtitle = QLabel("Multi-Bank Financial Statement Parser & Verification Tool")
         hero_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)

@@ -62,8 +62,9 @@ class SplashScreen(QWidget):
         
         # App Title (Glowing White)
         self.title_label = QLabel("StatementForge")
+        self.title_label.setMinimumHeight(48)
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("font-size: 32px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px;")
+        self.title_label.setStyleSheet("font-size: 32px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px; border: 0px solid transparent; padding-bottom: 6px;")
         main_layout.addWidget(self.title_label)
         
         # Subtitle (Muted Slate Blue)
