@@ -451,7 +451,7 @@ class UploadStatementWidget(QWidget):
             }
         """)
         browse_btn.clicked.connect(self.browse_pdf_file)
-        zone_layout.addWidget(browse_btn)
+        zone_layout.addWidget(browse_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         layout.addWidget(self.drop_zone)
         
