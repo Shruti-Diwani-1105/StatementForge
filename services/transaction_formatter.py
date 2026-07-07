@@ -66,12 +66,21 @@ class TransactionFormatter:
             # Balance formatting (returns float or None)
             balance_val = cls.clean_balance(tx.get("balance") if "balance" in tx else tx.get("Balance"))
             
-            formatted.append({
+            # Standardized transaction keys
+            formatted_tx = {
                 "date": date_str,
                 "narration": narration_str,
                 "debit": debit_val,
                 "credit": credit_val,
                 "balance": balance_val
-            })
+            }
+            
+            # Preserve other raw keys (e.g. Value Date, Reference Number, Branch, etc.)
+            for k, v in tx.items():
+                k_lower = k.lower()
+                if k_lower not in ["date", "narration", "debit", "credit", "balance"]:
+                    formatted_tx[k] = v
+            
+            formatted.append(formatted_tx)
             
         return formatted
