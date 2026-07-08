@@ -192,3 +192,57 @@ class AuthDB:
             return True, "Login successful!", user_details
 
         return False, "Incorrect password. Please try again.", None
+
+    @classmethod
+    def user_exists(cls, email):
+        """Checks if a user with the specified email address exists."""
+        email_clean = email.strip().lower()
+        if not email_clean:
+            return False
+
+        collection = cls.get_mongo_collection()
+        if collection is not None:
+            try:
+                user = collection.find_one({"email": email_clean})
+                if user:
+                    return True
+            except Exception as e:
+                print(f"AuthDB: MongoDB user_exists error ({e}).")
+
+        # Fallback to local memory dictionary
+        return email_clean in cls._users
+
+    @classmethod
+    def reset_password(cls, email, new_password):
+        """Resets the password for the specified email. Returns (success, message)."""
+        email_clean = email.strip().lower()
+        if not email_clean:
+            return False, "Email address is required."
+        if not new_password:
+            return False, "New password is required."
+
+        # Hash password using bcrypt
+        password_bytes = new_password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(password_bytes, salt)
+
+        collection = cls.get_mongo_collection()
+        if collection is not None:
+            try:
+                user = collection.find_one({"email": email_clean})
+                if not user:
+                    return False, f"Account with email '{email}' does not exist."
+                
+                collection.update_one({"email": email_clean}, {"$set": {"password": hashed_password.decode('utf-8')}})
+                return True, "Password reset successfully!"
+            except Exception as e:
+                print(f"AuthDB: MongoDB reset error ({e}). Falling back to in-memory.")
+
+        # Fallback to local memory dictionary
+        if email_clean not in cls._users:
+            return False, f"Account with email '{email}' does not exist."
+        
+        cls._users[email_clean]["password"] = new_password
+        cls._users[email_clean]["hashed_password"] = hashed_password
+        return True, "Password reset successfully!"
+

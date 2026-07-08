@@ -161,19 +161,9 @@ class LoginScreen(QWidget):
         self.loginSuccess.emit(user_details)
 
     def show_forgot_password_dialog(self):
-        # Custom popup for forgotten passwords placeholder
-        msg_box = QMessageBox(self)
-        msg_box.setWindowTitle("Forgot Password")
-        msg_box.setText("Forgot Password service is currently unavailable.")
-        msg_box.setInformativeText("This feature will be integrated with our secure SMTP reset systems in a future release.")
-        msg_box.setIcon(QMessageBox.Icon.Information)
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-        msg_box.setStyleSheet("""
-            QMessageBox { background-color: #FFFFFF; }
-            QPushButton { background-color: #2563EB; color: white; border-radius: 6px; padding: 6px 12px; }
-            QPushButton:hover { background-color: #1D4ED8; }
-        """)
-        msg_box.exec()
+        from ui.forgot_password_dialog import ForgotPasswordDialog
+        dialog = ForgotPasswordDialog(self)
+        dialog.exec()
 
     def toggle_password_visibility(self):
         """Toggles the password field between hidden and visible text."""
