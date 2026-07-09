@@ -24,14 +24,59 @@ QWidget#WelcomeBackground, QWidget#LoginBackground, QWidget#RegisterBackground, 
 }
 
 /* Base Card / Container styling */
-QFrame.CardFrame, QFrame#MetricCard, QFrame#ActivityCard, QFrame#RegisterCard, QFrame#LoginCard {
+QFrame.CardFrame, QFrame#CardFrame {
     background-color: #1E293B; /* Slate 800 */
     border: 1px solid #334155; /* Slate 700 */
-    border-radius: 16px;
+    border-radius: 12px;
+}
+
+QFrame#CardFrame:hover {
+    border-color: #3B82F6; /* Premium light blue outline on hover */
 }
 
 QFrame#RegisterCard, QFrame#LoginCard {
+    background-color: #1E293B; /* Slate 800 */
+    border: 1px solid #334155; /* Slate 700 */
     border-top: 4px solid #3B82F6; /* Premium top blue indicator line */
+    border-radius: 16px;
+}
+
+/* Card typography */
+QLabel#CardTitle {
+    color: #F8FAFC; /* Slate 50 */
+}
+
+QLabel#CardDesc {
+    color: #94A3B8; /* Slate 400 */
+}
+
+/* Metric Cards styling */
+QFrame#MetricCardBlue {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    border-top: 4px solid #3B82F6;
+    border-radius: 12px;
+}
+
+QFrame#MetricCardGreen {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    border-top: 4px solid #10B981;
+    border-radius: 12px;
+}
+
+QFrame#MetricCardOrange {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    border-top: 4px solid #F97316;
+    border-radius: 12px;
+}
+
+/* Activity Card styling */
+QFrame#ActivityCard {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    border-radius: 12px;
 }
 
 /* Heading Typography */

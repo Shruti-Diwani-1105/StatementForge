@@ -270,8 +270,7 @@ class DashboardScreen(QWidget):
         
         # Statements Processed
         card1 = QFrame()
-        card1.setObjectName("MetricCard")
-        card1.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
+        card1.setObjectName("MetricCardBlue")
         card1_layout = QVBoxLayout(card1)
         card1_layout.setContentsMargins(20, 20, 20, 20)
         card1_layout.setSpacing(8)
@@ -285,8 +284,7 @@ class DashboardScreen(QWidget):
         
         # Transactions Verified
         card2 = QFrame()
-        card2.setObjectName("MetricCard")
-        card2.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
+        card2.setObjectName("MetricCardGreen")
         card2_layout = QVBoxLayout(card2)
         card2_layout.setContentsMargins(20, 20, 20, 20)
         card2_layout.setSpacing(8)
@@ -300,8 +298,7 @@ class DashboardScreen(QWidget):
         
         # Reports Exported
         card3 = QFrame()
-        card3.setObjectName("MetricCard")
-        card3.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
+        card3.setObjectName("MetricCardOrange")
         card3_layout = QVBoxLayout(card3)
         card3_layout.setContentsMargins(20, 20, 20, 20)
         card3_layout.setSpacing(8)
@@ -371,13 +368,6 @@ class DashboardScreen(QWidget):
         # Right: Recent Activity Container
         self.activity_card = QFrame()
         self.activity_card.setObjectName("ActivityCard")
-        self.activity_card.setStyleSheet("""
-            QFrame#ActivityCard {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 12px;
-            }
-        """)
         self.activity_layout = QVBoxLayout(self.activity_card)
         self.activity_layout.setContentsMargins(20, 20, 20, 20)
         self.activity_layout.setSpacing(12)

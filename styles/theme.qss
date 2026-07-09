@@ -24,10 +24,52 @@ QWidget#WelcomeBackground, QWidget#LoginBackground, QWidget#RegisterBackground {
 }
 
 /* Base Card / Container styling */
-QFrame.CardFrame {
+QFrame.CardFrame, QFrame#CardFrame {
     background-color: #FFFFFF;
     border: 1px solid #E2E8F0; /* Slate 200 */
-    border-radius: 16px;
+    border-radius: 12px;
+}
+
+QFrame#CardFrame:hover {
+    border-color: #3B82F6; /* Premium light blue outline on hover */
+}
+
+/* Card typography */
+QLabel#CardTitle {
+    color: #0F172A; /* Slate 900 */
+}
+
+QLabel#CardDesc {
+    color: #64748B; /* Slate 500 */
+}
+
+/* Metric Cards styling */
+QFrame#MetricCardBlue {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-top: 4px solid #2563EB;
+    border-radius: 12px;
+}
+
+QFrame#MetricCardGreen {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-top: 4px solid #16A34A;
+    border-radius: 12px;
+}
+
+QFrame#MetricCardOrange {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-top: 4px solid #EA580C;
+    border-radius: 12px;
+}
+
+/* Activity Card styling */
+QFrame#ActivityCard {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
 }
 
 /* Heading Typography */
