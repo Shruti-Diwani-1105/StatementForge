@@ -292,9 +292,16 @@ Return JSON only."""
             if "API_KEY_INVALID" in err_msg or "API key not valid" in err_msg:
                 raise RuntimeError("Invalid Google Gemini API Key. Please verify the key set in your .env file.")
             elif "Quota exceeded" in err_msg or "429" in err_msg:
-                raise RuntimeError("Google Gemini API quota exceeded. Please check your billing status or retry later.")
+                raise RuntimeError(
+                    "Google Gemini API quota exceeded (Rate Limit/Usage Cap hit).\n\n"
+                    "To fix this error:\n"
+                    "1. Go to Google AI Studio (https://aistudio.google.com/) and create a new free API Key.\n"
+                    "2. Standard keys start with 'AIzaSy'. Copy it and update GEMINI_API_KEY in your .env file.\n"
+                    "3. Alternatively, enable pay-as-you-go billing in AI Studio for higher limits, or set OPENAI_API_KEY in your .env file to use OpenAI."
+                )
             else:
                 raise RuntimeError(f"Google Gemini API connection error: {e}")
+
 
     @classmethod
     def _parse_with_openai(cls, text, api_key):

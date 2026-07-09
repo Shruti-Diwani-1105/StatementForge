@@ -94,7 +94,7 @@ class WelcomeScreen(QWidget):
         hero_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hero_title.setStyleSheet("font-size: 42px; font-weight: 800; color: #0F172A; letter-spacing: -1px; border: 0px solid transparent; padding-bottom: 8px;")
         
-        hero_subtitle = QLabel("Multi-Bank Financial Statement Parser & Verification Tool")
+        hero_subtitle = QLabel("Automated Bank Statement Parser & Accounting Hub")
         hero_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hero_subtitle.setStyleSheet("font-size: 18px; font-weight: 600; color: #2563EB;")
         
@@ -152,27 +152,4 @@ class WelcomeScreen(QWidget):
         scroll_layout.addWidget(grid_widget)
         scroll_area.setWidget(scroll_content)
         main_layout.addWidget(scroll_area)
-        
-        # 3. Footer Bar
-        footer_widget = QFrame()
-        footer_widget.setObjectName("FooterWidget")
-        footer_widget.setStyleSheet("""
-            QFrame#FooterWidget {
-                background-color: #FFFFFF;
-                border-top: 1px solid #E2E8F0;
-            }
-        """)
-        footer_layout = QHBoxLayout(footer_widget)
-        footer_layout.setContentsMargins(32, 12, 32, 12)
-        
-        version_label = QLabel("Version v1.0")
-        version_label.setStyleSheet("font-size: 12px; color: #64748B; font-weight: 500;")
-        footer_layout.addWidget(version_label)
-        
-        footer_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        
-        pyqt_label = QLabel("Developed using Python & PyQt6")
-        pyqt_label.setStyleSheet("font-size: 12px; color: #64748B; font-weight: 500;")
-        footer_layout.addWidget(pyqt_label)
-        
-        main_layout.addWidget(footer_widget)
+

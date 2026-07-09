@@ -222,15 +222,22 @@ QPushButton#LogoutButton:hover {
 
 /* Search Box topbar */
 QLineEdit#SearchBox {
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 18px;
+    padding: 8px 16px 8px 40px;
+    font-size: 13px;
+    color: #1E293B;
+}
+
+QLineEdit#SearchBox:hover {
     background-color: #F1F5F9;
-    border: 1px solid transparent;
-    border-radius: 10px;
-    padding: 8px 12px 8px 36px;
+    border-color: #CBD5E1;
 }
 
 QLineEdit#SearchBox:focus {
     background-color: #FFFFFF;
-    border-color: #3B82F6;
+    border-color: #2563EB;
 }
 
 /* Notification topbar button */

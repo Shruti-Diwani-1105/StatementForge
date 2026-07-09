@@ -21,7 +21,7 @@ class SearchBar(QLineEdit):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         # Center icon vertically inside the text field
-        self.icon_label.move(12, (self.height() - 16) // 2)
+        self.icon_label.move(14, (self.height() - 16) // 2)
 
 
 class ClickableProfileWidget(QFrame):

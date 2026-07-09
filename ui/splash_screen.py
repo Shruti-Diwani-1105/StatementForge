@@ -68,7 +68,7 @@ class SplashScreen(QWidget):
         main_layout.addWidget(self.title_label)
         
         # Subtitle (Muted Slate Blue)
-        self.subtitle_label = QLabel("Multi-Bank Financial Statement Parser & Verification Tool")
+        self.subtitle_label = QLabel("Automated Bank Statement Parser & Accounting Hub")
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.subtitle_label.setStyleSheet("font-size: 13px; color: #94A3B8; font-weight: 500;")
         main_layout.addWidget(self.subtitle_label)

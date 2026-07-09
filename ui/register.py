@@ -1,7 +1,7 @@
 import re
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
-    QFrame, QPushButton, QGraphicsOpacityEffect, QStackedWidget
+    QFrame, QPushButton, QGraphicsOpacityEffect, QStackedWidget, QScrollArea
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QTimer, QEvent
 from PyQt6.QtGui import QPixmap, QCursor, QIcon, QColor
@@ -343,6 +343,25 @@ class RegisterScreen(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        # Scroll Area for the whole page
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+        """)
+
+        scroll_content = QWidget()
+        scroll_content.setObjectName("ScrollContent")
+        scroll_content.setStyleSheet("QWidget#ScrollContent { background-color: transparent; }")
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(0, 0, 0, 24)
+        scroll_layout.setSpacing(0)
+
         # Top Bar (Back Button)
         top_bar_layout = QHBoxLayout()
         top_bar_layout.setContentsMargins(32, 24, 32, 0)
@@ -372,7 +391,7 @@ class RegisterScreen(QWidget):
         self.back_btn.clicked.connect(self.gotoWelcome.emit)
         top_bar_layout.addWidget(self.back_btn)
         top_bar_layout.addStretch()
-        main_layout.addLayout(top_bar_layout)
+        scroll_layout.addLayout(top_bar_layout)
 
         # Centering Layout
         center_layout = QHBoxLayout()
@@ -387,6 +406,7 @@ class RegisterScreen(QWidget):
             QFrame#RegisterCard {
                 background-color: #FFFFFF;
                 border: 1px solid #E2E8F0;
+                border-top: 4px solid #2563EB;
                 border-radius: 18px;
             }
         """)
@@ -596,9 +616,12 @@ class RegisterScreen(QWidget):
         center_layout.addWidget(self.card)
         center_layout.addStretch()
 
-        main_layout.addStretch()
-        main_layout.addLayout(center_layout)
-        main_layout.addStretch()
+        scroll_layout.addStretch()
+        scroll_layout.addLayout(center_layout)
+        scroll_layout.addStretch()
+
+        scroll_area.setWidget(scroll_content)
+        main_layout.addWidget(scroll_area)
 
         # Connect text change events for validations once (never reconnect)
         self.name_input.textChanged.connect(lambda: self.on_field_changed("name"))

@@ -1,4 +1,4 @@
-# 🚀 StatementForge – Multi-Bank Financial Statement Parser and Verification Tool
+# 🚀 StatementForge – Automated Bank Statement Parser and Accounting Hub
 
 StatementForge is a modern **cross-platform desktop application** built with **Python** and **PyQt6** that automates the extraction, verification, and conversion of bank statement transactions into clean, standardized Excel reports.
 
@@ -276,7 +276,7 @@ statementforge
 
 Final Year Project
 
-**StatementForge – Multi-Bank Financial Statement Parser and Verification Tool**
+**StatementForge – Automated Bank Statement Parser and Accounting Hub**
 
 Domain: **FinTech & Business Automation**
 

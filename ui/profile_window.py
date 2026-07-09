@@ -8,9 +8,9 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QSize
 from PyQt6.QtGui import QFont, QCursor, QPixmap, QIcon
 from ui.register import ToastNotification, PasswordRequirementsWidget
 
-class ProfileWindow(QMainWindow):
+class ProfileWindow(QWidget):
     """
-    Dedicated user profile management window. Allows editing personal details,
+    Dedicated user profile management screen. Allows editing personal details,
     viewing account stats, and changing passwords.
     """
     save_requested = pyqtSignal(str, str, str)  # name, phone, username
@@ -21,16 +21,11 @@ class ProfileWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("My Profile - StatementForge")
-        self.setMinimumSize(1100, 750)
-        self.setStyleSheet("QMainWindow { background-color: #F6F8FC; }")
-
-        # Central Widget
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
+        self.setObjectName("ProfileWindow")
+        self.setStyleSheet("QWidget#ProfileWindow { background-color: #F6F8FC; }")
 
         # Main Layout
-        self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(40, 24, 40, 32)
         self.main_layout.setSpacing(24)
 

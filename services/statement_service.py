@@ -87,15 +87,51 @@ Date         Narration                             Debit       Credit      Balan
             if not raw_text or not raw_text.strip():
                 raise ValueError("Could not extract any text from the PDF file. The file may contain unreadable content or image scans without Tesseract installed.")
 
-            # --- STEP 4: AI Analysis ---
+            # --- STEP 4: Hybrid Auto Detection & Parsing ---
             self.step_started.emit(4)
             
-            # Call Gemini service
-            ai_data = GeminiService.parse_statement_text(raw_text)
+            # Auto-detect bank from the raw text
+            detected_bank = BankDetector.detect_bank_from_text(raw_text)
             
-            # Standardize / Clean metadata & transaction rows
-            meta = BankDetector.extract_metadata(ai_data)
-            transactions = TransactionFormatter.format_transactions(ai_data.get("transactions", []))
+            meta = None
+            transactions = []
+            parse_method = "Gemini AI"
+            
+            # Hybrid Router: Try local template parser first if digital and supported
+            if is_digital:
+                local_parser_cls = BankDetector.get_local_parser(detected_bank)
+                if local_parser_cls:
+                    try:
+                        # Attempt to parse statement locally
+                        local_data = local_parser_cls.parse(raw_text)
+                        
+                        # Clean and standardize extracted results
+                        meta = BankDetector.extract_metadata(local_data.get("metadata", {}))
+                        # Override bank name with detected bank if local parser left it default/missing
+                        if not meta.get("bank_name") or meta.get("bank_name") == "Unknown Bank":
+                            meta["bank_name"] = detected_bank
+                            
+                        transactions = TransactionFormatter.format_transactions(local_data.get("transactions", []))
+                        parse_method = "Local Rules"
+                    except Exception as local_err:
+                        # If local parsing crashes or fails, fall back to AI
+                        print(f"Local parser failed for {detected_bank}: {local_err}. Falling back to Gemini API.")
+                        meta = None
+                        transactions = []
+            
+            # Fallback to LLM if local parsing didn't run or failed
+            if meta is None or not transactions:
+                # Call Gemini service
+                ai_data = GeminiService.parse_statement_text(raw_text)
+                
+                # Standardize / Clean metadata & transaction rows
+                meta = BankDetector.extract_metadata(ai_data)
+                # If Gemini missed the bank name, override with detected bank signature
+                if meta["bank_name"] == "Unknown Bank" and detected_bank != "Unknown Bank":
+                    meta["bank_name"] = detected_bank
+                    
+                transactions = TransactionFormatter.format_transactions(ai_data.get("transactions", []))
+                parse_method = "Gemini AI"
             
             self.step_completed.emit(4, "success")
 
@@ -113,13 +149,37 @@ Date         Narration                             Debit       Credit      Balan
                 "period": meta["period"],
                 "currency": meta["currency"],
                 "transactions": transactions,
-                "processing_time": processing_time
+                "processing_time": processing_time,
+                "parse_method": parse_method,
+                "balance_verified": self.validate_balances(transactions)
             }
 
             self.finished.emit(payload)
 
         except Exception as e:
             self.error.emit(str(e))
+
+    def validate_balances(self, transactions):
+        """Verifies if mathematical ledger equations are consistent across transactions."""
+        if not transactions or len(transactions) < 2:
+            return True
+            
+        for i in range(1, len(transactions)):
+            prev_tx = transactions[i - 1]
+            curr_tx = transactions[i]
+            
+            prev_bal = prev_tx.get("balance")
+            curr_bal = curr_tx.get("balance")
+            debit = curr_tx.get("debit") or 0.0
+            credit = curr_tx.get("credit") or 0.0
+            
+            if prev_bal is not None and curr_bal is not None:
+                # Check ledger equation: balance = prev_balance - debit + credit
+                expected_bal = round(prev_bal - debit + credit, 2)
+                if round(curr_bal, 2) != expected_bal:
+                    return False
+        return True
+
 
 
 class ExcelWorker(QObject):
