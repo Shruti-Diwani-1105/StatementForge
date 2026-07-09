@@ -670,9 +670,12 @@ class DashboardScreen(QWidget):
         page_layout.setSpacing(24)
         
         header_lbl = QLabel("Application Settings")
-        header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A;")
+        header_lbl.setObjectName("ScreenTitle")
+        header_lbl.setStyleSheet("font-size: 24px; font-weight: 700;")
+        
         sub_lbl = QLabel("Manage localization settings, OCR configs, and local file storage paths.")
-        sub_lbl.setStyleSheet("color: #64748B; font-size: 13px;")
+        sub_lbl.setObjectName("ScreenSubtitle")
+        sub_lbl.setStyleSheet("font-size: 13px;")
         
         page_layout.addWidget(header_lbl)
         page_layout.addWidget(sub_lbl)
@@ -691,7 +694,17 @@ class DashboardScreen(QWidget):
         
         # Forms frame
         settings_frame = QFrame()
-        settings_frame.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;")
+        settings_frame.setObjectName("SettingsFrame")
+        self.settings_frame = settings_frame
+        
+        # Initial style setup based on active theme
+        from utils.theme_manager import ThemeManager
+        theme = ThemeManager.get_theme()
+        if theme == "dark":
+            settings_frame.setStyleSheet("QFrame#SettingsFrame { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; }")
+        else:
+            settings_frame.setStyleSheet("QFrame#SettingsFrame { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }")
+            
         sf_layout = QVBoxLayout(settings_frame)
         sf_layout.setContentsMargins(32, 32, 32, 32)
         sf_layout.setSpacing(20)
@@ -700,10 +713,14 @@ class DashboardScreen(QWidget):
         db_layout = QVBoxLayout()
         db_layout.setSpacing(8)
         db_title = QLabel("SQLite Database Destination Path")
-        db_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
+        db_title.setObjectName("SettingsLabel")
+        db_title.setStyleSheet("font-weight: 600; font-size: 13px;")
+        
         self.db_path_input = QLineEdit()
         self.db_path_input.setText("database/history.db")
         self.db_path_input.setReadOnly(True)
+        self.db_path_input.setMaximumWidth(600)
+        
         db_layout.addWidget(db_title)
         db_layout.addWidget(self.db_path_input)
         sf_layout.addLayout(db_layout)
@@ -712,10 +729,14 @@ class DashboardScreen(QWidget):
         export_layout = QVBoxLayout()
         export_layout.setSpacing(8)
         export_title = QLabel("Default Spreadsheet Export Directory")
-        export_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
+        export_title.setObjectName("SettingsLabel")
+        export_title.setStyleSheet("font-weight: 600; font-size: 13px;")
+        
         self.export_path_input = QLineEdit()
         self.export_path_input.setText("exports/")
         self.export_path_input.setReadOnly(True)
+        self.export_path_input.setMaximumWidth(600)
+        
         export_layout.addWidget(export_title)
         export_layout.addWidget(self.export_path_input)
         sf_layout.addLayout(export_layout)
@@ -724,28 +745,13 @@ class DashboardScreen(QWidget):
         ai_layout = QVBoxLayout()
         ai_layout.setSpacing(8)
         ai_title = QLabel("AI Detection & Parsing Engine")
-        ai_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
+        ai_title.setObjectName("SettingsLabel")
+        ai_title.setStyleSheet("font-weight: 600; font-size: 13px;")
+        
         self.ai_combo = QComboBox()
         self.ai_combo.addItems(["Fast Local Parser (Regex & Rules)", "Deep OCR Engine (Tesseract)", "Cloud AI LLM Engine (GPT-4o/Claude)"])
-        self.ai_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #FFFFFF;
-                border: 1px solid #CBD5E1;
-                border-radius: 10px;
-                padding: 10px 14px;
-                color: #0F172A;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 30px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                selection-background-color: #2563EB;
-                selection-color: #FFFFFF;
-            }
-        """)
+        self.ai_combo.setMaximumWidth(600)
+        
         ai_layout.addWidget(ai_title)
         ai_layout.addWidget(self.ai_combo)
         sf_layout.addLayout(ai_layout)
@@ -754,28 +760,13 @@ class DashboardScreen(QWidget):
         lang_layout = QVBoxLayout()
         lang_layout.setSpacing(8)
         lang_title = QLabel("OCR Parsing Language")
-        lang_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
+        lang_title.setObjectName("SettingsLabel")
+        lang_title.setStyleSheet("font-weight: 600; font-size: 13px;")
+        
         self.lang_combo = QComboBox()
         self.lang_combo.addItems(["English (US/UK)", "Spanish (Español)", "French (Français)", "German (Deutsch)"])
-        self.lang_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #FFFFFF;
-                border: 1px solid #CBD5E1;
-                border-radius: 10px;
-                padding: 10px 14px;
-                color: #0F172A;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 30px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                selection-background-color: #2563EB;
-                selection-color: #FFFFFF;
-            }
-        """)
+        self.lang_combo.setMaximumWidth(600)
+        
         lang_layout.addWidget(lang_title)
         lang_layout.addWidget(self.lang_combo)
         sf_layout.addLayout(lang_layout)
@@ -784,14 +775,18 @@ class DashboardScreen(QWidget):
         opts_layout = QVBoxLayout()
         opts_layout.setSpacing(12)
         opts_title = QLabel("Advanced Verification Rules")
-        opts_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569; margin-top: 10px;")
+        opts_title.setObjectName("SettingsLabel")
+        opts_title.setStyleSheet("font-weight: 600; font-size: 13px; margin-top: 10px;")
         opts_layout.addWidget(opts_title)
         
         self.dup_cb = QCheckBox("Enable automatic duplicate transaction flagging")
         self.dup_cb.setChecked(True)
+        self.dup_cb.setMaximumWidth(600)
         self.email_cb = QCheckBox("Auto-email PDF statement reports on export completion")
+        self.email_cb.setMaximumWidth(600)
         self.sound_cb = QCheckBox("Enable sound alerts on statement parsing completion")
         self.sound_cb.setChecked(True)
+        self.sound_cb.setMaximumWidth(600)
         
         opts_layout.addWidget(self.dup_cb)
         opts_layout.addWidget(self.email_cb)
@@ -831,10 +826,14 @@ class DashboardScreen(QWidget):
             self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #1E293B; border: 1px solid #334155; border-top: 4px solid #10B981; border-radius: 12px; }")
             self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #1E293B; border: 1px solid #334155; border-top: 4px solid #F97316; border-radius: 12px; }")
             self.activity_card.setStyleSheet("QFrame#ActivityCard { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; }")
+            if hasattr(self, "settings_frame") and self.settings_frame is not None:
+                self.settings_frame.setStyleSheet("QFrame#SettingsFrame { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; }")
         else:
             self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
             self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
             self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
             self.activity_card.setStyleSheet("QFrame#ActivityCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }")
+            if hasattr(self, "settings_frame") and self.settings_frame is not None:
+                self.settings_frame.setStyleSheet("QFrame#SettingsFrame { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }")
 
 
