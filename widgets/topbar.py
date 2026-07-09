@@ -90,8 +90,8 @@ class TopBar(QFrame):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("TopBar")
         self.setFixedHeight(70)
-        self.setStyleSheet("background-color: #FFFFFF; border-bottom: 1px solid #E2E8F0;")
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(24, 0, 24, 0)
@@ -105,7 +105,19 @@ class TopBar(QFrame):
         # Spacer
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
         
-        # 2. Notification Button
+        # 2. Theme Toggle Button
+        from utils.theme_manager import ThemeManager
+        current_theme = ThemeManager.get_theme()
+        
+        self.theme_btn = QPushButton()
+        self.theme_btn.setObjectName("ThemeButton")
+        self.theme_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.theme_btn.setFixedSize(36, 36)
+        self.update_theme_icon(current_theme)
+        self.theme_btn.clicked.connect(self.toggle_theme)
+        layout.addWidget(self.theme_btn)
+        
+        # 3. Notification Button
         self.noti_btn = QPushButton()
         self.noti_btn.setObjectName("NotificationButton")
         self.noti_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -116,9 +128,22 @@ class TopBar(QFrame):
         self.noti_btn.setFixedSize(36, 36)
         layout.addWidget(self.noti_btn)
         
-        # 3. Clickable Profile Group
+        # 4. Clickable Profile Group
         self.profile_widget = ClickableProfileWidget()
         layout.addWidget(self.profile_widget)
+
+    def toggle_theme(self):
+        """Toggles the current application theme and updates the icon."""
+        from utils.theme_manager import ThemeManager
+        new_theme = ThemeManager.toggle_theme()
+        self.update_theme_icon(new_theme)
+
+    def update_theme_icon(self, theme):
+        """Updates the button character representation based on the theme."""
+        if theme == "dark":
+            self.theme_btn.setText("☀️")
+        else:
+            self.theme_btn.setText("🌙")
 
     def update_profile(self, full_name):
         """Updates the active user's avatar letter and name details."""

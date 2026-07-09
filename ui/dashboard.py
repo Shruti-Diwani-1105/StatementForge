@@ -36,7 +36,6 @@ class DashboardScreen(QWidget):
         # Right container
         right_container = QWidget()
         right_container.setObjectName("RightContainer")
-        right_container.setStyleSheet("QWidget#RightContainer { background-color: #F8FAFC; }")
         right_layout = QVBoxLayout(right_container)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
