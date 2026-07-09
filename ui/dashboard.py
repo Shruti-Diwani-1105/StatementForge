@@ -36,7 +36,6 @@ class DashboardScreen(QWidget):
         # Right container
         right_container = QWidget()
         right_container.setObjectName("RightContainer")
-        right_container.setStyleSheet("QWidget#RightContainer { background-color: #F8FAFC; }")
         right_layout = QVBoxLayout(right_container)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(0)
@@ -124,7 +123,8 @@ class DashboardScreen(QWidget):
 
         # Re-add Title
         act_title = QLabel("Recent Activity")
-        act_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #0F172A; margin-bottom: 8px;")
+        act_title.setObjectName("ActivityTitle")
+        act_title.setStyleSheet("font-size: 16px; font-weight: 700; margin-bottom: 8px;")
         self.activity_layout.addWidget(act_title)
 
         # Fetch recent items
@@ -136,8 +136,9 @@ class DashboardScreen(QWidget):
         if not recent:
             self.activity_layout.addStretch()
             empty_lbl = QLabel("No recent activity.")
+            empty_lbl.setObjectName("ActivityEmptyLabel")
             empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            empty_lbl.setStyleSheet("color: #94A3B8; font-size: 13px; font-weight: 500;")
+            empty_lbl.setStyleSheet("font-size: 13px; font-weight: 500;")
             self.activity_layout.addWidget(empty_lbl)
             self.activity_layout.addStretch()
         else:
@@ -243,6 +244,8 @@ class DashboardScreen(QWidget):
 
     def create_main_dashboard_page(self):
         """Dashboard overview showing metrics, module card shortcuts, and recent activity."""
+        self.cards = []
+        
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
@@ -258,11 +261,15 @@ class DashboardScreen(QWidget):
         header_layout = QVBoxLayout()
         header_layout.setSpacing(4)
         self.welcome_lbl = QLabel("Welcome Back, John!")
-        self.welcome_lbl.setStyleSheet("font-size: 26px; font-weight: 700; color: #0F172A; letter-spacing: -0.5px;")
-        sub_lbl = QLabel("Here's an overview of your local financial statements parser activities.")
-        sub_lbl.setStyleSheet("font-size: 13px; color: #64748B;")
+        self.welcome_lbl.setObjectName("WelcomeTitle")
+        self.welcome_lbl.setStyleSheet("font-size: 26px; font-weight: 700; letter-spacing: -0.5px;")
+        
+        self.sub_lbl = QLabel("Here's an overview of your local financial statements parser activities.")
+        self.sub_lbl.setObjectName("WelcomeSubtitle")
+        self.sub_lbl.setStyleSheet("font-size: 13px;")
+        
         header_layout.addWidget(self.welcome_lbl)
-        header_layout.addWidget(sub_lbl)
+        header_layout.addWidget(self.sub_lbl)
         page_layout.addLayout(header_layout)
         
         # 1. Statistics / Metric Cards Row
@@ -270,53 +277,56 @@ class DashboardScreen(QWidget):
         metrics_layout.setSpacing(24)
         
         # Statements Processed
-        card1 = QFrame()
-        card1.setObjectName("MetricCard")
-        card1.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
-        card1_layout = QVBoxLayout(card1)
+        self.card1 = QFrame()
+        self.card1.setObjectName("MetricCardBlue")
+        self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
+        card1_layout = QVBoxLayout(self.card1)
         card1_layout.setContentsMargins(20, 20, 20, 20)
         card1_layout.setSpacing(8)
         t_lbl1 = QLabel("Statements Processed")
-        t_lbl1.setStyleSheet("font-size: 13px; font-weight: 600; color: #64748B;")
+        t_lbl1.setObjectName("MetricTitle")
+        t_lbl1.setStyleSheet("font-size: 13px; font-weight: 600;")
         self.stats_processed_lbl = QLabel("0")
         self.stats_processed_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #2563EB;")
         card1_layout.addWidget(t_lbl1)
         card1_layout.addWidget(self.stats_processed_lbl)
-        metrics_layout.addWidget(card1)
+        metrics_layout.addWidget(self.card1)
         
         # Transactions Verified
-        card2 = QFrame()
-        card2.setObjectName("MetricCard")
-        card2.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
-        card2_layout = QVBoxLayout(card2)
+        self.card2 = QFrame()
+        self.card2.setObjectName("MetricCardGreen")
+        self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
+        card2_layout = QVBoxLayout(self.card2)
         card2_layout.setContentsMargins(20, 20, 20, 20)
         card2_layout.setSpacing(8)
         t_lbl2 = QLabel("Transactions Verified")
-        t_lbl2.setStyleSheet("font-size: 13px; font-weight: 600; color: #64748B;")
+        t_lbl2.setObjectName("MetricTitle")
+        t_lbl2.setStyleSheet("font-size: 13px; font-weight: 600;")
         self.stats_verified_lbl = QLabel("0")
         self.stats_verified_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #16A34A;")
         card2_layout.addWidget(t_lbl2)
         card2_layout.addWidget(self.stats_verified_lbl)
-        metrics_layout.addWidget(card2)
+        metrics_layout.addWidget(self.card2)
         
         # Reports Exported
-        card3 = QFrame()
-        card3.setObjectName("MetricCard")
-        card3.setStyleSheet("QFrame#MetricCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
-        card3_layout = QVBoxLayout(card3)
+        self.card3 = QFrame()
+        self.card3.setObjectName("MetricCardOrange")
+        self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
+        card3_layout = QVBoxLayout(self.card3)
         card3_layout.setContentsMargins(20, 20, 20, 20)
         card3_layout.setSpacing(8)
         t_lbl3 = QLabel("Reports Exported")
-        t_lbl3.setStyleSheet("font-size: 13px; font-weight: 600; color: #64748B;")
+        t_lbl3.setObjectName("MetricTitle")
+        t_lbl3.setStyleSheet("font-size: 13px; font-weight: 600;")
         self.stats_exported_lbl = QLabel("0")
         self.stats_exported_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #EA580C;")
         card3_layout.addWidget(t_lbl3)
         card3_layout.addWidget(self.stats_exported_lbl)
-        metrics_layout.addWidget(card3)
+        metrics_layout.addWidget(self.card3)
         
         page_layout.addLayout(metrics_layout)
         
-        # Initial stats population
+        # Initial population of recent activities
         self.update_dashboard_stats()
         
         # 2. Main content split (Module Grid on left, Recent Activity on right)
@@ -329,9 +339,10 @@ class DashboardScreen(QWidget):
         modules_layout.setContentsMargins(0, 0, 0, 0)
         modules_layout.setSpacing(12)
         
-        section_title = QLabel("System Modules")
-        section_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #0F172A;")
-        modules_layout.addWidget(section_title)
+        self.section_title = QLabel("System Modules")
+        self.section_title.setObjectName("SectionTitle")
+        self.section_title.setStyleSheet("font-size: 16px; font-weight: 700;")
+        modules_layout.addWidget(self.section_title)
         
         grid_widget = QWidget()
         grid_layout = QGridLayout(grid_widget)
@@ -355,6 +366,7 @@ class DashboardScreen(QWidget):
             row = idx // cols
             col = idx % cols
             card = CustomCard(title, desc, f"assets/icons/{icon}.png", icon_bg)
+            self.cards.append(card)
             
             # Map dashboard cards to their respective pages, fallback to coming soon
             if title == "Upload Statement":
@@ -808,5 +820,21 @@ class DashboardScreen(QWidget):
         
         page_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         self.page_stack.addWidget(page)
+
+    def update_theme_styles(self, theme):
+        """Updates internal card components to match active theme stylesheet parameters."""
+        for card in self.cards:
+            card.update_theme_style(theme)
+            
+        if theme == "dark":
+            self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #1E293B; border: 1px solid #334155; border-top: 4px solid #3B82F6; border-radius: 12px; }")
+            self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #1E293B; border: 1px solid #334155; border-top: 4px solid #10B981; border-radius: 12px; }")
+            self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #1E293B; border: 1px solid #334155; border-top: 4px solid #F97316; border-radius: 12px; }")
+            self.activity_card.setStyleSheet("QFrame#ActivityCard { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; }")
+        else:
+            self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
+            self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
+            self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
+            self.activity_card.setStyleSheet("QFrame#ActivityCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }")
 
 

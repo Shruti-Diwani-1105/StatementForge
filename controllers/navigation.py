@@ -66,6 +66,10 @@ class NavigationController(QMainWindow):
         else:
             self.show_welcome_page()
 
+        # Synchronize theme at startup
+        from utils.theme_manager import ThemeManager
+        self.sync_theme_styles(ThemeManager.get_theme())
+
     def connect_signals(self):
         # Welcome Page transitions
         self.welcome_screen.gotoLogin.connect(self.show_login_page)
@@ -148,3 +152,10 @@ class NavigationController(QMainWindow):
     def sync_profile_details(self, user_details):
         """Syncs updated details in real-time onto the dashboard layout."""
         self.dashboard_screen.set_user_profile(user_details)
+
+    def sync_theme_styles(self, theme):
+        """Propagates active theme settings to all instantiated pages."""
+        if hasattr(self, "dashboard_screen") and self.dashboard_screen is not None:
+            self.dashboard_screen.update_theme_styles(theme)
+            if hasattr(self.dashboard_screen, "topbar") and self.dashboard_screen.topbar is not None:
+                self.dashboard_screen.topbar.update_theme_icon(theme)

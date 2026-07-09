@@ -56,21 +56,48 @@ class CustomCard(QFrame):
         self.shadow.setOffset(0, 4)
         self.setGraphicsEffect(self.shadow)
         
-        # Card style border animation helper
-        self.normal_style = """
-            QFrame#CardFrame {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 12px;
-            }
-        """
-        self.hover_style = """
-            QFrame#CardFrame {
-                background-color: #FFFFFF;
-                border: 1px solid #3B82F6; /* Sky Blue highlight */
-                border-radius: 12px;
-            }
-        """
+        self.normal_style = ""
+        self.hover_style = ""
+        
+        from utils.theme_manager import ThemeManager
+        self.update_theme_style(ThemeManager.get_theme())
+
+    def update_theme_style(self, theme):
+        if theme == "dark":
+            self.normal_style = """
+                QFrame#CardFrame {
+                    background-color: #1E293B;
+                    border: 1px solid #334155;
+                    border-radius: 12px;
+                }
+            """
+            self.hover_style = """
+                QFrame#CardFrame {
+                    background-color: #1E293B;
+                    border: 1px solid #3B82F6;
+                    border-radius: 12px;
+                }
+            """
+            self.title_label.setStyleSheet("font-weight: 600; font-size: 16px; color: #F8FAFC;")
+            self.desc_label.setStyleSheet("color: #94A3B8; font-size: 13px; line-height: 18px;")
+        else:
+            self.normal_style = """
+                QFrame#CardFrame {
+                    background-color: #FFFFFF;
+                    border: 1px solid #E2E8F0;
+                    border-radius: 12px;
+                }
+            """
+            self.hover_style = """
+                QFrame#CardFrame {
+                    background-color: #FFFFFF;
+                    border: 1px solid #3B82F6;
+                    border-radius: 12px;
+                }
+            """
+            self.title_label.setStyleSheet("font-weight: 600; font-size: 16px; color: #0F172A;")
+            self.desc_label.setStyleSheet("color: #64748B; font-size: 13px; line-height: 18px;")
+            
         self.setStyleSheet(self.normal_style)
 
     def enterEvent(self, event):
