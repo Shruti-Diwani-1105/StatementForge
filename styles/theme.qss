@@ -11,7 +11,7 @@ QWidget {
 }
 
 /* Backgrounds */
-QMainWindow, QWidget#RightContainer {
+QMainWindow {
     background-color: #F8FAFC; /* Slate 50 */
 }
 
@@ -24,52 +24,10 @@ QWidget#WelcomeBackground, QWidget#LoginBackground, QWidget#RegisterBackground {
 }
 
 /* Base Card / Container styling */
-QFrame.CardFrame, QFrame#CardFrame {
+QFrame.CardFrame {
     background-color: #FFFFFF;
     border: 1px solid #E2E8F0; /* Slate 200 */
-    border-radius: 12px;
-}
-
-QFrame#CardFrame:hover {
-    border-color: #3B82F6; /* Premium light blue outline on hover */
-}
-
-/* Card typography */
-QLabel#CardTitle {
-    color: #0F172A; /* Slate 900 */
-}
-
-QLabel#CardDesc {
-    color: #64748B; /* Slate 500 */
-}
-
-/* Metric Cards styling */
-QFrame#MetricCardBlue {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-top: 4px solid #2563EB;
-    border-radius: 12px;
-}
-
-QFrame#MetricCardGreen {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-top: 4px solid #16A34A;
-    border-radius: 12px;
-}
-
-QFrame#MetricCardOrange {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-top: 4px solid #EA580C;
-    border-radius: 12px;
-}
-
-/* Activity Card styling */
-QFrame#ActivityCard {
-    background-color: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 12px;
+    border-radius: 16px;
 }
 
 /* Heading Typography */
@@ -282,22 +240,16 @@ QLineEdit#SearchBox:focus {
     border-color: #2563EB;
 }
 
-/* Notification and Theme topbar buttons */
-QPushButton#NotificationButton, QPushButton#ThemeButton {
-    background-color: #FFFFFF;
+/* Notification topbar button */
+QPushButton#NotificationButton {
+    background: transparent;
     border: 1px solid #E2E8F0;
     border-radius: 10px;
     padding: 6px;
-    color: #0F172A;
 }
 
-QPushButton#NotificationButton:hover, QPushButton#ThemeButton:hover {
+QPushButton#NotificationButton:hover {
     background-color: #F1F5F9;
-    border-color: #CBD5E1;
-}
-
-QPushButton#NotificationButton:pressed, QPushButton#ThemeButton:pressed {
-    background-color: #E2E8F0;
 }
 
 /* Table Widget styling */

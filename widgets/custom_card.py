@@ -37,14 +37,12 @@ class CustomCard(QFrame):
         
         # Title Label
         self.title_label = QLabel(title)
-        self.title_label.setObjectName("CardTitle")
-        self.title_label.setStyleSheet("font-weight: 600; font-size: 16px;")
+        self.title_label.setStyleSheet("font-weight: 600; font-size: 16px; color: #0F172A;")
         layout.addWidget(self.title_label)
         
         # Description Label
         self.desc_label = QLabel(description)
-        self.desc_label.setObjectName("CardDesc")
-        self.desc_label.setStyleSheet("font-size: 13px; line-height: 18px;")
+        self.desc_label.setStyleSheet("color: #64748B; font-size: 13px; line-height: 18px;")
         self.desc_label.setWordWrap(True)
         layout.addWidget(self.desc_label)
         
@@ -57,8 +55,27 @@ class CustomCard(QFrame):
         self.shadow.setColor(QColor(15, 23, 42, 20)) # Very soft slate shadow
         self.shadow.setOffset(0, 4)
         self.setGraphicsEffect(self.shadow)
+        
+        # Card style border animation helper
+        self.normal_style = """
+            QFrame#CardFrame {
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
+                border-radius: 12px;
+            }
+        """
+        self.hover_style = """
+            QFrame#CardFrame {
+                background-color: #FFFFFF;
+                border: 1px solid #3B82F6; /* Sky Blue highlight */
+                border-radius: 12px;
+            }
+        """
+        self.setStyleSheet(self.normal_style)
 
     def enterEvent(self, event):
+        # Update stylesheet on hover for border change
+        self.setStyleSheet(self.hover_style)
         # Shift and increase shadow
         self.shadow.setBlurRadius(24)
         self.shadow.setOffset(0, 8)
@@ -66,6 +83,7 @@ class CustomCard(QFrame):
         super().enterEvent(event)
 
     def leaveEvent(self, event):
+        self.setStyleSheet(self.normal_style)
         self.shadow.setBlurRadius(16)
         self.shadow.setOffset(0, 4)
         self.shadow.setColor(QColor(15, 23, 42, 20))

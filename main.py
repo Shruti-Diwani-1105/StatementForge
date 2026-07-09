@@ -9,11 +9,18 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils.asset_generator import generate_assets
 
-from utils.theme_manager import ThemeManager
-
 def load_stylesheet(app):
-    """Loads the global stylesheet via ThemeManager."""
-    ThemeManager.initialize_theme()
+    """Loads the global stylesheet and applies it to the application."""
+    qss_path = os.path.join("styles", "theme.qss")
+    if os.path.exists(qss_path):
+        try:
+            with open(qss_path, "r", encoding="utf-8") as f:
+                stylesheet = f.read()
+                app.setStyleSheet(stylesheet)
+        except Exception as e:
+            print(f"Warning: Failed to load stylesheet from {qss_path}. Error: {e}")
+    else:
+        print(f"Warning: Stylesheet not found at {qss_path}.")
 
 def main():
     # 1. Enable High DPI support for sharp text and clean assets
