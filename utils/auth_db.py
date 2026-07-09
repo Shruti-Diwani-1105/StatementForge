@@ -246,3 +246,69 @@ class AuthDB:
         cls._users[email_clean]["hashed_password"] = hashed_password
         return True, "Password reset successfully!"
 
+    @classmethod
+    def get_or_create_google_user(cls, email, name):
+        """
+        Authenticates a user via Google.
+        If the email is not registered, automatically registers a new account with a random password.
+        Returns (success_bool, message_str, user_details_dict).
+        """
+        import secrets
+        email_clean = email.strip().lower()
+        if not email_clean:
+            return False, "Google account email is missing.", None
+
+        # Check if user exists
+        exists = cls.user_exists(email_clean)
+        if not exists:
+            # Generate a secure random password for the user record
+            random_password = secrets.token_urlsafe(16) + "A1!"
+            registered = cls.register_user(name, email_clean, "", random_password)
+            if not registered:
+                return False, "Failed to auto-register Google account.", None
+
+        # Login/validate user details without checking password
+        collection = cls.get_mongo_collection()
+        now = datetime.datetime.utcnow()
+        if collection is not None:
+            try:
+                user = collection.find_one({"email": email_clean})
+                if user:
+                    collection.update_one({"_id": user["_id"]}, {"$set": {"last_login": now}})
+                    user_details = {
+                        "id": str(user.get("_id", "")),
+                        "name": user.get("full_name", ""),
+                        "email": user.get("email", ""),
+                        "phone": user.get("phone", ""),
+                        "username": user.get("username", user.get("email", "").split('@')[0]),
+                        "role": user.get("role", "user"),
+                        "status": user.get("status", "active"),
+                        "created_at": user.get("created_at", now),
+                        "last_login": now
+                    }
+                    return True, "Google login successful!", user_details
+            except Exception as e:
+                print(f"AuthDB: MongoDB google login error ({e}). Falling back to in-memory.")
+
+        # Fallback to local memory validation
+        if email_clean in cls._users:
+            user = cls._users[email_clean]
+            user["last_login"] = now
+            if "created_at" not in user:
+                user["created_at"] = now - datetime.timedelta(days=2)
+            user_details = {
+                "id": email_clean,
+                "name": user.get("name", "User"),
+                "email": email_clean,
+                "phone": user.get("phone", ""),
+                "username": user.get("username", email_clean.split('@')[0]),
+                "role": user.get("role", "user"),
+                "status": user.get("status", "active"),
+                "created_at": user.get("created_at", now),
+                "last_login": now
+            }
+            return True, "Google login successful!", user_details
+
+        return False, "Failed to retrieve Google user details.", None
+
+

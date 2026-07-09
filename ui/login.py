@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QSpacerItem, QSizePolicy, QMessageBox, QFrame
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QCheckBox, QSpacerItem, QSizePolicy, QMessageBox, QFrame, QPushButton
+from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QPixmap, QCursor, QAction, QIcon
 from widgets.custom_button import PrimaryButton, SecondaryButton, LinkButton
 
@@ -119,6 +119,58 @@ class LoginScreen(QWidget):
         self.login_btn.clicked.connect(self.handle_login)
         card_layout.addWidget(self.login_btn)
         
+        # Or separator line
+        or_layout = QHBoxLayout()
+        or_layout.setContentsMargins(0, 5, 0, 5)
+        or_line1 = QFrame()
+        or_line1.setFrameShape(QFrame.Shape.HLine)
+        or_line1.setFrameShadow(QFrame.Shadow.Sunken)
+        or_line1.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
+        or_lbl = QLabel("or")
+        or_lbl.setStyleSheet("color: #94A3B8; font-size: 12px; font-weight: 500; padding: 0 8px;")
+        or_line2 = QFrame()
+        or_line2.setFrameShape(QFrame.Shape.HLine)
+        or_line2.setFrameShadow(QFrame.Shadow.Sunken)
+        or_line2.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
+        or_layout.addWidget(or_line1)
+        or_layout.addWidget(or_lbl)
+        or_layout.addWidget(or_line2)
+        card_layout.addLayout(or_layout)
+
+        # Continue with Google button
+        self.google_btn = QPushButton("Continue with Google")
+        self.google_btn.setFixedHeight(48)
+        self.google_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        google_pixmap = QPixmap("assets/icons/google.png")
+        if not google_pixmap.isNull():
+            self.google_btn.setIcon(QIcon(google_pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
+        self.google_btn.setIconSize(QSize(20, 20))
+        self.google_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FFFFFF;
+                border: 1px solid #CBD5E1;
+                border-radius: 10px;
+                color: #334155;
+                font-size: 14px;
+                font-weight: 600;
+                padding: 0 16px;
+            }
+            QPushButton:hover {
+                background-color: #F8FAFC;
+                border-color: #94A3B8;
+            }
+            QPushButton:pressed {
+                background-color: #F1F5F9;
+            }
+            QPushButton:disabled {
+                background-color: #F1F5F9;
+                color: #94A3B8;
+                border-color: #E2E8F0;
+            }
+        """)
+        self.google_btn.clicked.connect(self.handle_google_login)
+        card_layout.addWidget(self.google_btn)
+        
         # Register redirect link
         register_link_layout = QHBoxLayout()
         register_link_layout.setSpacing(4)
@@ -181,3 +233,48 @@ class LoginScreen(QWidget):
         self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.show_pass_action.setIcon(self.eye_closed_icon)
         self.error_label.setVisible(False)
+
+    def handle_google_login(self):
+        # If currently running, treat this click as a request to cancel
+        if hasattr(self, 'google_worker') and self.google_worker and self.google_worker.isRunning():
+            self.google_worker.cancel()
+            self.on_google_auth_finished(False, {"error": "Google Sign-In was cancelled by the user."})
+            return
+
+        self.error_label.setVisible(False)
+        self.google_btn.setText("Cancel Sign-In")
+        self.login_btn.setEnabled(False)
+
+        from services.google_auth_service import GoogleAuthWorker
+        self.google_worker = GoogleAuthWorker()
+        self.google_worker.finished.connect(self.on_google_auth_finished)
+        self.google_worker.start()
+
+    def on_google_auth_finished(self, success, result):
+        self.google_btn.setEnabled(True)
+        self.google_btn.setText("Continue with Google")
+        self.login_btn.setEnabled(True)
+
+        if not success:
+            error_msg = result.get("error", "Failed to authenticate with Google.")
+            if "cancelled" in error_msg.lower():
+                self.error_label.setVisible(False)
+                return
+            self.error_label.setText(f"❌ {error_msg}")
+            self.error_label.setVisible(True)
+            return
+
+        # Authenticate / Auto-register Google user in AuthDB
+        from utils.auth_db import AuthDB
+        email = result.get("email")
+        name = result.get("name", "Google User")
+        
+        login_success, message, user_details = AuthDB.get_or_create_google_user(email, name)
+        
+        if not login_success:
+            self.error_label.setText(f"❌ {message}")
+            self.error_label.setVisible(True)
+            return
+            
+        self.error_label.setVisible(False)
+        self.loginSuccess.emit(user_details)

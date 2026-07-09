@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QFrame, QPushButton, QGraphicsOpacityEffect, QStackedWidget, QScrollArea
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QTimer, QEvent
+from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QTimer, QEvent, QSize
 from PyQt6.QtGui import QPixmap, QCursor, QIcon, QColor
 
 class PremiumInputGroup(QWidget):
@@ -321,6 +321,7 @@ class RegisterScreen(QWidget):
     without scrolling. Uses proper nested layouts and layout preservation techniques.
     """
     registerSuccess = pyqtSignal()
+    loginSuccess = pyqtSignal(dict)
     gotoLogin = pyqtSignal()
     gotoWelcome = pyqtSignal()
 
@@ -517,6 +518,58 @@ class RegisterScreen(QWidget):
         """)
         self.register_btn.clicked.connect(self.handle_registration)
         form_layout.addWidget(self.register_btn)
+
+        # Or separator line
+        or_layout = QHBoxLayout()
+        or_layout.setContentsMargins(0, 5, 0, 5)
+        or_line1 = QFrame()
+        or_line1.setFrameShape(QFrame.Shape.HLine)
+        or_line1.setFrameShadow(QFrame.Shadow.Sunken)
+        or_line1.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
+        or_lbl = QLabel("or")
+        or_lbl.setStyleSheet("color: #94A3B8; font-size: 12px; font-weight: 500; padding: 0 8px;")
+        or_line2 = QFrame()
+        or_line2.setFrameShape(QFrame.Shape.HLine)
+        or_line2.setFrameShadow(QFrame.Shadow.Sunken)
+        or_line2.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
+        or_layout.addWidget(or_line1)
+        or_layout.addWidget(or_lbl)
+        or_layout.addWidget(or_line2)
+        form_layout.addLayout(or_layout)
+
+        # Continue with Google button
+        self.google_btn = QPushButton("Continue with Google")
+        self.google_btn.setFixedHeight(50)
+        self.google_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        google_pixmap = QPixmap("assets/icons/google.png")
+        if not google_pixmap.isNull():
+            self.google_btn.setIcon(QIcon(google_pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
+        self.google_btn.setIconSize(QSize(20, 20))
+        self.google_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FFFFFF;
+                border: 1px solid #CBD5E1;
+                border-radius: 12px;
+                color: #334155;
+                font-size: 14px;
+                font-weight: 600;
+                padding: 0 16px;
+            }
+            QPushButton:hover {
+                background-color: #F8FAFC;
+                border-color: #94A3B8;
+            }
+            QPushButton:pressed {
+                background-color: #F1F5F9;
+            }
+            QPushButton:disabled {
+                background-color: #F1F5F9;
+                color: #94A3B8;
+                border-color: #E2E8F0;
+            }
+        """)
+        self.google_btn.clicked.connect(self.handle_google_login)
+        form_layout.addWidget(self.google_btn)
 
         # Already have an account redirects
         login_link_layout = QHBoxLayout()
@@ -778,3 +831,47 @@ class RegisterScreen(QWidget):
         self.card_stack.setCurrentIndex(0)
 
         self.run_validation()
+
+    def handle_google_login(self):
+        # If currently running, treat this click as a request to cancel
+        if hasattr(self, 'google_worker') and self.google_worker and self.google_worker.isRunning():
+            self.google_worker.cancel()
+            self.on_google_auth_finished(False, {"error": "Google Sign-In was cancelled by the user."})
+            return
+
+        self.google_btn.setText("Cancel Sign-In")
+        self.register_btn.setEnabled(False)
+
+        from services.google_auth_service import GoogleAuthWorker
+        self.google_worker = GoogleAuthWorker()
+        self.google_worker.finished.connect(self.on_google_auth_finished)
+        self.google_worker.start()
+
+    def on_google_auth_finished(self, success, result):
+        self.google_btn.setEnabled(True)
+        self.google_btn.setText("Continue with Google")
+        self.register_btn.setEnabled(True)
+
+        if not success:
+            error_msg = result.get("error", "Failed to authenticate with Google.")
+            if "cancelled" in error_msg.lower():
+                return
+            # We show error via toast for registering page
+            toast = ToastNotification(self, f"Google Error: {error_msg}")
+            toast.show_toast()
+            return
+
+        # Authenticate / Auto-register Google user in AuthDB
+        from utils.auth_db import AuthDB
+        email = result.get("email")
+        name = result.get("name", "Google User")
+        
+        login_success, message, user_details = AuthDB.get_or_create_google_user(email, name)
+        
+        if not login_success:
+            toast = ToastNotification(self, f"Error: {message}")
+            toast.show_toast()
+            return
+            
+        # Emit success which transitions to dashboard
+        self.loginSuccess.emit(user_details)

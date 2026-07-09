@@ -9,6 +9,7 @@ from PyQt6.QtGui import QPixmap, QCursor
 from widgets.custom_button import PrimaryButton, SecondaryButton
 from ui.register import PremiumInputGroup, PasswordRequirementsWidget, ToastNotification
 from utils.auth_db import AuthDB
+from services.otp_service import OTPService, SendOTPWorker
 
 class ForgotPasswordDialog(QDialog):
     """
@@ -33,6 +34,7 @@ class ForgotPasswordDialog(QDialog):
         """)
 
         self.email_address = ""
+        self.otp_worker = None
         
         # Main Layout
         self.main_layout = QVBoxLayout(self)
@@ -223,24 +225,50 @@ class ForgotPasswordDialog(QDialog):
             return
 
         self.email_address = email
-        self.desc_code.setText(
-            f"We have sent a verification code to <b>{email}</b>.<br><br>"
-            "<i>(For testing and demonstration, use mock reset code: <b>123456</b>)</i>"
-        )
         
-        # Show success toast on email validation success
-        toast = ToastNotification(self, "Verification code sent")
-        toast.show_toast()
+        # Disable inputs and show loading state
+        self.email_input.setEnabled(False)
+        self.btn_email_cancel.setEnabled(False)
+        self.btn_email_next.setEnabled(False)
+        self.btn_email_next.setText("Sending...")
         
-        self.stack.setCurrentIndex(1)
+        # Generate OTP
+        otp = OTPService.generate_otp(email)
+        
+        # Start background worker to send OTP
+        self.otp_worker = SendOTPWorker(email, otp)
+        self.otp_worker.finished.connect(self.on_otp_sent)
+        self.otp_worker.start()
+
+    def on_otp_sent(self, success: bool, message: str):
+        # Re-enable inputs
+        self.email_input.setEnabled(True)
+        self.btn_email_cancel.setEnabled(True)
+        self.btn_email_next.setEnabled(True)
+        self.btn_email_next.setText("Send Code")
+        
+        if success:
+            self.code_input.set_error(None)  # Clear any previous error
+            self.desc_code.setText(
+                f"We have sent a 6-digit verification code to <b>{self.email_address}</b>.<br><br>"
+                "Please check your inbox."
+            )
+            toast = ToastNotification(self, "Verification code sent")
+            toast.show_toast()
+            self.stack.setCurrentIndex(1)
+        else:
+            self.email_input.set_error(f"❌ Failed to send code: {message}")
 
     def process_code(self):
         code = self.code_input.text().strip()
         if not code:
             self.code_input.set_error("❌ Verification code is required.")
             return
-        if code != "123456":
-            self.code_input.set_error("❌ Invalid verification code. Please try again.")
+        
+        # Verify using OTPService
+        success, message = OTPService.verify_otp(self.email_address, code)
+        if not success:
+            self.code_input.set_error(f"❌ {message}")
             return
 
         self.stack.setCurrentIndex(2)

@@ -84,6 +84,7 @@ class NavigationController(QMainWindow):
         self.register_screen.gotoWelcome.connect(self.show_welcome_page)
         self.register_screen.gotoLogin.connect(self.show_login_page)
         self.register_screen.registerSuccess.connect(self.show_login_page)
+        self.register_screen.loginSuccess.connect(self.show_dashboard_page)
         
         # Dashboard Page transitions
         self.dashboard_screen.logoutRequested.connect(self.handle_logout)
