@@ -271,32 +271,3 @@ QHeaderView::section {
     border: none;
     border-bottom: 1px solid #334155;
 }
-
-/* QComboBox global styling */
-QComboBox {
-    background-color: #0F172A;
-    border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 10px 14px;
-    color: #F8FAFC;
-}
-
-QComboBox::drop-down {
-    border: none;
-    width: 30px;
-}
-
-QComboBox QAbstractItemView {
-    background-color: #1E293B;
-    border: 1px solid #334155;
-    selection-background-color: #3B82F6;
-    selection-color: #FFFFFF;
-    color: #F8FAFC;
-}
-
-/* Settings label typography */
-QLabel#SettingsLabel {
-    font-weight: 600;
-    font-size: 13px;
-    color: #94A3B8;
-}
