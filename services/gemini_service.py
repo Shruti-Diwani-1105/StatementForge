@@ -337,3 +337,148 @@ Return JSON only."""
                 raise RuntimeError("OpenAI API quota exceeded or rate limit hit. Please check your billing status or retry later.")
             else:
                 raise RuntimeError(f"OpenAI API connection error: {e}")
+
+    @classmethod
+    def parse_page_image(cls, pil_image) -> dict:
+        """
+        Sends the PIL image of the scanned PDF page to Gemini/OpenAI API as a last-resort fallback.
+        Includes automatic retry backoff for 429 rate limits.
+        """
+        load_dotenv(override=True)
+        gemini_key = cls.get_api_key()
+        openai_key = os.getenv("OPENAI_API_KEY")
+
+        if not gemini_key and not openai_key:
+            raise RuntimeError("No AI API Keys are configured. Cannot run fallback vision parser.")
+
+        if gemini_key and gemini_key.strip():
+            import time
+            max_retries = 5
+            base_delay = 5  # start with 5 seconds
+            
+            for attempt in range(max_retries):
+                try:
+                    genai.configure(api_key=gemini_key.strip())
+                    model = genai.GenerativeModel("gemini-2.0-flash")
+                    prompt = cls._get_prompt()
+                    generation_config = {
+                        "response_mime_type": "application/json"
+                    }
+                    
+                    response = model.generate_content(
+                        contents=[prompt, pil_image],
+                        generation_config=generation_config
+                    )
+                    
+                    response_text = response.text.strip()
+                    if response_text.startswith("```json"):
+                        response_text = response_text.replace("```json", "", 1)
+                    if response_text.endswith("```"):
+                        response_text = response_text.rsplit("```", 1)[0]
+                    response_text = response_text.strip()
+                    
+                    data = json.loads(response_text)
+                    return data
+                except Exception as e:
+                    err_msg = str(e)
+                    if "429" in err_msg or "Quota exceeded" in err_msg or "ResourceExhausted" in err_msg or "rate limit" in err_msg.lower():
+                        if attempt < max_retries - 1:
+                            sleep_time = base_delay * (2 ** attempt)
+                            print(f"[Gemini] Rate limit hit. Retrying in {sleep_time} seconds (Attempt {attempt+1}/{max_retries})...")
+                            time.sleep(sleep_time)
+                            continue
+                    raise RuntimeError(f"Gemini Vision fallback failed: {e}")
+
+        elif openai_key and openai_key.strip():
+            try:
+                import base64
+                from io import BytesIO
+                from openai import OpenAI
+                
+                client = OpenAI(api_key=openai_key.strip())
+                prompt = cls._get_prompt()
+                
+                buffered = BytesIO()
+                if pil_image.mode == 'RGBA':
+                    pil_image = pil_image.convert('RGB')
+                pil_image.save(buffered, format="JPEG")
+                img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": "Extract transactions from this bank statement page image."},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{img_str}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    response_format={"type": "json_object"}
+                )
+                response_text = response.choices[0].message.content.strip()
+                data = json.loads(response_text)
+                return data
+            except Exception as e:
+                raise RuntimeError(f"OpenAI Vision fallback failed: {e}")
+
+        raise RuntimeError("No AI API Keys are configured.")
+
+    @classmethod
+    def detect_bank_from_image(cls, pil_image) -> str:
+        """
+        Sends the PIL image of the first page to Gemini Vision to identify the bank name.
+        Includes automatic retry backoff.
+        """
+        load_dotenv(override=True)
+        gemini_key = cls.get_api_key()
+        if not gemini_key or not gemini_key.strip():
+            return "Unknown Bank"
+
+        import time
+        max_retries = 5
+        base_delay = 5
+
+        for attempt in range(max_retries):
+            try:
+                genai.configure(api_key=gemini_key.strip())
+                model = genai.GenerativeModel("gemini-2.0-flash")
+                prompt = (
+                    "Analyze this bank statement page image. "
+                    "Identify which bank it belongs to (e.g. HDFC Bank, State Bank of India, ICICI Bank, Axis Bank, Kotak Mahindra Bank, Bank of Baroda, etc.). "
+                    "Return ONLY the bank name as plain text (e.g. 'HDFC Bank'). Do not include any formatting or other words."
+                )
+                response = model.generate_content(contents=[prompt, pil_image])
+                bank_name = response.text.strip()
+                
+                # Match detected text against standard list
+                for standard_name in [
+                    "HDFC Bank", "State Bank of India", "ICICI Bank", "Axis Bank", 
+                    "Kotak Mahindra Bank", "Bank of Baroda", "Canara Bank", 
+                    "Union Bank of India", "Punjab National Bank", "IDFC First Bank", 
+                    "IndusInd Bank", "Yes Bank", "Federal Bank", "UCO Bank", 
+                    "Central Bank of India", "Indian Bank", "Indian Overseas Bank", 
+                    "AU Small Finance Bank", "Bandhan Bank", "RBL Bank", "South Indian Bank"
+                ]:
+                    if standard_name.lower() in bank_name.lower():
+                        return standard_name
+                return bank_name
+            except Exception as e:
+                err_msg = str(e)
+                if "429" in err_msg or "Quota exceeded" in err_msg or "ResourceExhausted" in err_msg or "rate limit" in err_msg.lower():
+                    if attempt < max_retries - 1:
+                        sleep_time = base_delay * (2 ** attempt)
+                        time.sleep(sleep_time)
+                        continue
+                pass
+        return "Unknown Bank"
+
+
+

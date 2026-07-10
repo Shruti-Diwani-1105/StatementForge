@@ -5,21 +5,20 @@ class BankDetector:
 
     # Key-value mapping of bank names to text keywords/signatures
     SIGNATURES = {
-        "HDFC Bank": ["hdfc bank", "hdfcbank", "housing development finance corporation"],
-        "SBI": ["state bank of india", "sbi statement"],
-        "ICICI Bank": ["icici bank", "icicibank"],
-        "Axis Bank": ["axis bank", "axisbank"],
-        "Bank of Baroda": ["bank of baroda", "bob statement"],
-        "Kotak Mahindra Bank": ["kotak mahindra", "kotak bank"],
-        "Canara Bank": ["canara bank"],
-        "Punjab National Bank": ["punjab national bank", "pnb"],
-        "Union Bank of India": ["union bank of india", "union bank"],
-        "Indian Bank": ["indian bank"],
-        "IDBI Bank": ["idbi bank"],
-        "Federal Bank": ["federal bank"],
-        "IndusInd Bank": ["indusind bank", "indusind"],
-        "AU Small Finance Bank": ["au small finance", "au bank"],
-        "Yes Bank": ["yes bank", "yesbank"]
+        "HDFC Bank": ["hdfc bank", "hdfcbank", "housing development finance corporation", "hdfc", "wexunaerstandouiiorla", "we understand your world"],
+        "State Bank of India": ["state bank of india", "sbi statement", "sbin", "state bank", "sbi"],
+        "ICICI Bank": ["icici bank", "icicibank", "icici"],
+        "Axis Bank": ["axis bank", "axisbank", "axis", "utib"],
+        "Bank of Baroda": ["bank of baroda", "bob statement", "bob", "baroda", "barb"],
+        "Kotak Mahindra Bank": ["kotak mahindra", "kotak bank", "kotak", "kkbk"],
+        "Canara Bank": ["canara bank", "canara", "cnrb"],
+        "Punjab National Bank": ["punjab national bank", "pnb", "punjab", "punb"],
+        "Union Bank of India": ["union bank of india", "union bank", "ubin"],
+        "Federal Bank": ["federal bank", "federal", "fdrl"],
+        "IndusInd Bank": ["indusind bank", "indusind", "indb"],
+        "AU Small Finance Bank": ["au small finance", "au bank", "au small"],
+        "Yes Bank": ["yes bank", "yesbank", "yesb"],
+        "IDFC First Bank": ["idfc first", "idfc bank", "idfc", "idfb"]
     }
 
     @classmethod
@@ -28,12 +27,38 @@ class BankDetector:
         if not text:
             return "Unknown Bank"
         
+        text_upper = text.upper()
+        # 1. Regex check for IFSC code patterns (highly robust)
+        ifsc_pattern = r"\b(HDFC|SBIN|ICIC|UTIB|BARB|KKBK|CNRB|PUNB|UBIN|FDRL|INDB|YESB|IDFB)[A-Z0-9]{4,8}\b"
+        match = re.search(ifsc_pattern, text_upper)
+        if match:
+            prefix = match.group(1)
+            mapping = {
+                "HDFC": "HDFC Bank",
+                "SBIN": "State Bank of India",
+                "ICIC": "ICICI Bank",
+                "UTIB": "Axis Bank",
+                "BARB": "Bank of Baroda",
+                "KKBK": "Kotak Mahindra Bank",
+                "CNRB": "Canara Bank",
+                "PUNB": "Punjab National Bank",
+                "UBIN": "Union Bank of India",
+                "FDRL": "Federal Bank",
+                "INDB": "IndusInd Bank",
+                "YESB": "Yes Bank",
+                "IDFB": "IDFC First Bank"
+            }
+            if prefix in mapping:
+                return mapping[prefix]
+
+        # 2. Case-insensitive keyword checks
         text_lower = text.lower()
         for bank_name, keywords in cls.SIGNATURES.items():
             if any(kw in text_lower for kw in keywords):
                 return bank_name
                 
         return "Unknown Bank"
+
 
     @classmethod
     def get_local_parser(cls, bank_name: str):
