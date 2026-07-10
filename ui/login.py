@@ -235,15 +235,29 @@ class LoginScreen(QWidget):
         self.error_label.setVisible(False)
 
     def handle_google_login(self):
-        # If currently running, treat this click as a request to cancel
-        if hasattr(self, 'google_worker') and self.google_worker and self.google_worker.isRunning():
-            self.google_worker.cancel()
+        # If currently running and user requested cancel, treat this click as cancel
+        if self.google_btn.text() == "Cancel Sign-In":
+            if hasattr(self, 'google_worker') and self.google_worker and self.google_worker.isRunning():
+                self.google_worker.cancel()
             self.on_google_auth_finished(False, {"error": "Google Sign-In was cancelled by the user."})
             return
 
         self.error_label.setVisible(False)
         self.google_btn.setText("Cancel Sign-In")
         self.login_btn.setEnabled(False)
+
+        # If a previous worker is still running in the background, disconnect it and cancel it
+        if hasattr(self, 'google_worker') and self.google_worker and self.google_worker.isRunning():
+            try:
+                self.google_worker.finished.disconnect(self.on_google_auth_finished)
+            except TypeError:
+                pass
+            self.google_worker.cancel()
+            if not hasattr(self, '_active_google_workers'):
+                self._active_google_workers = set()
+            old_worker = self.google_worker
+            self._active_google_workers.add(old_worker)
+            old_worker.finished.connect(lambda: self._active_google_workers.discard(old_worker))
 
         from services.google_auth_service import GoogleAuthWorker
         self.google_worker = GoogleAuthWorker()
