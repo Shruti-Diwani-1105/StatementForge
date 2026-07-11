@@ -381,7 +381,9 @@ Return JSON only."""
                     return data
                 except Exception as e:
                     err_msg = str(e)
-                    if "429" in err_msg or "Quota exceeded" in err_msg or "ResourceExhausted" in err_msg or "rate limit" in err_msg.lower():
+                    if "quota" in err_msg.lower() or "limit" in err_msg.lower():
+                        raise RuntimeError(f"Gemini API limit/quota exceeded: {err_msg}")
+                    if "429" in err_msg or "ResourceExhausted" in err_msg or "rate limit" in err_msg.lower():
                         if attempt < max_retries - 1:
                             sleep_time = base_delay * (2 ** attempt)
                             print(f"[Gemini] Rate limit hit. Retrying in {sleep_time} seconds (Attempt {attempt+1}/{max_retries})...")
@@ -472,7 +474,9 @@ Return JSON only."""
                 return bank_name
             except Exception as e:
                 err_msg = str(e)
-                if "429" in err_msg or "Quota exceeded" in err_msg or "ResourceExhausted" in err_msg or "rate limit" in err_msg.lower():
+                if "quota" in err_msg.lower() or "limit" in err_msg.lower():
+                    break
+                if "429" in err_msg or "ResourceExhausted" in err_msg or "rate limit" in err_msg.lower():
                     if attempt < max_retries - 1:
                         sleep_time = base_delay * (2 ** attempt)
                         time.sleep(sleep_time)

@@ -15,7 +15,8 @@ class ParserUtils:
         """Checks if a string fits standard bank statement date patterns."""
         if not val:
             return False
-        clean_val = str(val).strip()
+        clean_val = str(val).replace('\n', '').replace('\r', '').strip()
+        clean_val = re.sub(r"\s+", " ", clean_val)
         for pattern in cls.DATE_PATTERNS:
             if re.match(pattern, clean_val):
                 return True
@@ -81,7 +82,8 @@ class ParserUtils:
         """Attempts to parse standard date strings to datetime.date."""
         if val is None:
             return None
-        val_str = str(val).strip()
+        val_str = str(val).replace('\n', '').replace('\r', '').strip()
+        val_str = re.sub(r"\s+", " ", val_str)
         date_formats = [
             "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d",
             "%d/%m/%y", "%d-%m-%y",

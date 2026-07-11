@@ -48,13 +48,13 @@ class DigitalParser:
 
         with pdfplumber.open(pdf_path) as pdf:
             page = pdf.pages[page_num]
-            tables = page.extract_tables({
-                "vertical_strategy": "text",
-                "horizontal_strategy": "text",
-                "intersection_tolerance": 3
-            })
+            tables = page.extract_tables()
             if not tables:
-                tables = page.extract_tables()
+                tables = page.extract_tables({
+                    "vertical_strategy": "text",
+                    "horizontal_strategy": "text",
+                    "intersection_tolerance": 3
+                })
             if tables:
                 largest_table = max(tables, key=len)
                 cleaned_table = []

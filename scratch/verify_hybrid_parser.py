@@ -65,28 +65,26 @@ def test_hdfc_parser():
 
 def test_balance_validation():
     print("--- Testing Balance Validation Logic ---")
-    from services.statement_service import ParseWorker
-    
-    worker = ParseWorker("dummy.pdf")
+    from parser.validation import ValidationService
     
     # Mathematical sequence correct
     valid_txs = [
-        {"balance": 100.0, "debit": 0.0, "credit": 0.0},
-        {"balance": 80.0, "debit": 20.0, "credit": 0.0},
-        {"balance": 130.0, "debit": 0.0, "credit": 50.0},
+        {"date": "01/04/2026", "narration": "Tx 1", "balance": 100.0, "debit": 0.0, "credit": 0.0},
+        {"date": "02/04/2026", "narration": "Tx 2", "balance": 80.0, "debit": 20.0, "credit": 0.0},
+        {"date": "03/04/2026", "narration": "Tx 3", "balance": 130.0, "debit": 0.0, "credit": 50.0},
     ]
-    is_valid = worker.validate_balances(valid_txs)
-    print(f"Valid Sequence Check: {is_valid}")
-    assert is_valid is True, "Expected True for valid ledger sequence"
+    res = ValidationService.validate_transactions(valid_txs)
+    print(f"Valid Sequence Check: {res['success']}")
+    assert res['success'] is True, "Expected True for valid ledger sequence"
     
     # Mathematical sequence incorrect
     invalid_txs = [
-        {"balance": 100.0, "debit": 0.0, "credit": 0.0},
-        {"balance": 90.0, "debit": 20.0, "credit": 0.0}, # Should be 80.0
+        {"date": "01/04/2026", "narration": "Tx 1", "balance": 100.0, "debit": 0.0, "credit": 0.0},
+        {"date": "02/04/2026", "narration": "Tx 2", "balance": 90.0, "debit": 20.0, "credit": 0.0}, # Should be 80.0
     ]
-    is_invalid = worker.validate_balances(invalid_txs)
-    print(f"Invalid Sequence Check (False expected): {is_invalid}")
-    assert is_invalid is False, "Expected False for invalid ledger sequence"
+    res_invalid = ValidationService.validate_transactions(invalid_txs)
+    print(f"Invalid Sequence Check (False expected): {res_invalid['success']}")
+    assert res_invalid['success'] is False, "Expected False for invalid ledger sequence"
     
     print("Balance Validation tests passed successfully!\n")
 

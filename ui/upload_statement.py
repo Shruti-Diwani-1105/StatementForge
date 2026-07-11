@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton,
     QFileDialog, QTableWidget, QTableWidgetItem, QHeaderView, QLineEdit,
     QSpacerItem, QSizePolicy, QStackedWidget, QDialog, QProgressBar, QMessageBox, QGridLayout,
-    QGraphicsDropShadowEffect
+    QGraphicsDropShadowEffect, QCheckBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QStandardPaths
 from PyQt6.QtGui import QPixmap, QCursor, QColor
@@ -177,6 +177,11 @@ class UploadStatementWidget(QWidget):
 
         layout.addWidget(self.drop_zone)
         
+        self.auto_convert_cb = QCheckBox("Automatically detect bank & convert to Excel on upload")
+        self.auto_convert_cb.setChecked(True)
+        self.auto_convert_cb.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        layout.addWidget(self.auto_convert_cb)
+        
         # Bottom Institutions list
         banks_layout = QVBoxLayout()
         banks_layout.setSpacing(12)
@@ -264,7 +269,10 @@ class UploadStatementWidget(QWidget):
             self.file_path = meta["file_path"]
             self.page_count = meta["page_count"]
             self.detected_bank = meta["bank_name"]
-            self.transition_to_choose_action()
+            if self.auto_convert_cb.isChecked():
+                self.start_processing_flow()
+            else:
+                self.transition_to_choose_action()
 
         def on_error(err):
             self.progress_box.reject()
@@ -526,7 +534,8 @@ class UploadStatementWidget(QWidget):
         def on_finished(payload):
             self.parsed_payload = payload
             if not payload or not payload.get("transactions"):
-                self.stack.setCurrentIndex(1)
+                back_idx = 0 if self.auto_convert_cb.isChecked() else 1
+                self.stack.setCurrentIndex(back_idx)
                 logs = payload.get("logs") if payload else "No log output available."
                 self.show_error_popup(
                     "No transactions could be extracted from this PDF statement.\n\n"
@@ -538,7 +547,8 @@ class UploadStatementWidget(QWidget):
 
 
         def on_error(err):
-            self.stack.setCurrentIndex(1)
+            back_idx = 0 if self.auto_convert_cb.isChecked() else 1
+            self.stack.setCurrentIndex(back_idx)
             self.show_error_popup(err)
 
         self.active_thread = StatementService.start_parse(
@@ -566,7 +576,8 @@ class UploadStatementWidget(QWidget):
             self.transition_to_success(excel_path)
 
         def on_error(err):
-            self.stack.setCurrentIndex(1)
+            back_idx = 0 if self.auto_convert_cb.isChecked() else 1
+            self.stack.setCurrentIndex(back_idx)
             self.show_error_popup(err)
 
         self.active_thread = StatementService.start_generate_excel(

@@ -69,7 +69,8 @@ class TransactionParser:
                     if clean_num and clean_num != "-":
                         try:
                             float(clean_num)
-                            col_types[col_idx]["numeric"] += 1
+                            if len(cell_str) <= len(clean_num) + 4:
+                                col_types[col_idx]["numeric"] += 1
                         except ValueError:
                             pass
                     col_types[col_idx]["text_len"] += len(cell_str)
@@ -80,7 +81,7 @@ class TransactionParser:
                 mapping["date"] = date_col
 
             # Map Balance and Debit/Credit
-            numeric_cols = [i for i, scores in col_types.items() if scores["numeric"] > 1 and i != mapping.get("date")]
+            numeric_cols = [i for i, scores in col_types.items() if scores["numeric"] > 1 and i != mapping.get("date") and scores["dates"] == 0]
             if numeric_cols:
                 mapping["balance"] = numeric_cols[-1]
                 other_numerics = [i for i in numeric_cols if i != mapping["balance"]]
