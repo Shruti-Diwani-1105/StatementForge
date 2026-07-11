@@ -66,8 +66,14 @@ class ClickableProfileWidget(QFrame):
 
         # Profile Full Name
         self.user_name = QLabel("")
-        self.user_name.setStyleSheet("font-weight: 600; font-size: 13px; color: #0F172A; border: none; background: transparent;")
+        self.user_name.setStyleSheet("font-weight: 600; font-size: 13px; border: none; background: transparent;")
         layout.addWidget(self.user_name)
+        
+        # Profile Dropdown Arrow
+        self.arrow = QLabel("▼")
+        self.arrow.setObjectName("ProfileArrow")
+        self.arrow.setStyleSheet("font-size: 8px; border: none; background: transparent;")
+        layout.addWidget(self.arrow)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:

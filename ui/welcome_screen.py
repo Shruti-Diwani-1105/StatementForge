@@ -24,12 +24,6 @@ class WelcomeScreen(QWidget):
         # 1. Header Navigation Bar (Logo on left, Auth Buttons on right)
         header_widget = QFrame()
         header_widget.setObjectName("HeaderWidget")
-        header_widget.setStyleSheet("""
-            QFrame#HeaderWidget {
-                background-color: #FFFFFF;
-                border-bottom: 1px solid #E2E8F0;
-            }
-        """)
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(32, 16, 32, 16)
         
@@ -44,9 +38,10 @@ class WelcomeScreen(QWidget):
         left_header.addWidget(logo_label)
         
         app_name_label = QLabel("StatementForge")
+        app_name_label.setObjectName("WelcomeAppName")
         app_name_label.setMinimumHeight(30)
         app_name_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        app_name_label.setStyleSheet("font-weight: 700; font-size: 18px; color: #0F172A; border: 0px solid transparent; padding-bottom: 4px;")
+        app_name_label.setStyleSheet("border: 0px solid transparent; padding-bottom: 4px;")
         left_header.addWidget(app_name_label)
         header_layout.addLayout(left_header)
         
@@ -90,9 +85,10 @@ class WelcomeScreen(QWidget):
         hero_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         hero_title = QLabel("StatementForge")
+        hero_title.setObjectName("HeroTitle")
         hero_title.setMinimumHeight(64)
         hero_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hero_title.setStyleSheet("font-size: 42px; font-weight: 800; color: #0F172A; letter-spacing: -1px; border: 0px solid transparent; padding-bottom: 8px;")
+        hero_title.setStyleSheet("border: 0px solid transparent; padding-bottom: 8px;")
         
         hero_subtitle = QLabel("Automated Bank Statement Parser & Accounting Hub")
         hero_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -102,10 +98,11 @@ class WelcomeScreen(QWidget):
             "An intelligent offline desktop application that extracts, verifies, and organizes "
             "financial transactions from multiple bank statement formats."
         )
+        hero_desc.setObjectName("HeroDesc")
         hero_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hero_desc.setWordWrap(True)
         hero_desc.setFixedWidth(750)
-        hero_desc.setStyleSheet("font-size: 15px; color: #64748B; line-height: 22px; margin-bottom: 8px;")
+        hero_desc.setStyleSheet("margin-bottom: 8px;")
         
         # Primary Call To Action Button
         self.get_started_btn = PrimaryButton("Get Started →")

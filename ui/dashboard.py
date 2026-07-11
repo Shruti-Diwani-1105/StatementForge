@@ -1,3 +1,6 @@
+import os
+import sys
+import datetime
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QStackedWidget, QScrollArea, QGridLayout, QFrame, 
                              QSpacerItem, QSizePolicy, QMessageBox, QTableWidget, 
@@ -72,6 +75,9 @@ class DashboardScreen(QWidget):
             # Sync sidebar checked state if called programmatically
             self.sidebar.set_active_page(key)
 
+            if key == "history":
+                self.load_history_table()
+
     def set_user_profile(self, user_details):
         """Updates the dashboard greeting and topbar initials avatar with user details."""
         full_name = user_details.get("name", "User")
@@ -85,8 +91,15 @@ class DashboardScreen(QWidget):
         if hasattr(self, "welcome_lbl") and self.welcome_lbl is not None:
             self.welcome_lbl.setText(f"Welcome Back, {first_name}!")
             
+        # Load and apply user settings
+        if hasattr(self, "settings_controller") and self.settings_controller is not None:
+            self.settings_controller.load_user_settings()
+            from settings.settings_service import SettingsService
+            SettingsService.apply_settings_instantly(self.settings_controller.model.to_dict())
+            
         # Refresh dashboard stats dynamically
         self.update_dashboard_stats()
+        self.load_history_table()
 
     def update_dashboard_stats(self):
         """Fetches dynamic metrics from HistoryService and updates dashboard labels."""
@@ -412,7 +425,7 @@ class DashboardScreen(QWidget):
         self.page_stack.addWidget(self.upload_widget)
 
     def create_history_page(self):
-        """History Page mockup displaying a clean, populated transactions table structure."""
+        """History Page presenting actual processed transaction logs."""
         page = QWidget()
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(32, 24, 32, 32)
@@ -434,45 +447,80 @@ class DashboardScreen(QWidget):
         
         self.history_table = QTableWidget()
         self.history_table.setColumnCount(6)
-        self.history_table.setHorizontalHeaderLabels(["Upload Date", "File Name", "Bank Name", "Period", "Status", "Action"])
+        self.history_table.setHorizontalHeaderLabels(["Upload Date", "File Name", "Bank Name", "Status", "Output Format", "Action"])
         self.history_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.history_table.setStyleSheet("border: none; gridline-color: #F1F5F9;")
+        self.history_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.history_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
         
-        mock_data = [
-            ("2026-07-01", "Chase_Checking_Jun2026.pdf", "Chase Bank", "Jun 01 - Jun 30, 2026", "COMPLETED", "#16A34A"),
-            ("2026-07-02", "BOA_CreditCard_Jun2026.pdf", "Bank of America", "Jun 05 - Jul 02, 2026", "COMPLETED", "#16A34A"),
-            ("2026-07-05", "Wells_Saving_Jun2026.pdf", "Wells Fargo", "Jun 01 - Jun 30, 2026", "FAILED", "#EF4444")
-        ]
+        tc_layout.addWidget(self.history_table)
+        page_layout.addWidget(table_container)
         
-        self.history_table.setRowCount(len(mock_data))
+        page_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        self.page_stack.addWidget(page)
+
+    def load_history_table(self):
+        """Loads actual user-generated statement log history from database/local file."""
+        from services.history_service import HistoryService
+        from utils.user_session import UserSession
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else "guest"
+        
+        logs = HistoryService.get_history_logs(user_id=user_id)
+        
+        self.history_table.setRowCount(0)
+        self.history_table.setRowCount(len(logs))
         
         from PyQt6.QtGui import QCursor
-        for row_idx, (upload_date, file_name, bank_name, period, status, color) in enumerate(mock_data):
-            # Standard Text Items
-            date_item = QTableWidgetItem(upload_date)
+        
+        for row_idx, log in enumerate(logs):
+            # 1. Upload Date
+            upload_date = log.get("upload_date", "")
+            if isinstance(upload_date, str) and "T" in upload_date:
+                try:
+                    dt = datetime.datetime.fromisoformat(upload_date)
+                    date_str = dt.strftime("%Y-%m-%d %H:%M")
+                except:
+                    date_str = upload_date.replace("T", " ")[:16]
+            elif hasattr(upload_date, "strftime"):
+                date_str = upload_date.strftime("%Y-%m-%d %H:%M")
+            else:
+                date_str = str(upload_date)[:16]
+                
+            date_item = QTableWidgetItem(date_str)
             date_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.history_table.setItem(row_idx, 0, date_item)
             
+            # 2. File Name
+            pdf_path = log.get("pdf_path", "")
+            file_name = os.path.basename(pdf_path) if pdf_path else "Unknown.pdf"
             file_item = QTableWidgetItem(file_name)
             file_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.history_table.setItem(row_idx, 1, file_item)
             
+            # 3. Bank Name
+            bank_name = log.get("bank_name", "Unknown Bank")
             bank_item = QTableWidgetItem(bank_name)
             bank_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.history_table.setItem(row_idx, 2, bank_item)
             
-            period_item = QTableWidgetItem(period)
-            period_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.history_table.setItem(row_idx, 3, period_item)
+            # 4. Status (Processing, Completed, Failed, Cancelled)
+            status = log.get("status", "Completed")
+            status_colors = {
+                "Completed": "#16A34A",
+                "Processing": "#2563EB",
+                "Failed": "#EF4444",
+                "Cancelled": "#4B5563"
+            }
+            color = status_colors.get(status, "#4B5563")
             
-            # Status Badge container (QLabel cell widget)
             status_container = QWidget()
             sc_layout = QHBoxLayout(status_container)
             sc_layout.setContentsMargins(4, 4, 4, 4)
             sc_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
             status_badge = QLabel(status)
-            status_badge.setFixedSize(90, 22)
+            status_badge.setFixedSize(100, 22)
             status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
             status_badge.setStyleSheet(f"""
                 QLabel {{
@@ -485,42 +533,66 @@ class DashboardScreen(QWidget):
                 }}
             """)
             sc_layout.addWidget(status_badge)
-            self.history_table.setCellWidget(row_idx, 4, status_container)
+            self.history_table.setCellWidget(row_idx, 3, status_container)
             
-            # Action Button cell widget
+            # 5. Output Format
+            out_fmt = log.get("output_format", "Excel") if status == "Completed" else "-"
+            fmt_item = QTableWidgetItem(out_fmt)
+            fmt_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            self.history_table.setItem(row_idx, 4, fmt_item)
+            
+            # 6. Action
             action_container = QWidget()
             ac_layout = QHBoxLayout(action_container)
             ac_layout.setContentsMargins(4, 4, 4, 4)
             ac_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            view_btn = QPushButton("View")
-            view_btn.setFixedSize(60, 22)
-            view_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            view_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #EFF6FF;
-                    color: #2563EB;
-                    border: none;
-                    border-radius: 6px;
-                    font-weight: 600;
-                    font-size: 11px;
-                }
-                QPushButton:hover {
-                    background-color: #DBEAFE;
-                }
-            """)
-            view_btn.clicked.connect(lambda checked, fn=file_name: self.show_coming_soon(f"Viewer for {fn}"))
-            ac_layout.addWidget(view_btn)
+            if status == "Completed":
+                view_btn = QPushButton("View")
+                view_btn.setFixedSize(60, 22)
+                view_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                view_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #EFF6FF;
+                        color: #2563EB;
+                        border: none;
+                        border-radius: 6px;
+                        font-weight: 600;
+                        font-size: 11px;
+                    }
+                    QPushButton:hover {
+                        background-color: #DBEAFE;
+                    }
+                """)
+                excel_path = log.get("excel_path", "")
+                view_btn.clicked.connect(lambda checked, ep=excel_path: self.open_history_file(ep))
+                ac_layout.addWidget(view_btn)
+            else:
+                act_lbl = QLabel(status)
+                act_lbl.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: 500;")
+                ac_layout.addWidget(act_lbl)
+                
             self.history_table.setCellWidget(row_idx, 5, action_container)
+
+    def open_history_file(self, filepath):
+        if not filepath or not os.path.exists(filepath):
+            QMessageBox.warning(self, "File Not Found", f"The generated file could not be found at:\n{filepath}")
+            return
             
-        tc_layout.addWidget(self.history_table)
-        page_layout.addWidget(table_container)
-        
-        page_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        self.page_stack.addWidget(page)
+        try:
+            if os.name == 'nt':
+                os.startfile(filepath)
+            elif sys.platform == 'darwin':
+                import subprocess
+                subprocess.run(["open", filepath])
+            else:
+                import subprocess
+                subprocess.run(["xdg-open", filepath])
+        except Exception as e:
+            QMessageBox.critical(self, "Error Opening File", f"An error occurred while opening the file:\n{e}")
 
     def create_reports_page(self):
-        """Reports Page presenting visual category progress bars and downloadable report options."""
+        """Reports Page presenting downloadable report options."""
         page = QWidget()
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(32, 24, 32, 32)
@@ -534,67 +606,7 @@ class DashboardScreen(QWidget):
         page_layout.addWidget(header_lbl)
         page_layout.addWidget(sub_lbl)
         
-        # Horizontal Split Layout
-        split_layout = QHBoxLayout()
-        split_layout.setSpacing(24)
-        
-        # 1. Left Frame: Category Breakdown Chart
-        chart_card = QFrame()
-        chart_card.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;")
-        cc_layout = QVBoxLayout(chart_card)
-        cc_layout.setContentsMargins(24, 24, 24, 24)
-        cc_layout.setSpacing(16)
-        
-        cc_title = QLabel("Expense Breakdown (Jun 2026)")
-        cc_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #0F172A;")
-        cc_layout.addWidget(cc_title)
-        
-        categories = [
-            ("Operations & Utilities", 45, "$4,500.00", "#2563EB"),
-            ("Software SaaS & Tools", 30, "$3,000.00", "#0D9488"),
-            ("Office & Admin Expenses", 15, "$1,500.00", "#EA580C"),
-            ("Marketing & Advertising", 10, "$1,000.00", "#16A34A")
-        ]
-        
-        for name, percent, total, color in categories:
-            cat_layout = QVBoxLayout()
-            cat_layout.setSpacing(6)
-            
-            # Text line: Name and amount
-            txt_layout = QHBoxLayout()
-            name_lbl = QLabel(name)
-            name_lbl.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
-            amount_lbl = QLabel(f"{total} ({percent}%)")
-            amount_lbl.setStyleSheet("font-weight: 700; font-size: 13px; color: #0F172A;")
-            txt_layout.addWidget(name_lbl)
-            txt_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-            txt_layout.addWidget(amount_lbl)
-            
-            # Progress Bar representation
-            pbar = QProgressBar()
-            pbar.setValue(percent)
-            pbar.setFixedHeight(8)
-            pbar.setTextVisible(False)
-            pbar.setStyleSheet(f"""
-                QProgressBar {{
-                    background-color: #F1F5F9;
-                    border: none;
-                    border-radius: 4px;
-                }}
-                QProgressBar::chunk {{
-                    background-color: {color};
-                    border-radius: 4px;
-                }}
-            """)
-            
-            cat_layout.addLayout(txt_layout)
-            cat_layout.addWidget(pbar)
-            cc_layout.addLayout(cat_layout)
-            
-        cc_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        split_layout.addWidget(chart_card, stretch=4)
-        
-        # 2. Right Frame: Downloadable Cards List
+        # Downloadable Cards List - Full Width Layout
         reports_list = QWidget()
         rl_layout = QVBoxLayout(reports_list)
         rl_layout.setContentsMargins(0, 0, 0, 0)
@@ -657,181 +669,18 @@ class DashboardScreen(QWidget):
             rl_layout.addWidget(r_card)
             
         rl_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        split_layout.addWidget(reports_list, stretch=5)
         
-        page_layout.addLayout(split_layout)
+        page_layout.addWidget(reports_list)
         self.page_stack.addWidget(page)
 
     def create_settings_page(self):
-        """Settings Page representation mockup showing options fields."""
-        page = QWidget()
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(32, 24, 32, 32)
-        page_layout.setSpacing(24)
+        """Instantiates the premium MVC Settings view and controller."""
+        from settings.settings_window import SettingsWindow
+        from settings.settings_controller import SettingsController
         
-        header_lbl = QLabel("Application Settings")
-        header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A;")
-        sub_lbl = QLabel("Manage localization settings, OCR configs, and local file storage paths.")
-        sub_lbl.setStyleSheet("color: #64748B; font-size: 13px;")
-        
-        page_layout.addWidget(header_lbl)
-        page_layout.addWidget(sub_lbl)
-        
-        # Scroll Area for settings form
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setStyleSheet("background-color: transparent; border: none;")
-        
-        scroll_content = QWidget()
-        scroll_content.setStyleSheet("background-color: transparent;")
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setContentsMargins(0, 0, 16, 0)
-        scroll_layout.setSpacing(16)
-        
-        # Forms frame
-        settings_frame = QFrame()
-        settings_frame.setObjectName("SettingsFrame")
-        self.settings_frame = settings_frame
-        settings_frame.setStyleSheet("QFrame#SettingsFrame { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }")
-        sf_layout = QVBoxLayout(settings_frame)
-        sf_layout.setContentsMargins(32, 32, 32, 32)
-        sf_layout.setSpacing(20)
-        
-        # SQLite db path settings
-        db_layout = QVBoxLayout()
-        db_layout.setSpacing(8)
-        db_title = QLabel("SQLite Database Destination Path")
-        db_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
-        self.db_path_input = QLineEdit()
-        self.db_path_input.setText("database/history.db")
-        self.db_path_input.setReadOnly(True)
-        self.db_path_input.setMaximumWidth(600)
-        db_layout.addWidget(db_title)
-        db_layout.addWidget(self.db_path_input)
-        sf_layout.addLayout(db_layout)
-        
-        # Export Destination path settings
-        export_layout = QVBoxLayout()
-        export_layout.setSpacing(8)
-        export_title = QLabel("Default Spreadsheet Export Directory")
-        export_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
-        self.export_path_input = QLineEdit()
-        self.export_path_input.setText("exports/")
-        self.export_path_input.setReadOnly(True)
-        self.export_path_input.setMaximumWidth(600)
-        export_layout.addWidget(export_title)
-        export_layout.addWidget(self.export_path_input)
-        sf_layout.addLayout(export_layout)
-        
-        # AI Detection Engine dropdown
-        ai_layout = QVBoxLayout()
-        ai_layout.setSpacing(8)
-        ai_title = QLabel("AI Detection & Parsing Engine")
-        ai_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
-        self.ai_combo = QComboBox()
-        self.ai_combo.setMaximumWidth(600)
-        self.ai_combo.addItems(["Fast Local Parser (Regex & Rules)", "Deep OCR Engine (Tesseract)", "Cloud AI LLM Engine (GPT-4o/Claude)"])
-        self.ai_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #FFFFFF;
-                border: 1px solid #CBD5E1;
-                border-radius: 10px;
-                padding: 10px 14px;
-                color: #0F172A;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 30px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                selection-background-color: #2563EB;
-                selection-color: #FFFFFF;
-            }
-        """)
-        ai_layout.addWidget(ai_title)
-        ai_layout.addWidget(self.ai_combo)
-        sf_layout.addLayout(ai_layout)
-        
-        # OCR Language dropdown
-        lang_layout = QVBoxLayout()
-        lang_layout.setSpacing(8)
-        lang_title = QLabel("OCR Parsing Language")
-        lang_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
-        self.lang_combo = QComboBox()
-        self.lang_combo.setMaximumWidth(600)
-        self.lang_combo.addItems(["English (US/UK)", "Spanish (Español)", "French (Français)", "German (Deutsch)"])
-        self.lang_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #FFFFFF;
-                border: 1px solid #CBD5E1;
-                border-radius: 10px;
-                padding: 10px 14px;
-                color: #0F172A;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 30px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                selection-background-color: #2563EB;
-                selection-color: #FFFFFF;
-            }
-        """)
-        lang_layout.addWidget(lang_title)
-        lang_layout.addWidget(self.lang_combo)
-        sf_layout.addLayout(lang_layout)
-        
-        # Advanced options layout
-        opts_layout = QVBoxLayout()
-        opts_layout.setSpacing(12)
-        opts_title = QLabel("Advanced Verification Rules")
-        opts_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569; margin-top: 10px;")
-        opts_layout.addWidget(opts_title)
-        
-        self.dup_cb = QCheckBox("Enable automatic duplicate transaction flagging")
-        self.dup_cb.setChecked(True)
-        self.dup_cb.setMaximumWidth(600)
-        self.email_cb = QCheckBox("Auto-email PDF statement reports on export completion")
-        self.email_cb.setMaximumWidth(600)
-        self.sound_cb = QCheckBox("Enable sound alerts on statement parsing completion")
-        self.sound_cb.setChecked(True)
-        self.sound_cb.setMaximumWidth(600)
-        
-        opts_layout.addWidget(self.dup_cb)
-        opts_layout.addWidget(self.email_cb)
-        opts_layout.addWidget(self.sound_cb)
-        sf_layout.addLayout(opts_layout)
-        
-        # Action Buttons
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(12)
-        self.save_btn = PrimaryButton("Save Configuration")
-        self.save_btn.setFixedWidth(200)
-        self.save_btn.clicked.connect(lambda: self.show_coming_soon("Save Config"))
-        
-        self.reset_btn = SecondaryButton("Reset Default")
-        self.reset_btn.setFixedWidth(150)
-        self.reset_btn.clicked.connect(lambda: self.show_coming_soon("Reset Default"))
-        
-        from utils.theme_manager import ThemeManager
-        self.update_button_styles(ThemeManager.get_theme())
-        
-        btn_layout.addWidget(self.save_btn)
-        btn_layout.addWidget(self.reset_btn)
-        btn_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        sf_layout.addLayout(btn_layout)
-        
-        scroll_layout.addWidget(settings_frame)
-        scroll_area.setWidget(scroll_content)
-        page_layout.addWidget(scroll_area)
-        
-        page_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        self.page_stack.addWidget(page)
+        self.settings_window = SettingsWindow(self)
+        self.settings_controller = SettingsController(self.settings_window)
+        self.page_stack.addWidget(self.settings_window)
 
     def update_theme_styles(self, theme):
         """Updates internal card components to match active theme stylesheet parameters."""
@@ -843,127 +692,41 @@ class DashboardScreen(QWidget):
             self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #1E293B; border: 1px solid #334155; border-top: 4px solid #10B981; border-radius: 12px; }")
             self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #1E293B; border: 1px solid #334155; border-top: 4px solid #F97316; border-radius: 12px; }")
             self.activity_card.setStyleSheet("QFrame#ActivityCard { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; }")
-            if hasattr(self, "settings_frame") and self.settings_frame is not None:
-                self.settings_frame.setStyleSheet("QFrame#SettingsFrame { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; }")
-                
-                # Update comboboxes inline styles for dark mode
-                dark_combo_style = """
-                    QComboBox {
-                        background-color: #0F172A;
-                        border: 1px solid #334155;
-                        border-radius: 10px;
-                        padding: 10px 14px;
-                        color: #F8FAFC;
-                    }
-                    QComboBox::drop-down {
-                        border: none;
-                        width: 30px;
-                    }
-                    QComboBox QAbstractItemView {
-                        background-color: #1E293B;
-                        border: 1px solid #334155;
-                        selection-background-color: #3B82F6;
-                        selection-color: #FFFFFF;
-                        color: #F8FAFC;
-                    }
-                """
-                self.ai_combo.setStyleSheet(dark_combo_style)
-                self.lang_combo.setStyleSheet(dark_combo_style)
         else:
             self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
             self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
             self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
             self.activity_card.setStyleSheet("QFrame#ActivityCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }")
-            if hasattr(self, "settings_frame") and self.settings_frame is not None:
-                self.settings_frame.setStyleSheet("QFrame#SettingsFrame { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }")
-                
-                # Restore comboboxes inline styles for light mode
-                light_combo_style = """
-                    QComboBox {
-                        background-color: #FFFFFF;
-                        border: 1px solid #CBD5E1;
-                        border-radius: 10px;
-                        padding: 10px 14px;
-                        color: #0F172A;
-                    }
-                    QComboBox::drop-down {
-                        border: none;
-                        width: 30px;
-                    }
-                    QComboBox QAbstractItemView {
-                        background-color: #FFFFFF;
-                        border: 1px solid #E2E8F0;
-                        selection-background-color: #2563EB;
-                        selection-color: #FFFFFF;
-                    }
-                """
-                self.ai_combo.setStyleSheet(light_combo_style)
-                self.lang_combo.setStyleSheet(light_combo_style)
-                
-        self.update_button_styles(theme)
 
-    def update_button_styles(self, theme):
-        """Applies dynamic stylesheet declarations on save and reset buttons."""
-        if not hasattr(self, "save_btn") or self.save_btn is None:
-            return
+        # Dynamically update labels and frames to prevent text visibility and section color bugs in dark mode
+        for label in self.findChildren(QLabel):
+            style = label.styleSheet()
+            if theme == "dark" and "color: #0F172A" in style:
+                label.setStyleSheet(style.replace("color: #0F172A", "color: #F8FAFC"))
+            elif theme == "light" and "color: #F8FAFC" in style:
+                label.setStyleSheet(style.replace("color: #F8FAFC", "color: #0F172A"))
+                
+        for frame in self.findChildren(QFrame):
+            if frame.objectName() in ["CardFrame", "SettingCardFrame", "SidebarFrame", "TopBar"]:
+                continue
+            style = frame.styleSheet()
+            if theme == "dark" and "background-color: #FFFFFF" in style:
+                new_style = style.replace("background-color: #FFFFFF", "background-color: #1E293B")
+                new_style = new_style.replace("border: 1px solid #E2E8F0", "border: 1px solid #334155")
+                frame.setStyleSheet(new_style)
+            elif theme == "light" and "background-color: #1E293B" in style:
+                new_style = style.replace("background-color: #1E293B", "background-color: #FFFFFF")
+                new_style = new_style.replace("border: 1px solid #334155", "border: 1px solid #E2E8F0")
+                frame.setStyleSheet(new_style)
             
-        if theme == "dark":
-            self.save_btn.setStyleSheet("""
-                QPushButton#PrimaryButton {
-                    background-color: #3B82F6;
-                    color: #FFFFFF;
-                    border: none;
-                    border-radius: 10px;
-                    font-weight: 600;
-                    padding: 11px 22px;
-                }
-                QPushButton#PrimaryButton:hover {
-                    background-color: #2563EB;
-                }
-            """)
-            self.reset_btn.setStyleSheet("""
-                QPushButton#SecondaryButton {
-                    background-color: #1E293B;
-                    color: #E2E8F0;
-                    border: 1px solid #334155;
-                    border-radius: 10px;
-                    font-weight: 500;
-                    padding: 10px 20px;
-                }
-                QPushButton#SecondaryButton:hover {
-                    background-color: #334155;
-                    color: #F8FAFC;
-                    border-color: #475569;
-                }
-            """)
-        else:
-            self.save_btn.setStyleSheet("""
-                QPushButton#PrimaryButton {
-                    background-color: #2563EB;
-                    color: #FFFFFF;
-                    border: none;
-                    border-radius: 10px;
-                    font-weight: 600;
-                    padding: 11px 22px;
-                }
-                QPushButton#PrimaryButton:hover {
-                    background-color: #1D4ED8;
-                }
-            """)
-            self.reset_btn.setStyleSheet("""
-                QPushButton#SecondaryButton {
-                    background-color: #FFFFFF;
-                    color: #475569;
-                    border: 1px solid #E2E8F0;
-                    border-radius: 10px;
-                    font-weight: 500;
-                    padding: 10px 20px;
-                }
-                QPushButton#SecondaryButton:hover {
-                    background-color: #F8FAFC;
-                    color: #0F172A;
-                    border-color: #CBD5E1;
-                }
-            """)
+        if hasattr(self, "settings_controller") and self.settings_controller is not None:
+            self.settings_controller.model.set("app_theme", theme.capitalize())
+            self.settings_controller.model.set("theme", theme.capitalize())
+            
+        if hasattr(self, "settings_window") and self.settings_window is not None:
+            self.settings_window.update_theme_style(theme)
+
+        if hasattr(self, "upload_widget") and self.upload_widget is not None:
+            self.upload_widget.update_theme_style(theme)
 
 

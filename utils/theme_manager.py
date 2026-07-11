@@ -9,18 +9,14 @@ class ThemeManager:
 
     @classmethod
     def initialize_theme(cls):
-        """Loads persistent theme setting and applies the stylesheet."""
-        if os.path.exists(cls._theme_file):
-            try:
-                with open(cls._theme_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    cls._current_theme = data.get("theme", "light")
-            except Exception:
-                cls._current_theme = "light"
-        else:
-            cls._current_theme = "light"
-        
-        cls.apply_theme(cls._current_theme)
+        """Always defaults to light theme on application startup."""
+        cls._current_theme = "light"
+        try:
+            with open(cls._theme_file, "w", encoding="utf-8") as f:
+                json.dump({"theme": "light"}, f)
+        except Exception:
+            pass
+        cls.apply_theme("light")
 
     @classmethod
     def get_theme(cls):

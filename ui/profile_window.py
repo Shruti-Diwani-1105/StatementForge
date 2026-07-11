@@ -499,3 +499,74 @@ class ProfileWindow(QWidget):
         self.confirm_pwd_input.clear()
         self.reqs_widget.update_requirements("")
         self.pwd_error_lbl.setText("")
+
+    def update_theme_style(self, theme):
+        """Updates ProfileWindow widgets, backgrounds, and text colors dynamically based on theme."""
+        if theme == "dark":
+            self.setStyleSheet("""
+                QWidget {
+                    color: #F8FAFC;
+                }
+                QLineEdit {
+                    background-color: #0F172A;
+                    color: #F8FAFC;
+                    border: 1px solid #334155;
+                }
+            """)
+        else:
+            self.setStyleSheet("")
+
+        # Dynamically skin labels and frame backgrounds inside ProfileWindow to match dark mode theme
+        for label in self.findChildren(QLabel):
+            style = label.styleSheet()
+            if theme == "dark" and "color: #0F172A" in style:
+                label.setStyleSheet(style.replace("color: #0F172A", "color: #F8FAFC"))
+            elif theme == "light" and "color: #F8FAFC" in style:
+                label.setStyleSheet(style.replace("color: #F8FAFC", "color: #0F172A"))
+                
+        for frame in self.findChildren(QFrame):
+            style = frame.styleSheet()
+            if theme == "dark" and "background-color: #FFFFFF" in style:
+                new_style = style.replace("background-color: #FFFFFF", "background-color: #1E293B")
+                new_style = new_style.replace("border: 1px solid #E2E8F0", "border: 1px solid #334155")
+                frame.setStyleSheet(new_style)
+            elif theme == "light" and "background-color: #1E293B" in style:
+                new_style = style.replace("background-color: #1E293B", "background-color: #FFFFFF")
+                new_style = new_style.replace("border: 1px solid #334155", "border: 1px solid #E2E8F0")
+                frame.setStyleSheet(new_style)
+
+        # Style the back button
+        if theme == "dark":
+            self.back_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #1E293B;
+                    color: #F8FAFC;
+                    border: 1px solid #334155;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 13px;
+                    padding: 8px 16px;
+                }
+                QPushButton:hover {
+                    background-color: #334155;
+                    color: #FFFFFF;
+                    border-color: #475569;
+                }
+            """)
+        else:
+            self.back_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #FFFFFF;
+                    color: #475569;
+                    border: 1px solid #E2E8F0;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 13px;
+                    padding: 8px 16px;
+                }
+                QPushButton:hover {
+                    background-color: #F8FAFC;
+                    color: #0F172A;
+                    border-color: #CBD5E1;
+                }
+            """)

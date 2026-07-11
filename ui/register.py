@@ -6,6 +6,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QTimer, QEvent, QSize
 from PyQt6.QtGui import QPixmap, QCursor, QIcon, QColor
 
+from widgets.custom_button import PrimaryButton, SecondaryButton, LinkButton
+
 class PremiumInputGroup(QWidget):
     """
     Custom text field component containing:
@@ -30,7 +32,8 @@ class PremiumInputGroup(QWidget):
 
         # Label
         self.label = QLabel(label_text)
-        self.label.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
+        self.label.setObjectName("FormLabel")
+        self.label.setStyleSheet("font-weight: 600; font-size: 13px;")
         layout.addWidget(self.label)
 
         # Custom Bordered Input Container
@@ -56,7 +59,7 @@ class PremiumInputGroup(QWidget):
         self.line_edit = QLineEdit()
         self.line_edit.setPlaceholderText(placeholder)
         self.line_edit.setStyleSheet(
-            "background: transparent; border: none; padding: 0; font-size: 14px; color: #0F172A;"
+            "background: transparent; border: none; padding: 0; font-size: 14px;"
         )
         if is_password:
             self.line_edit.setEchoMode(QLineEdit.EchoMode.Password)
@@ -105,16 +108,29 @@ class PremiumInputGroup(QWidget):
 
     def set_container_style(self, focused=False):
         """Applies dynamic stylesheet updates directly to avoid native unpolish/polish reflow bugs."""
-        if self.has_error:
-            border_style = "border: 1px solid #EF4444;"
-        elif focused:
-            border_style = "border: 2px solid #2563EB;"
+        from utils.theme_manager import ThemeManager
+        theme = ThemeManager.get_theme()
+        
+        if theme == "dark":
+            bg = "#0F172A"
+            if self.has_error:
+                border_style = "border: 1px solid #EF4444;"
+            elif focused:
+                border_style = "border: 2px solid #3B82F6;"
+            else:
+                border_style = "border: 1px solid #334155;"
         else:
-            border_style = "border: 1px solid #CBD5E1;"
+            bg = "#FFFFFF"
+            if self.has_error:
+                border_style = "border: 1px solid #EF4444;"
+            elif focused:
+                border_style = "border: 2px solid #2563EB;"
+            else:
+                border_style = "border: 1px solid #E5E7EB;"
 
         self.container.setStyleSheet(f"""
             QFrame#InputContainer {{
-                background-color: #FFFFFF;
+                background-color: {bg};
                 {border_style}
                 border-radius: 10px;
             }}
@@ -336,8 +352,6 @@ class RegisterScreen(QWidget):
 
     def init_ui(self):
         self.setObjectName("RegisterBackground")
-        # Style sheet is strictly scoped to RegisterBackground ID to prevent stylesheet leakage onto children
-        self.setStyleSheet("QWidget#RegisterBackground { background-color: #F6F8FC; }")
 
         # Outer Layout
         main_layout = QVBoxLayout(self)
@@ -349,16 +363,11 @@ class RegisterScreen(QWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background-color: transparent;
-            }
-        """)
+        scroll_area.setStyleSheet("background: transparent; border: none;")
 
         scroll_content = QWidget()
         scroll_content.setObjectName("ScrollContent")
-        scroll_content.setStyleSheet("QWidget#ScrollContent { background-color: transparent; }")
+        scroll_content.setStyleSheet("background-color: transparent;")
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setContentsMargins(0, 0, 0, 24)
         scroll_layout.setSpacing(0)
@@ -367,28 +376,8 @@ class RegisterScreen(QWidget):
         top_bar_layout = QHBoxLayout()
         top_bar_layout.setContentsMargins(32, 24, 32, 0)
         
-        self.back_btn = QPushButton("←  Back")
-        self.back_btn.setObjectName("BackButton")
-        self.back_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.back_btn.setStyleSheet("""
-            QPushButton#BackButton {
-                background-color: #FFFFFF;
-                color: #475569;
-                border: 1px solid #E2E8F0;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 13px;
-                padding: 8px 16px;
-            }
-            QPushButton#BackButton:hover {
-                background-color: #F8FAFC;
-                color: #0F172A;
-                border-color: #CBD5E1;
-            }
-            QPushButton#BackButton:pressed {
-                background-color: #F1F5F9;
-            }
-        """)
+        self.back_btn = SecondaryButton("←  Back")
+        self.back_btn.setFixedWidth(100)
         self.back_btn.clicked.connect(self.gotoWelcome.emit)
         top_bar_layout.addWidget(self.back_btn)
         top_bar_layout.addStretch()
@@ -399,18 +388,9 @@ class RegisterScreen(QWidget):
         center_layout.addStretch()
 
         # The Registration Card Frame
-        # Styled with a sleek border instead of buggy graphics drop shadow to prevent repaint page blanking issues
         self.card = QFrame()
         self.card.setObjectName("RegisterCard")
         self.card.setFixedWidth(620)
-        self.card.setStyleSheet("""
-            QFrame#RegisterCard {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-top: 4px solid #2563EB;
-                border-radius: 18px;
-            }
-        """)
 
         # Card Stacked Widget
         self.card_stack = QStackedWidget(self.card)
@@ -418,21 +398,16 @@ class RegisterScreen(QWidget):
         card_outer_layout.setContentsMargins(0, 0, 0, 0)
         card_outer_layout.addWidget(self.card_stack)
 
-        # PAGE 1: The registration form (represented as QFrame for scoped repaints)
+        # PAGE 1: The registration form
         self.form_widget = QFrame()
         self.form_widget.setObjectName("FormWidget")
-        self.form_widget.setStyleSheet("""
-            QFrame#FormWidget {
-                background-color: #FFFFFF;
-                border: none;
-                border-radius: 18px;
-            }
-        """)
+        self.form_widget.setStyleSheet("background: transparent; border: none;")
+        
         form_layout = QVBoxLayout(self.form_widget)
         form_layout.setContentsMargins(40, 32, 40, 32)
         form_layout.setSpacing(10)
 
-        # Branding Header (Added directly to parent layout to prevent sizing/clipping bugs)
+        # Branding Header
         logo_label = QLabel()
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_pixmap = QPixmap("assets/logo.png")
@@ -445,13 +420,14 @@ class RegisterScreen(QWidget):
         title_label = QLabel("StatementForge")
         title_label.setMinimumHeight(34)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 22px; font-weight: 800; color: #0F172A; letter-spacing: -0.5px; border: 0px solid transparent; padding-bottom: 4px;")
+        title_label.setStyleSheet("font-size: 22px; font-weight: 800; border: 0px solid transparent; padding-bottom: 4px;")
         form_layout.addWidget(title_label)
 
         subtitle_label = QLabel("Create your account to securely manage and process financial statements.")
+        subtitle_label.setObjectName("ScreenSubtitle")
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle_label.setWordWrap(True)
-        subtitle_label.setStyleSheet("font-size: 13px; color: #64748B; font-weight: 500;")
+        subtitle_label.setStyleSheet("")
         form_layout.addWidget(subtitle_label)
 
         # Inputs section
@@ -492,30 +468,8 @@ class RegisterScreen(QWidget):
         form_layout.addSpacing(6)
 
         # Create Account Button (Height 50px)
-        self.register_btn = QPushButton("Create Account")
-        self.register_btn.setObjectName("CreateAccountButton")
+        self.register_btn = PrimaryButton("Create Account")
         self.register_btn.setFixedHeight(50)
-        self.register_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.register_btn.setStyleSheet("""
-            QPushButton#CreateAccountButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3B82F6, stop:1 #2563EB);
-                color: #FFFFFF;
-                border: none;
-                border-radius: 12px;
-                font-weight: 700;
-                font-size: 15px;
-            }
-            QPushButton#CreateAccountButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:1 #1D4ED8);
-            }
-            QPushButton#CreateAccountButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1D4ED8, stop:1 #1E40AF);
-            }
-            QPushButton#CreateAccountButton:disabled {
-                background-color: #CBD5E1;
-                color: #94A3B8;
-            }
-        """)
         self.register_btn.clicked.connect(self.handle_registration)
         form_layout.addWidget(self.register_btn)
 
@@ -538,36 +492,12 @@ class RegisterScreen(QWidget):
         form_layout.addLayout(or_layout)
 
         # Continue with Google button
-        self.google_btn = QPushButton("Continue with Google")
+        self.google_btn = SecondaryButton("Continue with Google")
         self.google_btn.setFixedHeight(50)
-        self.google_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         google_pixmap = QPixmap("assets/icons/google.png")
         if not google_pixmap.isNull():
             self.google_btn.setIcon(QIcon(google_pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
         self.google_btn.setIconSize(QSize(20, 20))
-        self.google_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #FFFFFF;
-                border: 1px solid #CBD5E1;
-                border-radius: 12px;
-                color: #334155;
-                font-size: 14px;
-                font-weight: 600;
-                padding: 0 16px;
-            }
-            QPushButton:hover {
-                background-color: #F8FAFC;
-                border-color: #94A3B8;
-            }
-            QPushButton:pressed {
-                background-color: #F1F5F9;
-            }
-            QPushButton:disabled {
-                background-color: #F1F5F9;
-                color: #94A3B8;
-                border-color: #E2E8F0;
-            }
-        """)
         self.google_btn.clicked.connect(self.handle_google_login)
         form_layout.addWidget(self.google_btn)
 
@@ -577,24 +507,11 @@ class RegisterScreen(QWidget):
         login_link_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         login_lbl = QLabel("Already have an account?")
-        login_lbl.setStyleSheet("color: #64748B; font-size: 13px; font-weight: 500;")
+        login_lbl.setObjectName("ScreenSubtitle")
+        login_lbl.setStyleSheet("")
 
-        self.login_btn = QPushButton("Sign In")
-        self.login_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.login_btn.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                color: #2563EB;
-                border: none;
-                font-weight: 700;
-                font-size: 13px;
-                padding: 0;
-            }
-            QPushButton:hover {
-                color: #1D4ED8;
-                text-decoration: underline;
-            }
-        """)
+        self.login_btn = LinkButton("Sign In")
+        self.login_btn.setStyleSheet("font-weight: 700; border: none; padding: 0px;")
         self.login_btn.clicked.connect(self.gotoLogin.emit)
 
         login_link_layout.addWidget(login_lbl)
@@ -602,31 +519,20 @@ class RegisterScreen(QWidget):
         form_layout.addLayout(login_link_layout)
 
 
-        # PAGE 2: The registration success screen (represented as QFrame for scoped repaints)
+        # PAGE 2: The registration success screen
         self.success_widget = QFrame()
         self.success_widget.setObjectName("SuccessWidget")
-        self.success_widget.setStyleSheet("""
-            QFrame#SuccessWidget {
-                background-color: #FFFFFF;
-                border: none;
-                border-radius: 18px;
-            }
-        """)
+        self.success_widget.setStyleSheet("background: transparent; border: none;")
+        
         success_layout = QVBoxLayout(self.success_widget)
         success_layout.setContentsMargins(40, 60, 40, 60)
         success_layout.setSpacing(24)
         success_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         success_icon = QLabel("✓")
+        success_icon.setObjectName("SuccessIcon")
         success_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         success_icon.setFixedSize(64, 64)
-        success_icon.setStyleSheet("""
-            background-color: #EFF6FF;
-            color: #2563EB;
-            font-size: 32px;
-            font-weight: bold;
-            border-radius: 32px;
-        """)
         success_layout.addWidget(success_icon, alignment=Qt.AlignmentFlag.AlignCenter)
 
         success_title = QLabel("✓ Registration Successful")
@@ -635,29 +541,13 @@ class RegisterScreen(QWidget):
         success_layout.addWidget(success_title)
 
         success_desc = QLabel("Your account has been created successfully.")
+        success_desc.setObjectName("ScreenSubtitle")
         success_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        success_desc.setStyleSheet("font-size: 14px; color: #64748B; font-weight: 500;")
+        success_desc.setStyleSheet("")
         success_layout.addWidget(success_desc)
 
-        self.success_login_btn = QPushButton("Go to Login")
+        self.success_login_btn = PrimaryButton("Go to Login")
         self.success_login_btn.setFixedHeight(50)
-        self.success_login_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.success_login_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3B82F6, stop:1 #2563EB);
-                color: #FFFFFF;
-                border: none;
-                border-radius: 12px;
-                font-weight: 700;
-                font-size: 15px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:1 #1D4ED8);
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1D4ED8, stop:1 #1E40AF);
-            }
-        """)
         self.success_login_btn.clicked.connect(self.on_go_to_login_clicked)
         success_layout.addWidget(self.success_login_btn)
 

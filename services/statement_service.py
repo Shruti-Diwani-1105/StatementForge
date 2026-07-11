@@ -125,10 +125,11 @@ class ExcelWorker(QObject):
     finished = pyqtSignal(str)            # Emits output Excel file path
     error = pyqtSignal(str)               # Emits error message
 
-    def __init__(self, user_id, payload):
+    def __init__(self, user_id, payload, history_record_id=None):
         super().__init__()
         self.user_id = user_id
         self.payload = payload
+        self.history_record_id = history_record_id
 
     def run(self):
         try:
@@ -150,16 +151,25 @@ class ExcelWorker(QObject):
             # --- STEP 6: Saving File & DB logging ---
             self.step_started.emit(6)
             
-            # Save parsing log into MongoDB history collection or fallback
-            HistoryService.save_record(
-                user_id=self.user_id,
-                pdf_path=self.payload["file_path"],
-                excel_path=excel_path,
-                bank_name=self.payload["bank_name"],
-                statement_period=self.payload["period"],
-                processing_time=self.payload["processing_time"],
-                total_transactions=len(self.payload["transactions"])
-            )
+            if self.history_record_id:
+                HistoryService.update_record_completed(
+                    record_id=self.history_record_id,
+                    excel_path=excel_path,
+                    period=self.payload["period"],
+                    processing_time=self.payload["processing_time"],
+                    total_transactions=len(self.payload["transactions"])
+                )
+            else:
+                # Save parsing log into MongoDB history collection or fallback
+                HistoryService.save_record(
+                    user_id=self.user_id,
+                    pdf_path=self.payload["file_path"],
+                    excel_path=excel_path,
+                    bank_name=self.payload["bank_name"],
+                    statement_period=self.payload["period"],
+                    processing_time=self.payload["processing_time"],
+                    total_transactions=len(self.payload["transactions"])
+                )
             time.sleep(0.3)
             self.step_completed.emit(6, "success")
 
@@ -239,10 +249,10 @@ class StatementService:
 
 
     @classmethod
-    def start_generate_excel(cls, user_id, payload, on_started, on_step_started, on_step_completed, on_finished, on_error):
+    def start_generate_excel(cls, user_id, payload, history_record_id, on_started, on_step_started, on_step_completed, on_finished, on_error):
         """Spawns an ExcelWorker in a background thread."""
         thread = QThread()
-        worker = ExcelWorker(user_id, payload)
+        worker = ExcelWorker(user_id, payload, history_record_id)
         worker.moveToThread(thread)
 
         thread.worker = worker # Keep references to prevent GC

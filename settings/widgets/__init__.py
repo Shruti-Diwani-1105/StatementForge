@@ -1,0 +1,1 @@
+# Settings custom widgets package

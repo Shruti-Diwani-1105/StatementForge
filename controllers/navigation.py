@@ -160,3 +160,5 @@ class NavigationController(QMainWindow):
             self.dashboard_screen.update_theme_styles(theme)
             if hasattr(self.dashboard_screen, "topbar") and self.dashboard_screen.topbar is not None:
                 self.dashboard_screen.topbar.update_theme_icon(theme)
+        if hasattr(self, "profile_window") and self.profile_window is not None:
+            self.profile_window.update_theme_style(theme)

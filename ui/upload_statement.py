@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton,
     QFileDialog, QTableWidget, QTableWidgetItem, QHeaderView, QLineEdit,
     QSpacerItem, QSizePolicy, QStackedWidget, QDialog, QProgressBar, QMessageBox, QGridLayout,
-    QGraphicsDropShadowEffect, QCheckBox
+    QGraphicsDropShadowEffect, QCheckBox, QScrollArea
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QStandardPaths
 from PyQt6.QtGui import QPixmap, QCursor, QColor
@@ -103,8 +103,14 @@ class UploadStatementWidget(QWidget):
     # PAGE 0: UPLOAD & DROP ZONE
     # ==========================================
     def init_upload_page(self):
-        page = QWidget()
-        layout = QVBoxLayout(page)
+        page = QScrollArea()
+        page.setWidgetResizable(True)
+        page.setFrameShape(QFrame.Shape.NoFrame)
+        page.setStyleSheet("background: transparent; border: none;")
+
+        scroll_content = QWidget()
+        scroll_content.setStyleSheet("background-color: transparent;")
+        layout = QVBoxLayout(scroll_content)
         layout.setContentsMargins(32, 24, 32, 32)
         layout.setSpacing(24)
 
@@ -120,6 +126,7 @@ class UploadStatementWidget(QWidget):
         self.drop_zone = QFrame()
         self.drop_zone.setObjectName("DropZone")
         self.drop_zone.setAcceptDrops(True)
+        self.drop_zone.setMinimumHeight(280)
         self.drop_zone.setStyleSheet("""
             QFrame#DropZone {
                 background-color: #FFFFFF;
@@ -132,48 +139,39 @@ class UploadStatementWidget(QWidget):
             }
         """)
         self.drop_zone.dragEnterEvent = self.zone_drag_enter
+        self.drop_zone.dragLeaveEvent = self.zone_drag_leave
         self.drop_zone.dropEvent = self.zone_drop
 
         zone_layout = QVBoxLayout(self.drop_zone)
-        zone_layout.setContentsMargins(40, 60, 40, 60)
+        zone_layout.setContentsMargins(40, 40, 40, 40)
         zone_layout.setSpacing(16)
-        zone_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Center elements vertically using layout spacers
+        zone_layout.addStretch()
 
         upload_icon = QLabel()
+        upload_icon.setFixedSize(64, 64)
         upload_pixmap = QPixmap("assets/icons/upload.png")
         if not upload_pixmap.isNull():
             upload_icon.setPixmap(upload_pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        upload_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        zone_layout.addWidget(upload_icon)
+        zone_layout.addWidget(upload_icon, alignment=Qt.AlignmentFlag.AlignCenter)
 
         prompt_lbl = QLabel("Drag & Drop your statement PDF here")
-        prompt_lbl.setStyleSheet("font-size: 16px; font-weight: 600; color: #0F172A;")
-        prompt_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        zone_layout.addWidget(prompt_lbl)
+        prompt_lbl.setStyleSheet("font-size: 16px; font-weight: 600;")
+        zone_layout.addWidget(prompt_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
 
         help_lbl = QLabel("Supports PDF files (.pdf) only")
         help_lbl.setStyleSheet("font-size: 12px; color: #94A3B8;")
-        help_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        zone_layout.addWidget(help_lbl)
+        zone_layout.addWidget(help_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        browse_btn = QPushButton("Browse Files")
-        browse_btn.setFixedSize(160, 38)
-        browse_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        browse_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2563EB;
-                color: white;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 13px;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: #1D4ED8;
-            }
-        """)
-        browse_btn.clicked.connect(self.browse_pdf_file)
-        zone_layout.addWidget(browse_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.browse_btn = QPushButton("Browse Files")
+        self.browse_btn.setObjectName("PrimaryButton")
+        self.browse_btn.setFixedSize(160, 44)
+        self.browse_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.browse_btn.clicked.connect(self.browse_pdf_file)
+        zone_layout.addWidget(self.browse_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        zone_layout.addStretch()
 
         layout.addWidget(self.drop_zone)
         
@@ -195,23 +193,35 @@ class UploadStatementWidget(QWidget):
         banks_list = ["HDFC", "SBI", "ICICI", "Axis", "Kotak", "Canara", "BoB", "IndusInd"]
         for name in banks_list:
             pill = QLabel(name)
-            pill.setStyleSheet("""
-                QLabel {
-                    background-color: #EFF6FF;
-                    color: #2563EB;
-                    font-weight: 600;
-                    font-size: 12px;
-                    padding: 6px 14px;
-                    border-radius: 14px;
-                    border: 1px solid #DBEAFE;
-                }
-            """)
+            pill.setObjectName("BankPill")
             pills_layout.addWidget(pill)
         pills_layout.addStretch()
         banks_layout.addLayout(pills_layout)
         layout.addLayout(banks_layout)
 
-        layout.addStretch()
+        # Recent Uploads Section at Bottom
+        layout.addSpacing(16)
+        recent_title = QLabel("Recent Uploaded Statements")
+        recent_title.setStyleSheet("font-weight: 700; font-size: 14px; margin-top: 10px;")
+        layout.addWidget(recent_title)
+        
+        self.recent_table = QTableWidget()
+        self.recent_table.setColumnCount(5)
+        self.recent_table.setHorizontalHeaderLabels(["Detected Bank", "File Name", "Transactions", "Processing Time", "Status"])
+        self.recent_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.recent_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.recent_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
+        self.recent_table.setFixedHeight(150)
+        self.recent_table.setStyleSheet("""
+            QTableWidget {
+                background-color: #FFFFFF;
+                border: 1px solid #E5E7EB;
+                border-radius: 8px;
+            }
+        """)
+        layout.addWidget(self.recent_table)
+
+        page.setWidget(scroll_content)
         self.stack.addWidget(page)
 
     def zone_drag_enter(self, event):
@@ -219,6 +229,17 @@ class UploadStatementWidget(QWidget):
             urls = event.mimeData().urls()
             if len(urls) == 1 and urls[0].toLocalFile().lower().endswith('.pdf'):
                 event.acceptProposedAction()
+                # Apply glow style on drag enter
+                theme = getattr(self, "current_theme", "light")
+                bg = "#1E293B" if theme == "dark" else "#EFF6FF"
+                border_color = "#3B82F6" if theme == "dark" else "#2563EB"
+                self.drop_zone.setStyleSheet(f"""
+                    QFrame#DropZone {{
+                        background-color: {bg};
+                        border: 2px dashed {border_color};
+                        border-radius: 16px;
+                    }}
+                """)
 
     def zone_drop(self, event):
         urls = event.mimeData().urls()
@@ -497,6 +518,9 @@ class UploadStatementWidget(QWidget):
         if self.active_thread and self.active_thread.isRunning():
             self.active_thread.terminate()
             self.active_thread.wait()
+        if hasattr(self, "history_record_id"):
+            from services.history_service import HistoryService
+            HistoryService.update_record_status(self.history_record_id, status="Cancelled")
         self.stack.setCurrentIndex(1)
 
     # ==========================================
@@ -511,6 +535,18 @@ class UploadStatementWidget(QWidget):
         self.proc_bar.setValue(0)
         
         self.stack.setCurrentIndex(2)
+
+        # Create dynamic history log entry
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else "guest"
+        from services.history_service import HistoryService
+        self.history_record_id = HistoryService.create_record(
+            user_id=user_id,
+            pdf_path=self.file_path,
+            bank_name=self.detected_bank,
+            status="Processing",
+            output_format="Excel"
+        )
 
         def on_started():
             pass
@@ -536,6 +572,8 @@ class UploadStatementWidget(QWidget):
             if not payload or not payload.get("transactions"):
                 back_idx = 0 if self.auto_convert_cb.isChecked() else 1
                 self.stack.setCurrentIndex(back_idx)
+                if hasattr(self, "history_record_id"):
+                    HistoryService.update_record_status(self.history_record_id, status="Failed")
                 logs = payload.get("logs") if payload else "No log output available."
                 self.show_error_popup(
                     "No transactions could be extracted from this PDF statement.\n\n"
@@ -549,6 +587,8 @@ class UploadStatementWidget(QWidget):
         def on_error(err):
             back_idx = 0 if self.auto_convert_cb.isChecked() else 1
             self.stack.setCurrentIndex(back_idx)
+            if hasattr(self, "history_record_id"):
+                HistoryService.update_record_status(self.history_record_id, status="Failed")
             self.show_error_popup(err)
 
         self.active_thread = StatementService.start_parse(
@@ -578,10 +618,14 @@ class UploadStatementWidget(QWidget):
         def on_error(err):
             back_idx = 0 if self.auto_convert_cb.isChecked() else 1
             self.stack.setCurrentIndex(back_idx)
+            if hasattr(self, "history_record_id"):
+                from services.history_service import HistoryService
+                HistoryService.update_record_status(self.history_record_id, status="Failed")
             self.show_error_popup(err)
 
+        record_id = getattr(self, "history_record_id", None)
         self.active_thread = StatementService.start_generate_excel(
-            user_id, self.parsed_payload, on_started, on_step_started, on_step_completed, on_finished, on_error
+            user_id, self.parsed_payload, record_id, on_started, on_step_started, on_step_completed, on_finished, on_error
         )
 
     # ==========================================
@@ -785,3 +829,162 @@ class UploadStatementWidget(QWidget):
         self.detected_bank = "Unknown Bank"
         self.parsed_payload = None
         self.stack.setCurrentIndex(0)
+        self.load_recent_uploads()
+
+    def zone_drag_leave(self, event):
+        # Reset drop zone style on drag leave
+        theme = getattr(self, "current_theme", "light")
+        if theme == "dark":
+            self.drop_zone.setStyleSheet("""
+                QFrame#DropZone {
+                    background-color: #1E293B;
+                    border: 2px dashed #334155;
+                    border-radius: 16px;
+                }
+                QFrame#DropZone:hover {
+                    border-color: #3B82F6;
+                    background-color: #0F172A;
+                }
+            """)
+        else:
+            self.drop_zone.setStyleSheet("""
+                QFrame#DropZone {
+                    background-color: #FFFFFF;
+                    border: 2px dashed #CBD5E1;
+                    border-radius: 16px;
+                }
+                QFrame#DropZone:hover {
+                    border-color: #3B82F6;
+                    background-color: #EFF6FF;
+                }
+            """)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.load_recent_uploads()
+
+
+
+    def update_theme_style(self, theme):
+        """Updates styling dynamically for dark and light theme."""
+        self.current_theme = theme
+        if theme == "dark":
+            self.drop_zone.setStyleSheet("""
+                QFrame#DropZone {
+                    background-color: #1E293B;
+                    border: 2px dashed #334155;
+                    border-radius: 16px;
+                }
+                QFrame#DropZone:hover {
+                    border-color: #3B82F6;
+                    background-color: #0F172A;
+                }
+            """)
+            self.browse_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #3B82F6;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background-color: #2563EB;
+                }
+                QPushButton:pressed {
+                    background-color: #1D4ED8;
+                }
+            """)
+            self.recent_table.setStyleSheet("""
+                QTableWidget {
+                    background-color: #1E293B;
+                    border: none;
+                    gridline-color: #334155;
+                    color: #F8FAFC;
+                }
+            """)
+        else:
+            self.drop_zone.setStyleSheet("""
+                QFrame#DropZone {
+                    background-color: #FFFFFF;
+                    border: 2px dashed #CBD5E1;
+                    border-radius: 16px;
+                }
+                QFrame#DropZone:hover {
+                    border-color: #3B82F6;
+                    background-color: #EFF6FF;
+                }
+            """)
+            self.browse_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #2563EB;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background-color: #1D4ED8;
+                }
+                QPushButton:pressed {
+                    background-color: #1E40AF;
+                }
+            """)
+            self.recent_table.setStyleSheet("""
+                QTableWidget {
+                    background-color: #FFFFFF;
+                    border: none;
+                    gridline-color: #F3F4F6;
+                    color: #111827;
+                }
+            """)
+
+    def load_recent_uploads(self):
+        """Populates the recent uploads table with actual history entries."""
+        from services.history_service import HistoryService
+        from utils.user_session import UserSession
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else "guest"
+        
+        # Load up to 5 recent uploads
+        logs = HistoryService.get_history_logs(user_id=user_id)[:5]
+        
+        self.recent_table.setRowCount(0)
+        self.recent_table.setRowCount(len(logs))
+        
+        import os
+        for row_idx, log in enumerate(logs):
+            # Detected Bank
+            bank = log.get("bank_name", "Unknown Bank")
+            bank_item = QTableWidgetItem(bank)
+            bank_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            self.recent_table.setItem(row_idx, 0, bank_item)
+            
+            # File Name
+            pdf_path = log.get("pdf_path", "")
+            file_name = os.path.basename(pdf_path) if pdf_path else "Unknown.pdf"
+            file_item = QTableWidgetItem(file_name)
+            file_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            self.recent_table.setItem(row_idx, 1, file_item)
+            
+            # Transactions
+            status = log.get("status", "Completed")
+            tx_count = log.get("total_transactions", 0)
+            tx_str = str(tx_count) if status == "Completed" else "-"
+            tx_item = QTableWidgetItem(tx_str)
+            tx_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            self.recent_table.setItem(row_idx, 2, tx_item)
+            
+            # Processing Time
+            p_time = log.get("processing_time", 0.0)
+            time_str = f"{p_time:.2f}s" if status == "Completed" else "-"
+            time_item = QTableWidgetItem(time_str)
+            time_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            self.recent_table.setItem(row_idx, 3, time_item)
+            
+            # Status
+            status_item = QTableWidgetItem(status)
+            status_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            self.recent_table.setItem(row_idx, 4, status_item)
