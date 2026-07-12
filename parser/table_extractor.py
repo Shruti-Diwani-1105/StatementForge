@@ -30,16 +30,41 @@ class TableExtractor:
         return False
 
     @classmethod
-    def extract_table_digitally(cls, pdf_path: str, page_num: int, logger=None) -> list:
-        """Extracts 2D grid table digitally using pdfplumber, Camelot, Tabula-py, or PyMuPDF."""
+    def extract_table_digitally_default(cls, pdf_path: str, page_num: int, logger=None) -> list:
+        """Extracts using pdfplumber's default (border lines) strategy."""
         if HAS_PDFPLUMBER:
             try:
-                table = DigitalParser.extract_with_pdfplumber(pdf_path, page_num)
+                table = DigitalParser.extract_with_pdfplumber_default(pdf_path, page_num)
                 if table and len(table) > 1 and any(any(cell for cell in row) for row in table):
                     return table
             except Exception as e:
                 if logger:
-                    logger.log(f"pdfplumber failed: {e}")
+                    logger.log(f"pdfplumber default failed: {e}")
+        return []
+
+    @classmethod
+    def extract_table_digitally_text_fallback(cls, pdf_path: str, page_num: int, logger=None) -> list:
+        """Extracts using pdfplumber's text-alignment fallback strategy."""
+        if HAS_PDFPLUMBER:
+            try:
+                table = DigitalParser.extract_with_pdfplumber_text(pdf_path, page_num)
+                if table and len(table) > 1 and any(any(cell for cell in row) for row in table):
+                    return table
+            except Exception as e:
+                if logger:
+                    logger.log(f"pdfplumber text fallback failed: {e}")
+        return []
+
+    @classmethod
+    def extract_table_digitally(cls, pdf_path: str, page_num: int, logger=None) -> list:
+        """Extracts 2D grid table digitally using default or text fallback strategy."""
+        table = cls.extract_table_digitally_default(pdf_path, page_num, logger)
+        if not table:
+            table = cls.extract_table_digitally_text_fallback(pdf_path, page_num, logger)
+            if table:
+                return table
+        else:
+            return table
 
         if HAS_CAMELOT:
             try:

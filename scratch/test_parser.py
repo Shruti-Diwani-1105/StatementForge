@@ -16,9 +16,15 @@ def run_tests():
     # 1. Test Bank Detection
     sample_text_hdfc = "Welcome to HDFC BANK. This is your statement of account."
     sample_text_sbi = "State Bank of India - E-Statement from 01/04/2026."
+    sample_text_boi = "Bank of India statement. Branch IFSC code: BKID0001234."
+    sample_text_boi_with_axis_upi = "Bank of India. Transaction list: UPI/1234/REF/AXIS, payment to merchant@okaxis."
+    sample_text_au_with_hdfc_upi = "AU Small Finance Bank. Transaction details: UPI/9876/HDFC, user@okhdfcbank."
     
     assert BankDetector.detect_bank(sample_text_hdfc) == "HDFC Bank"
     assert BankDetector.detect_bank(sample_text_sbi) == "State Bank of India"
+    assert BankDetector.detect_bank(sample_text_boi) == "Bank of India"
+    assert BankDetector.detect_bank(sample_text_boi_with_axis_upi) == "Bank of India"
+    assert BankDetector.detect_bank(sample_text_au_with_hdfc_upi) == "AU Small Finance Bank"
     assert BankDetector.detect_bank("Some random content") == "Unknown Bank"
     print("[OK] BankDetector tests passed.")
 

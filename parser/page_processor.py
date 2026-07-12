@@ -21,22 +21,39 @@ class PageProcessor:
 
         # 1. Try Digital Parse Waterfall
         if is_digital:
+            # Try Strategy A: Default layout (border lines)
             try:
-                grid_table = TableExtractor.extract_table_digitally(pdf_path, page_num, logger)
+                grid_table = TableExtractor.extract_table_digitally_default(pdf_path, page_num, logger)
                 if grid_table and len(grid_table) >= 2:
-                    if not used_mapping:
-                        used_mapping = TransactionParser.detect_columns(grid_table)
-                    transactions = TransactionParser.parse_rows(grid_table, used_mapping)
+                    grid_table = ParserUtils.split_merged_columns(grid_table)
+                    temp_mapping = used_mapping or TransactionParser.detect_columns(grid_table)
+                    transactions = TransactionParser.parse_rows(grid_table, temp_mapping)
+                    if transactions:
+                        used_mapping = temp_mapping
+                        method_used = "Digital Parser (Default)"
             except Exception as e:
                 if logger:
-                    logger.log(f"Page {page_num + 1} digital extraction error: {e}")
+                    logger.log(f"Page {page_num + 1} digital default strategy error: {e}")
 
-        # 2. Try OCR Fallback (if scanned OR digital parsed 0 transactions)
-        if not transactions:
+            # Try Strategy B: Text-alignment fallback layout (if Strategy A yielded 0 transactions)
+            if not transactions:
+                try:
+                    grid_table = TableExtractor.extract_table_digitally_text_fallback(pdf_path, page_num, logger)
+                    if grid_table and len(grid_table) >= 2:
+                        grid_table = ParserUtils.split_merged_columns(grid_table)
+                        temp_mapping = used_mapping or TransactionParser.detect_columns(grid_table)
+                        transactions = TransactionParser.parse_rows(grid_table, temp_mapping)
+                        if transactions:
+                            used_mapping = temp_mapping
+                            method_used = "Digital Parser (Text Fallback)"
+                except Exception as e:
+                    if logger:
+                        logger.log(f"Page {page_num + 1} digital text strategy fallback error: {e}")
+
+        # 2. Try OCR Fallback (if scanned and digital failed/yielded 0)
+        if not transactions and not is_digital:
             method_used = "OCR Parser"
             try:
-                if logger and is_digital:
-                    logger.log(f"Page {page_num + 1}: Digital extraction returned 0 transactions. Falling back to OCR...")
                 grid_table = TableExtractor.extract_table_via_ocr(pdf_path, page_num, logger)
                 if grid_table and len(grid_table) >= 2:
                     if not used_mapping:

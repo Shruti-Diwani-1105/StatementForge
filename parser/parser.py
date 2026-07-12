@@ -88,7 +88,9 @@ class PDFStatementParser:
             "AUBL": "AU Small Finance Bank",
             "FDRL": "Federal Bank",
             "RATN": "RBL Bank",
-            "SIBL": "South Indian Bank"
+            "SIBL": "South Indian Bank",
+            "BDBL": "Bandhan Bank",
+            "BKID": "Bank of India"
         }
 
         pages_text = []
@@ -100,15 +102,7 @@ class PDFStatementParser:
                 for idx in range(len(doc)):
                     text = doc[idx].get_text()
                     if text:
-                        text_upper = text.upper()
-                        # Check IFSC first
-                        match = re.search(r"\b([A-Z]{4})0\d{6}\b", text_upper)
-                        if match:
-                            prefix = match.group(1)
-                            if prefix in ifsc_prefixes:
-                                return ifsc_prefixes[prefix]
-                        
-                        # Match signatures
+                        # Match bank using BankDetector
                         bank = BankDetector.detect_bank(text)
                         if bank != "Unknown Bank":
                             return bank
@@ -123,14 +117,7 @@ class PDFStatementParser:
                     for idx in range(len(pdf.pages)):
                         text = pdf.pages[idx].extract_text()
                         if text:
-                            text_upper = text.upper()
-                            # Check IFSC
-                            match = re.search(r"\b([A-Z]{4})0\d{6}\b", text_upper)
-                            if match:
-                                prefix = match.group(1)
-                                if prefix in ifsc_prefixes:
-                                    return ifsc_prefixes[prefix]
-                            
+                            # Match bank using BankDetector
                             bank = BankDetector.detect_bank(text)
                             if bank != "Unknown Bank":
                                 return bank
@@ -171,32 +158,12 @@ class PDFStatementParser:
         except Exception:
             pass
 
-        # 4. Relaxed keyword checks on combined pages text
-        combined = "\n".join(pages_text).lower()
-        if "hdfc" in combined:
-            return "HDFC Bank"
-        if "sbi" in combined or "state bank" in combined:
-            return "State Bank of India"
-        if "icici" in combined:
-            return "ICICI Bank"
-        if "axis" in combined:
-            return "Axis Bank"
-        if "kotak" in combined:
-            return "Kotak Mahindra Bank"
-        if "bob" in combined or "baroda" in combined:
-            return "Bank of Baroda"
-        if "canara" in combined:
-            return "Canara Bank"
-        if "union" in combined:
-            return "Union Bank of India"
-        if "pnb" in combined or "punjab" in combined:
-            return "Punjab National Bank"
-        if "idfc" in combined:
-            return "IDFC First Bank"
-        if "indusind" in combined:
-            return "IndusInd Bank"
-        if "yes bank" in combined or "yesbank" in combined:
-            return "Yes Bank"
+        # 4. Relaxed keyword checks on combined pages text using BankDetector
+        combined = "\n".join(pages_text)
+        if combined.strip():
+            bank = BankDetector.detect_bank(combined)
+            if bank != "Unknown Bank":
+                return bank
 
         return "Unknown Bank"
 

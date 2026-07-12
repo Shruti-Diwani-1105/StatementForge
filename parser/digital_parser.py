@@ -41,20 +41,13 @@ class DigitalParser:
     """Extracts tables from digital PDF pages using multiple python libraries (pdfplumber, camelot, tabula-py, PyMuPDF)."""
 
     @classmethod
-    def extract_with_pdfplumber(cls, pdf_path: str, page_num: int) -> list:
-        """Extracts using pdfplumber's extract_tables method."""
+    def extract_with_pdfplumber_default(cls, pdf_path: str, page_num: int) -> list:
+        """Extracts using pdfplumber's default (border lines) strategy."""
         if not HAS_PDFPLUMBER:
             raise ImportError("pdfplumber is not installed.")
-
         with pdfplumber.open(pdf_path) as pdf:
             page = pdf.pages[page_num]
             tables = page.extract_tables()
-            if not tables:
-                tables = page.extract_tables({
-                    "vertical_strategy": "text",
-                    "horizontal_strategy": "text",
-                    "intersection_tolerance": 3
-                })
             if tables:
                 largest_table = max(tables, key=len)
                 cleaned_table = []
@@ -63,6 +56,35 @@ class DigitalParser:
                     cleaned_table.append(cleaned_row)
                 return cleaned_table
         return []
+
+    @classmethod
+    def extract_with_pdfplumber_text(cls, pdf_path: str, page_num: int) -> list:
+        """Extracts using pdfplumber's text-alignment strategy."""
+        if not HAS_PDFPLUMBER:
+            raise ImportError("pdfplumber is not installed.")
+        with pdfplumber.open(pdf_path) as pdf:
+            page = pdf.pages[page_num]
+            tables = page.extract_tables({
+                "vertical_strategy": "text",
+                "horizontal_strategy": "text",
+                "intersection_tolerance": 3
+            })
+            if tables:
+                largest_table = max(tables, key=len)
+                cleaned_table = []
+                for row in largest_table:
+                    cleaned_row = [str(cell).strip() if cell is not None else "" for cell in row]
+                    cleaned_table.append(cleaned_row)
+                return cleaned_table
+        return []
+
+    @classmethod
+    def extract_with_pdfplumber(cls, pdf_path: str, page_num: int) -> list:
+        """Wrapper for backward compatibility. Tries default then text fallback."""
+        table = cls.extract_with_pdfplumber_default(pdf_path, page_num)
+        if not table:
+            table = cls.extract_with_pdfplumber_text(pdf_path, page_num)
+        return table
 
     @classmethod
     def extract_with_camelot(cls, pdf_path: str, page_num: int) -> list:

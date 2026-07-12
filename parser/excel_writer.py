@@ -124,12 +124,18 @@ class ExcelWriter:
                         cell.number_format = 'yyyy-mm-dd'
                     cell.alignment = Alignment(horizontal="center", vertical="center")
                 else:
-                    parsed_val = ParserUtils.parse_numeric(val)
-                    cell.value = parsed_val
-                    if isinstance(parsed_val, (int, float)):
-                        cell.alignment = Alignment(horizontal="right", vertical="center")
-                    else:
+                    is_text_field = any(term in header_lower for term in ["narration", "description", "particulars", "remarks", "reference", "cheque", "ref no", "type"])
+                    if is_text_field:
+                        cell.value = str(val) if val is not None else ""
+                        cell.number_format = '@'
                         cell.alignment = Alignment(horizontal="left", vertical="center")
+                    else:
+                        parsed_val = ParserUtils.parse_numeric(val)
+                        cell.value = parsed_val
+                        if isinstance(parsed_val, (int, float)):
+                            cell.alignment = Alignment(horizontal="right", vertical="center")
+                        else:
+                            cell.alignment = Alignment(horizontal="left", vertical="center")
 
                 cell.font = regular_val_font
                 if row_idx % 2 == 0:
