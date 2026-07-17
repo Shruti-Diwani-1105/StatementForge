@@ -166,40 +166,25 @@ Return JSON only."""
             
             last_error = None
             for m in models_to_try:
-                max_429_retries = 3
-                for attempt in range(max_429_retries + 1):
-                    try:
-                        print(f"GeminiService: Invoking model {m} (attempt {attempt + 1})...")
-                        response = client.models.generate_content(
-                            model=m,
-                            contents=prompt,
-                            config=config
-                        )
-                        if response and response.text:
-                            return response.text.strip()
-                        else:
-                            raise ValueError("Received empty response from Gemini API.")
-                    except Exception as e:
-                        last_error = e
-                        err_msg = str(e)
-                        # If model is not found (404), break to try next model
-                        if "404" in err_msg or "not found" in err_msg.lower() or "no longer available" in err_msg.lower():
-                            print(f"GeminiService: Model {m} failed with 404 (Not Found/Deprecated). Attempting next model...")
-                            break
-                        
-                        # If hit 429 / resource exhausted, wait and retry
-                        if "429" in err_msg or "resource_exhausted" in err_msg.lower() or "quota" in err_msg.lower():
-                            if attempt < max_429_retries:
-                                sleep_time = (2 ** attempt) * 3
-                                print(f"GeminiService: Model {m} hit 429 rate limit. Retrying in {sleep_time}s...")
-                                import time
-                                time.sleep(sleep_time)
-                                continue
-                            else:
-                                print(f"GeminiService: Model {m} exhausted retries for 429. Attempting next model...")
-                                break
-                        
-                        # For other exceptions, raise immediately
+                try:
+                    print(f"GeminiService: Invoking model {m}...")
+                    response = client.models.generate_content(
+                        model=m,
+                        contents=prompt,
+                        config=config
+                    )
+                    if response and response.text:
+                        return response.text.strip()
+                    else:
+                        raise ValueError("Received empty response from Gemini API.")
+                except Exception as e:
+                    last_error = e
+                    err_msg = str(e)
+                    # If model is not found (404), continue fallback loop
+                    if "404" in err_msg or "not found" in err_msg.lower() or "no longer available" in err_msg.lower():
+                        print(f"GeminiService: Model {m} failed with 404 (Not Found/Deprecated). Attempting next model...")
+                        continue
+                    else:
                         raise e
             if last_error:
                 raise last_error
@@ -522,26 +507,11 @@ Return JSON only."""
             # Format to PNG format to avoid SDK format unsupported errors
             img_to_send = cls._ensure_png_image(pil_image)
             
-            # Try gemini-2.0-flash with retries on 429
-            max_429_retries = 3
-            bank_name = "Unknown Bank"
-            for attempt in range(max_429_retries + 1):
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-2.0-flash",
-                        contents=[prompt, img_to_send]
-                    )
-                    bank_name = response.text.strip()
-                    break
-                except Exception as e:
-                    err_msg = str(e)
-                    if ("429" in err_msg or "resource_exhausted" in err_msg.lower() or "quota" in err_msg.lower()) and attempt < max_429_retries:
-                        sleep_time = (2 ** attempt) * 3
-                        print(f"GeminiService: detect_bank_from_image hit 429 rate limit. Retrying in {sleep_time}s...")
-                        import time
-                        time.sleep(sleep_time)
-                        continue
-                    raise e
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=[prompt, img_to_send]
+            )
+            bank_name = response.text.strip()
             
             for standard_name in [
                 "HDFC Bank", "State Bank of India", "ICICI Bank", "Axis Bank", 

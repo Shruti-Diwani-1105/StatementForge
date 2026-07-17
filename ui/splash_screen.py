@@ -109,7 +109,6 @@ class PremiumLogoCard(QWidget):
                 target_h
             )
             painter.drawPixmap(logo_rect, self.logo_pixmap, QRectF(self.logo_pixmap.rect()))
-        painter.end()
 
     def get_rounded_rect_path(self, rect, radius):
         path = QPainterPath()
@@ -180,7 +179,6 @@ class GlowingProgressBar(QWidget):
             pen = QPen(QColor(138, 184, 255, 120), 1.2)
             painter.setPen(pen)
             painter.drawPath(fill_path)
-        painter.end()
 
 
 class SplashScreen(QWidget):
@@ -463,8 +461,6 @@ class SplashScreen(QWidget):
         painter.setPen(border_pen)
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(rect_path)
-        
-        painter.end()
 
     def fade_out_and_finish(self):
         self.anim = QPropertyAnimation(self.opacity_effect, b"opacity")
