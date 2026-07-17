@@ -162,8 +162,23 @@ class SettingsService:
         """Saves configuration copy to local JSON file."""
         try:
             path = cls.get_local_path(email)
+            
+            import datetime
+            def serialize_val(obj):
+                if isinstance(obj, dict):
+                    return {k: serialize_val(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [serialize_val(i) for i in obj]
+                elif isinstance(obj, (datetime.datetime, datetime.date)):
+                    return obj.isoformat()
+                elif hasattr(obj, "isoformat") and callable(obj.isoformat):
+                    return obj.isoformat()
+                return obj
+                
+            clean_data = serialize_val(data)
+            
             with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f)
+                json.dump(clean_data, f)
         except Exception as e:
             print(f"SettingsService: Error saving local cache: {e}")
 

@@ -23,7 +23,7 @@ class ExcelWriter:
 
         wb = Workbook()
 
-        font_name = "Segoe UI"
+        font_name = "Times New Roman"
         title_font = Font(name=font_name, size=14, bold=True, color="FFFFFF")
         section_hdr_font = Font(name=font_name, size=11, bold=True, color="1E3A8A")
         bold_label_font = Font(name=font_name, size=11, bold=True, color="334155")

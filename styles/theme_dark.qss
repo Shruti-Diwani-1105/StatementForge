@@ -3,7 +3,7 @@
    ========================================================================= */
 
 QWidget {
-    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: "Times New Roman", Times, Georgia, serif;
     font-size: 13px;
     color: #F8FAFC; /* Slate 50 */
 }
@@ -337,3 +337,125 @@ QLabel#BankPill {
     border-radius: 14px;
     border: 1px solid #1E293B;
 }
+
+/* Premium Segmented Auditor Tab Bar */
+QFrame#AuditorTabBar {
+    background-color: #0F172A; /* Slate 900 */
+    border: 1px solid #1E293B;
+    border-radius: 10px;
+    padding: 2px;
+}
+
+QPushButton#AuditorTabButton {
+    background: transparent;
+    color: #94A3B8; /* Slate 400 */
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 16px;
+    min-height: 38px;
+}
+
+QPushButton#AuditorTabButton:hover {
+    color: #F8FAFC;
+    background-color: #1E293B;
+}
+
+QPushButton#AuditorTabButton:checked {
+    background-color: #1E293B;
+    color: #3B82F6; /* Accent blue */
+    font-weight: 700;
+    border: 1px solid #334155;
+}
+
+/* Metric Boxes */
+QFrame#lbl_bank_box, QFrame#lbl_period_box {
+    background-color: #171F33; /* Surface Container */
+    border: 1px solid #222A3D;
+    border-left: 4px solid #3B82F6;
+    border-radius: 8px;
+}
+QFrame#lbl_credits_box {
+    background-color: #171F33;
+    border: 1px solid #222A3D;
+    border-left: 4px solid #34D399;
+    border-radius: 8px;
+}
+QFrame#lbl_debits_box {
+    background-color: #171F33;
+    border: 1px solid #222A3D;
+    border-left: 4px solid #F87171;
+    border-radius: 8px;
+}
+QFrame#lbl_savings_box {
+    background-color: #171F33;
+    border: 1px solid #222A3D;
+    border-left: 4px solid #A78BFA;
+    border-radius: 8px;
+}
+
+/* Tables styling */
+QTableWidget {
+    background-color: #171F33; /* Surface Container */
+    border: 1px solid #222A3D;
+    border-radius: 8px;
+    gridline-color: #222A3D;
+    alternate-background-color: #131B2E;
+    color: #F8FAFC;
+}
+
+QTableWidget::item {
+    padding: 8px;
+    border-bottom: 1px solid #222A3D;
+}
+
+QTableWidget::item:hover {
+    background-color: #1E3A8A;
+    color: #60A5FA;
+}
+
+QTableWidget::item:selected {
+    background-color: #1E3A8A;
+    color: #60A5FA;
+}
+
+QHeaderView::section {
+    background-color: #0F172A;
+    color: #94A3B8;
+    font-weight: 700;
+    padding: 10px;
+    border: none;
+    border-bottom: 2px solid #222A3D;
+}
+
+QFrame#SettingsTabBar {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 2px;
+}
+
+QPushButton#SettingsTabButton {
+    background: transparent;
+    color: #94A3B8;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    font-family: "Times New Roman";
+    padding: 6px 14px;
+}
+
+QPushButton#SettingsTabButton:hover {
+    color: #F8FAFC;
+    background-color: #334155;
+}
+
+QPushButton#SettingsTabButton:checked {
+    background-color: #0F172A;
+    color: #FFFFFF;
+    font-weight: bold;
+    border: 1px solid #334155;
+}
+

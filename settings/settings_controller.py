@@ -135,7 +135,12 @@ class SettingsController(QObject):
             self.model.set("account_email", user.get("email", ""))
             self.model.set("account_phone", user.get("phone", ""))
             self.model.set("account_role", user.get("role", "User"))
-            self.model.set("account_created_at", user.get("created_at", ""))
+            created_at = user.get("created_at", "")
+            if hasattr(created_at, "isoformat"):
+                created_at = created_at.isoformat()
+            elif not isinstance(created_at, str):
+                created_at = str(created_at)
+            self.model.set("account_created_at", created_at)
             
         self.populate_view_fields()
         self.loading = False
@@ -224,6 +229,11 @@ class SettingsController(QObject):
             self.view.acc_username_err.setText(msg_username if not v_username else " ")
             self.view.acc_name_err.setText(msg_name if not v_name else " ")
             self.view.acc_phone_err.setText(msg_phone if not v_phone else " ")
+        else:
+            self.view.gen_save_location_err.setText(" ")
+            self.view.acc_username_err.setText(" ")
+            self.view.acc_name_err.setText(" ")
+            self.view.acc_phone_err.setText(" ")
 
         return all([v_save_loc, v_username, v_name, v_phone])
 
@@ -298,7 +308,7 @@ class SettingsController(QObject):
         if success:
             self.view.gemini_status_badge.setText("Connected")
             self.view.gemini_status_badge.setStyleSheet("background-color: #D1FAE5; color: #065F46; border-radius: 6px; font-weight: bold; font-size: 11px;")
-            Toast.success(self.view, "✓ Gemini Connected Successfully")
+            Toast.success(self.view, "✓ AI Connected Successfully")
         else:
             self.view.gemini_status_badge.setText("Disconnected")
             self.view.gemini_status_badge.setStyleSheet("background-color: #FEE2E2; color: #991B1B; border-radius: 6px; font-weight: bold; font-size: 11px;")
@@ -389,12 +399,11 @@ class SettingsController(QObject):
         Toast.info(self.view, "Changes discarded")
 
     def handle_restore_defaults(self):
-        """Resets all settings fields to system defaults."""
+        """Resets all settings fields to system defaults and persists them."""
         self.model.restore_defaults()
         self.populate_view_fields()
         self.validate_all_inputs(show_errors=True)
-        self.view.set_buttons_dirty(self.model.is_dirty())
-        Toast.info(self.view, "Restored default configuration settings")
+        self.handle_save()
 
     # ----------------------------------------------------
     # DATABASE ACTIONS

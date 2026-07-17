@@ -1,5 +1,8 @@
 import sys
 import os
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -26,7 +29,7 @@ def main():
     app = QApplication(sys.argv)
     
     # Set default modern font weight/style
-    default_font = QFont("Segoe UI", 10)
+    default_font = QFont("Times New Roman", 10)
     app.setFont(default_font)
     
     # 3. Generate visual assets programmatically if they are missing

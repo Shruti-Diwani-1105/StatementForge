@@ -40,15 +40,15 @@ class ExcelGenerator:
         ws_sum.views.sheetView[0].showGridLines = True
 
         # Styles
-        title_font = Font(name="Segoe UI", size=16, bold=True, color="FFFFFF")
+        title_font = Font(name="Times New Roman", size=16, bold=True, color="FFFFFF")
         title_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid") # Dark Blue
         
-        section_font = Font(name="Segoe UI", size=11, bold=True, color="1E3A8A")
+        section_font = Font(name="Times New Roman", size=11, bold=True, color="1E3A8A")
         
-        bold_lbl_font = Font(name="Segoe UI", size=11, bold=True, color="334155")
-        regular_val_font = Font(name="Segoe UI", size=11, color="0F172A")
+        bold_lbl_font = Font(name="Times New Roman", size=11, bold=True, color="334155")
+        regular_val_font = Font(name="Times New Roman", size=11, color="0F172A")
         
-        currency_val_font = Font(name="Segoe UI", size=11, bold=True, color="0F172A")
+        currency_val_font = Font(name="Times New Roman", size=11, bold=True, color="0F172A")
         
         light_blue_fill = PatternFill(start_color="EFF6FF", end_color="EFF6FF", fill_type="solid") # Blue 50
         thin_border = Border(
@@ -136,7 +136,7 @@ class ExcelGenerator:
         # Headers
         headers = ["Row", "Date", "Narration", "Debit (Withdrawals)", "Credit (Deposits)", "Balance"]
         
-        hdr_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+        hdr_font = Font(name="Times New Roman", size=11, bold=True, color="FFFFFF")
         hdr_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
         hdr_align = Alignment(horizontal="center", vertical="center")
         

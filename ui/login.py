@@ -18,14 +18,32 @@ class LoginScreen(QWidget):
 
     def init_ui(self):
         self.setObjectName("LoginBackground")
+        self.setStyleSheet("background-color: #f7f9fb;")
+        
         # Outer layout
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(24, 24, 24, 24)
+        outer_layout.setSpacing(0)
         
         # 1. Back button in top-left
         top_bar_layout = QHBoxLayout()
-        self.back_btn = SecondaryButton("← Back")
+        self.back_btn = SecondaryButton("←  Back")
         self.back_btn.setFixedWidth(100)
+        self.back_btn.setFixedHeight(36)
+        self.back_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FFFFFF;
+                color: #4B5563;
+                border: 1px solid #c4c5d7;
+                border-radius: 6px;
+                font-weight: 500;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QPushButton:hover {
+                background-color: #f2f4f6;
+            }
+        """)
         self.back_btn.clicked.connect(self.gotoWelcome.emit)
         top_bar_layout.addWidget(self.back_btn)
         top_bar_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
@@ -37,28 +55,45 @@ class LoginScreen(QWidget):
         self.card = QFrame()
         self.card.setObjectName("LoginCard")
         self.card.setFixedWidth(440)
+        self.card.setStyleSheet("""
+            QFrame#LoginCard {
+                background-color: #FFFFFF;
+                border: 1px solid #c4c5d7;
+                border-top: 4px solid #0037b0;
+                border-radius: 12px;
+            }
+        """)
         
         card_layout = QVBoxLayout(self.card)
         card_layout.setContentsMargins(40, 40, 40, 40)
         card_layout.setSpacing(20)
         
         # Logo & Heading
-        logo_label = QLabel()
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_container = QLabel()
+        logo_container.setFixedSize(64, 64)
+        logo_container.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_container.setStyleSheet("""
+            background-color: rgba(0, 55, 176, 0.1);
+            border-radius: 16px;
+        """)
         logo_pixmap = QPixmap("assets/logo.png")
         if not logo_pixmap.isNull():
-            logo_label.setPixmap(logo_pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        card_layout.addWidget(logo_label)
+            logo_container.setPixmap(logo_pixmap.scaled(36, 36, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            
+        logo_wrapper = QHBoxLayout()
+        logo_wrapper.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_wrapper.addWidget(logo_container)
+        card_layout.addLayout(logo_wrapper)
         
         title_label = QLabel("Welcome Back")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 24px; font-weight: 700;")
+        title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #191c1e; font-family: 'Times New Roman'; border: none;")
         card_layout.addWidget(title_label)
         
         subtitle_label = QLabel("Login to manage and parse your statements.")
         subtitle_label.setObjectName("ScreenSubtitle")
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle_label.setStyleSheet("")
+        subtitle_label.setStyleSheet("font-size: 13px; color: #434655; font-family: 'Times New Roman'; border: none;")
         card_layout.addWidget(subtitle_label)
         
         card_layout.addSpacing(10)
@@ -70,9 +105,27 @@ class LoginScreen(QWidget):
         # Email Input Group
         email_label = QLabel("Email Address")
         email_label.setObjectName("FormLabel")
-        email_label.setStyleSheet("font-weight: 600; font-size: 13px;")
+        email_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #191c1e; font-family: 'Times New Roman'; border: none;")
+        
         self.email_input = QLineEdit()
-        self.email_input.setPlaceholderText("xyz@gmail.com")
+        self.email_input.setPlaceholderText("Enter your email")
+        self.email_input.setFixedHeight(36)
+        self.email_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px 12px;
+                border: 1px solid #c4c5d7;
+                border-radius: 6px;
+                background-color: #f7f9fb;
+                color: #191c1e;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QLineEdit:focus {
+                border: 2px solid #0037b0;
+                background-color: #ffffff;
+            }
+        """)
+        
         form_layout.addWidget(email_label)
         form_layout.addWidget(self.email_input)
         
@@ -80,19 +133,35 @@ class LoginScreen(QWidget):
         pass_layout = QHBoxLayout()
         pass_label = QLabel("Password")
         pass_label.setObjectName("FormLabel")
-        pass_label.setStyleSheet("font-weight: 600; font-size: 13px;")
+        pass_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #191c1e; font-family: 'Times New Roman'; border: none;")
         pass_layout.addWidget(pass_label)
         
         pass_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
         
         self.forgot_btn = LinkButton("Forgot Password?")
-        self.forgot_btn.setStyleSheet("font-size: 12px; color: #2563EB; font-weight: 500; border: none; padding: 0px;")
+        self.forgot_btn.setStyleSheet("font-size: 13px; color: #0037b0; font-weight: 500; border: none; padding: 0px; font-family: 'Times New Roman'; background: transparent;")
         self.forgot_btn.clicked.connect(self.show_forgot_password_dialog)
         pass_layout.addWidget(self.forgot_btn)
         
         self.pass_input = QLineEdit()
-        self.pass_input.setPlaceholderText("••••••••")
+        self.pass_input.setPlaceholderText("Enter your password")
         self.pass_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.pass_input.setFixedHeight(36)
+        self.pass_input.setStyleSheet("""
+            QLineEdit {
+                padding: 8px 12px;
+                border: 1px solid #c4c5d7;
+                border-radius: 6px;
+                background-color: #f7f9fb;
+                color: #191c1e;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QLineEdit:focus {
+                border: 2px solid #0037b0;
+                background-color: #ffffff;
+            }
+        """)
         
         # Add show/hide password toggle action
         self.show_pass_action = QAction(self.pass_input)
@@ -108,17 +177,39 @@ class LoginScreen(QWidget):
         
         # Inline error display
         self.error_label = QLabel("")
-        self.error_label.setStyleSheet("color: #EF4444; font-size: 12px; font-weight: 500;")
+        self.error_label.setStyleSheet("color: #ba1a1a; font-size: 12px; font-weight: 500; font-family: 'Times New Roman';")
         self.error_label.setWordWrap(True)
         self.error_label.setVisible(False)
         card_layout.addWidget(self.error_label)
         
         # Remember Me checkbox
         self.remember_cb = QCheckBox("Remember this device")
+        self.remember_cb.setStyleSheet("""
+            QCheckBox {
+                spacing: 8px;
+                color: #434655;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+        """)
         card_layout.addWidget(self.remember_cb)
         
         # Login Trigger Button
         self.login_btn = PrimaryButton("Login to Account")
+        self.login_btn.setFixedHeight(40)
+        self.login_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #0037b0;
+                color: white;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QPushButton:hover {
+                background-color: #1d4ed8;
+            }
+        """)
         self.login_btn.clicked.connect(self.handle_login)
         card_layout.addWidget(self.login_btn)
         
@@ -128,14 +219,14 @@ class LoginScreen(QWidget):
         or_line1 = QFrame()
         or_line1.setFrameShape(QFrame.Shape.HLine)
         or_line1.setFrameShadow(QFrame.Shadow.Sunken)
-        or_line1.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
+        or_line1.setStyleSheet("background-color: #c4c5d7; max-height: 1px; border: none;")
         or_lbl = QLabel("or")
         or_lbl.setObjectName("OrLabel")
-        or_lbl.setStyleSheet("font-size: 12px; font-weight: 500; padding: 0 8px;")
+        or_lbl.setStyleSheet("font-size: 13px; font-weight: 500; padding: 0 8px; color: #434655; font-family: 'Times New Roman'; border: none;")
         or_line2 = QFrame()
         or_line2.setFrameShape(QFrame.Shape.HLine)
         or_line2.setFrameShadow(QFrame.Shadow.Sunken)
-        or_line2.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
+        or_line2.setStyleSheet("background-color: #c4c5d7; max-height: 1px; border: none;")
         or_layout.addWidget(or_line1)
         or_layout.addWidget(or_lbl)
         or_layout.addWidget(or_line2)
@@ -143,11 +234,25 @@ class LoginScreen(QWidget):
 
         # Continue with Google button
         self.google_btn = SecondaryButton("Continue with Google")
-        self.google_btn.setFixedHeight(48)
+        self.google_btn.setFixedHeight(40)
+        self.google_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FFFFFF;
+                color: #191c1e;
+                border: 1px solid #c4c5d7;
+                border-radius: 6px;
+                font-weight: 500;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QPushButton:hover {
+                background-color: #f2f4f6;
+            }
+        """)
         google_pixmap = QPixmap("assets/icons/google.png")
         if not google_pixmap.isNull():
-            self.google_btn.setIcon(QIcon(google_pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
-        self.google_btn.setIconSize(QSize(20, 20))
+            self.google_btn.setIcon(QIcon(google_pixmap.scaled(18, 18, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
+        self.google_btn.setIconSize(QSize(18, 18))
         self.google_btn.clicked.connect(self.handle_google_login)
         card_layout.addWidget(self.google_btn)
         
@@ -158,10 +263,10 @@ class LoginScreen(QWidget):
         
         register_lbl = QLabel("Don't have an account?")
         register_lbl.setObjectName("ScreenSubtitle")
-        register_lbl.setStyleSheet("")
+        register_lbl.setStyleSheet("font-size: 13px; color: #434655; font-family: 'Times New Roman'; border: none;")
         
         self.register_btn = LinkButton("Register Now")
-        self.register_btn.setStyleSheet("font-weight: 600; border: none; padding: 0px;")
+        self.register_btn.setStyleSheet("font-weight: bold; border: none; padding: 0px; color: #0037b0; font-family: 'Times New Roman'; background: transparent; font-size: 13px;")
         self.register_btn.clicked.connect(self.gotoRegister.emit)
         
         register_link_layout.addWidget(register_lbl)
@@ -173,7 +278,6 @@ class LoginScreen(QWidget):
         horizontal_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
         horizontal_layout.addWidget(self.card)
         horizontal_layout.addItem(QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        
         outer_layout.addLayout(horizontal_layout)
         outer_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
 

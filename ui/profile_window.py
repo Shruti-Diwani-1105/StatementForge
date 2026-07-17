@@ -37,11 +37,12 @@ class ProfileWindow(QWidget):
             QPushButton {
                 background-color: #FFFFFF;
                 color: #475569;
-                border: 1px solid #E2E8F0;
+                border: 1px solid #c4c5d7;
                 border-radius: 8px;
                 font-weight: 600;
                 font-size: 13px;
                 padding: 8px 16px;
+                font-family: 'Times New Roman';
             }
             QPushButton:hover {
                 background-color: #F8FAFC;
@@ -58,9 +59,9 @@ class ProfileWindow(QWidget):
         header_layout = QVBoxLayout()
         header_layout.setSpacing(4)
         title_lbl = QLabel("My Profile")
-        title_lbl.setStyleSheet("font-size: 26px; font-weight: 800; color: #0F172A;")
+        title_lbl.setStyleSheet("font-size: 26px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
         sub_lbl = QLabel("Manage your personal information and account settings.")
-        sub_lbl.setStyleSheet("font-size: 13px; color: #64748B; font-weight: 500;")
+        sub_lbl.setStyleSheet("font-size: 13px; color: #64748B; font-weight: 500; font-family: 'Times New Roman';")
         header_layout.addWidget(title_lbl)
         header_layout.addWidget(sub_lbl)
         self.main_layout.addLayout(header_layout)
@@ -92,12 +93,13 @@ class ProfileWindow(QWidget):
         self.avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.avatar_lbl.setStyleSheet("""
             QLabel {
-                background-color: #2563EB; /* Solid Premium Blue */
+                background-color: #0037b0; /* Solid Premium Blue */
                 color: #FFFFFF;
-                font-weight: 800;
+                font-weight: bold;
                 font-size: 52px;
                 border-radius: 60px;
                 border: none;
+                font-family: 'Times New Roman';
             }
         """)
         avatar_container.addWidget(self.avatar_lbl)
@@ -105,7 +107,7 @@ class ProfileWindow(QWidget):
 
         self.name_heading = QLabel("User Name")
         self.name_heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.name_heading.setStyleSheet("font-size: 18px; font-weight: 700; color: #0F172A; border: none;")
+        self.name_heading.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman'; border: none;")
         left_layout.addWidget(self.name_heading)
 
         # Divider line
@@ -119,14 +121,14 @@ class ProfileWindow(QWidget):
         info_layout.setSpacing(12)
 
         info_header = QLabel("Account Information")
-        info_header.setStyleSheet("font-weight: 700; font-size: 12px; color: #64748B; border: none; text-transform: uppercase; letter-spacing: 0.5px;")
+        info_header.setStyleSheet("font-weight: bold; font-size: 12px; color: #64748B; border: none; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Times New Roman';")
         info_layout.addWidget(info_header)
 
         # Status badge line
         status_row = QHBoxLayout()
         status_row.setSpacing(8)
         status_lbl = QLabel("Account Status:")
-        status_lbl.setStyleSheet("font-size: 12px; color: #64748B; border: none; font-weight: 500;")
+        status_lbl.setStyleSheet("font-size: 12px; color: #64748B; border: none; font-weight: 500; font-family: 'Times New Roman';")
         self.status_badge = QLabel("Active")
         self.status_badge.setFixedSize(70, 20)
         self.status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -147,12 +149,12 @@ class ProfileWindow(QWidget):
 
         # Created Date
         self.created_lbl = QLabel("Joined: N/A")
-        self.created_lbl.setStyleSheet("font-size: 12px; color: #475569; border: none; font-weight: 500;")
+        self.created_lbl.setStyleSheet("font-size: 12px; color: #475569; border: none; font-weight: 500; font-family: 'Times New Roman';")
         info_layout.addWidget(self.created_lbl)
 
         # Last Login
         self.login_lbl = QLabel("Last Login: N/A")
-        self.login_lbl.setStyleSheet("font-size: 12px; color: #475569; border: none; font-weight: 500;")
+        self.login_lbl.setStyleSheet("font-size: 12px; color: #475569; border: none; font-weight: 500; font-family: 'Times New Roman';")
         info_layout.addWidget(self.login_lbl)
 
         left_layout.addLayout(info_layout)
@@ -170,18 +172,19 @@ class ProfileWindow(QWidget):
         self.save_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.save_btn.setStyleSheet("""
             QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3B82F6, stop:1 #2563EB);
+                background-color: #0037b0;
                 color: #FFFFFF;
                 border: none;
                 border-radius: 8px;
-                font-weight: 700;
+                font-weight: bold;
                 font-size: 13px;
+                font-family: 'Times New Roman';
             }
             QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:1 #1D4ED8);
+                background-color: #1d4ed8;
             }
             QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1D4ED8, stop:1 #1E40AF);
+                background-color: #002c8c;
             }
         """)
         self.save_btn.clicked.connect(self.on_save_clicked)
@@ -240,7 +243,7 @@ class ProfileWindow(QWidget):
         personal_layout.setSpacing(16)
 
         personal_title = QLabel("Personal Information")
-        personal_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #0F172A; border: none;")
+        personal_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman'; border: none;")
         personal_layout.addWidget(personal_title)
 
         form_grid = QGridLayout()
@@ -250,14 +253,15 @@ class ProfileWindow(QWidget):
         input_style = """
             QLineEdit {
                 background-color: #FFFFFF;
-                border: 1px solid #CBD5E1;
-                border-radius: 10px;
+                border: 1px solid #c4c5d7;
+                border-radius: 6px;
                 padding: 10px 14px;
                 font-size: 14px;
-                color: #0F172A;
+                color: #191c1e;
+                font-family: 'Times New Roman';
             }
             QLineEdit:focus {
-                border: 2px solid #2563EB;
+                border: 2px solid #0037b0;
             }
             QLineEdit:disabled {
                 background-color: #F1F5F9;
@@ -268,7 +272,7 @@ class ProfileWindow(QWidget):
 
         # Username Field
         un_label = QLabel("Username")
-        un_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #475569; border: none;")
+        un_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
         self.username_input = QLineEdit()
         self.username_input.setStyleSheet(input_style)
         form_grid.addWidget(un_label, 0, 0)
@@ -276,7 +280,7 @@ class ProfileWindow(QWidget):
 
         # Role Field (Read-only, shows User)
         role_label = QLabel("Role")
-        role_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #475569; border: none;")
+        role_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
         self.role_input = QLineEdit("User")
         self.role_input.setEnabled(False)
         self.role_input.setStyleSheet(input_style)
@@ -285,7 +289,7 @@ class ProfileWindow(QWidget):
 
         # Full Name Field
         fn_label = QLabel("Full Name *")
-        fn_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #475569; border: none;")
+        fn_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
         self.name_input = QLineEdit()
         self.name_input.setStyleSheet(input_style)
         form_grid.addWidget(fn_label, 2, 0)
@@ -293,7 +297,7 @@ class ProfileWindow(QWidget):
 
         # Email Address Field
         em_label = QLabel("Email Address *")
-        em_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #475569; border: none;")
+        em_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
         self.email_input = QLineEdit()
         self.email_input.setStyleSheet(input_style)
         form_grid.addWidget(em_label, 2, 1)
@@ -301,7 +305,7 @@ class ProfileWindow(QWidget):
 
         # Phone Number Field
         ph_label = QLabel("Phone Number *")
-        ph_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #475569; border: none;")
+        ph_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
         self.phone_input = QLineEdit()
         self.phone_input.setStyleSheet(input_style)
         form_grid.addWidget(ph_label, 4, 0)
@@ -324,7 +328,7 @@ class ProfileWindow(QWidget):
         pwd_layout.setSpacing(14)
 
         pwd_title = QLabel("Change Password")
-        pwd_title.setStyleSheet("font-size: 16px; font-weight: 700; color: #0F172A; border: none;")
+        pwd_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman'; border: none;")
         pwd_layout.addWidget(pwd_title)
 
         pwd_form = QGridLayout()
@@ -332,7 +336,7 @@ class ProfileWindow(QWidget):
 
         # Old Password
         old_label = QLabel("Old Password")
-        old_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #475569; border: none;")
+        old_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
         self.old_pwd_input = QLineEdit()
         self.old_pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.old_pwd_input.setStyleSheet(input_style)
@@ -341,7 +345,7 @@ class ProfileWindow(QWidget):
 
         # Confirm Password
         confirm_label = QLabel("Confirm New Password")
-        confirm_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #475569; border: none;")
+        confirm_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
         self.confirm_pwd_input = QLineEdit()
         self.confirm_pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.confirm_pwd_input.setStyleSheet(input_style)
@@ -350,7 +354,7 @@ class ProfileWindow(QWidget):
 
         # New Password (spans both columns for width)
         new_label = QLabel("New Password")
-        new_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #475569; border: none;")
+        new_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
         self.new_pwd_input = QLineEdit()
         self.new_pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.new_pwd_input.setStyleSheet(input_style)
@@ -375,17 +379,18 @@ class ProfileWindow(QWidget):
         self.change_pwd_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.change_pwd_btn.setStyleSheet("""
             QPushButton {
-                background-color: #F8FAFC;
+                background-color: #FFFFFF;
                 color: #475569;
-                border: 1px solid #CBD5E1;
+                border: 1px solid #c4c5d7;
                 border-radius: 8px;
-                font-weight: 700;
+                font-weight: bold;
                 font-size: 13px;
+                font-family: 'Times New Roman';
             }
             QPushButton:hover {
                 background-color: #EFF6FF;
-                color: #2563EB;
-                border-color: #93C5FD;
+                color: #0037b0;
+                border-color: #0037b0;
             }
             QPushButton:disabled {
                 background-color: #F1F5F9;

@@ -53,9 +53,11 @@ class DashboardScreen(QWidget):
         # Create and add individual sub-pages
         self.create_main_dashboard_page()
         self.create_upload_page()
+        self.create_ai_auditor_page()
         self.create_history_page()
         self.create_reports_page()
         self.create_settings_page()
+        self.create_generate_excel_page()
         
         right_layout.addWidget(self.page_stack)
         layout.addWidget(right_container)
@@ -65,9 +67,11 @@ class DashboardScreen(QWidget):
         mapping = {
             "dashboard": 0,
             "upload": 1,
-            "history": 2,
-            "reports": 3,
-            "settings": 4
+            "ai_auditor": 2,
+            "history": 3,
+            "reports": 4,
+            "settings": 5,
+            "generate_excel": 6
         }
         if key in mapping:
             self.page_stack.setCurrentIndex(mapping[key])
@@ -77,6 +81,10 @@ class DashboardScreen(QWidget):
 
             if key == "history":
                 self.load_history_table()
+            elif key == "ai_auditor":
+                self.ai_auditor_widget.load_history_dropdown()
+            elif key == "generate_excel":
+                self.generate_excel_widget.load_recent_generated_sheets()
 
     def set_user_profile(self, user_details):
         """Updates the dashboard greeting and topbar initials avatar with user details."""
@@ -275,11 +283,11 @@ class DashboardScreen(QWidget):
         header_layout.setSpacing(4)
         self.welcome_lbl = QLabel("Welcome Back, John!")
         self.welcome_lbl.setObjectName("WelcomeTitle")
-        self.welcome_lbl.setStyleSheet("font-size: 26px; font-weight: 700; letter-spacing: -0.5px;")
+        self.welcome_lbl.setStyleSheet("font-size: 26px; font-weight: bold; font-family: 'Times New Roman'; color: #0F172A; letter-spacing: -0.5px;")
         
         self.sub_lbl = QLabel("Here's an overview of your local financial statements parser activities.")
         self.sub_lbl.setObjectName("WelcomeSubtitle")
-        self.sub_lbl.setStyleSheet("font-size: 13px;")
+        self.sub_lbl.setStyleSheet("font-size: 13px; font-family: 'Times New Roman'; color: #64748B;")
         
         header_layout.addWidget(self.welcome_lbl)
         header_layout.addWidget(self.sub_lbl)
@@ -292,15 +300,15 @@ class DashboardScreen(QWidget):
         # Statements Processed
         self.card1 = QFrame()
         self.card1.setObjectName("MetricCardBlue")
-        self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
+        self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #0037b0; border-radius: 12px; }")
         card1_layout = QVBoxLayout(self.card1)
         card1_layout.setContentsMargins(20, 20, 20, 20)
         card1_layout.setSpacing(8)
         t_lbl1 = QLabel("Statements Processed")
         t_lbl1.setObjectName("MetricTitle")
-        t_lbl1.setStyleSheet("font-size: 13px; font-weight: 600;")
+        t_lbl1.setStyleSheet("font-size: 13px; font-weight: 600; font-family: 'Times New Roman'; color: #475569;")
         self.stats_processed_lbl = QLabel("0")
-        self.stats_processed_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #2563EB;")
+        self.stats_processed_lbl.setStyleSheet("font-size: 28px; font-weight: bold; color: #0037b0; font-family: 'Times New Roman';")
         card1_layout.addWidget(t_lbl1)
         card1_layout.addWidget(self.stats_processed_lbl)
         metrics_layout.addWidget(self.card1)
@@ -314,9 +322,9 @@ class DashboardScreen(QWidget):
         card2_layout.setSpacing(8)
         t_lbl2 = QLabel("Transactions Verified")
         t_lbl2.setObjectName("MetricTitle")
-        t_lbl2.setStyleSheet("font-size: 13px; font-weight: 600;")
+        t_lbl2.setStyleSheet("font-size: 13px; font-weight: 600; font-family: 'Times New Roman'; color: #475569;")
         self.stats_verified_lbl = QLabel("0")
-        self.stats_verified_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #16A34A;")
+        self.stats_verified_lbl.setStyleSheet("font-size: 28px; font-weight: bold; color: #16A34A; font-family: 'Times New Roman';")
         card2_layout.addWidget(t_lbl2)
         card2_layout.addWidget(self.stats_verified_lbl)
         metrics_layout.addWidget(self.card2)
@@ -330,9 +338,9 @@ class DashboardScreen(QWidget):
         card3_layout.setSpacing(8)
         t_lbl3 = QLabel("Reports Exported")
         t_lbl3.setObjectName("MetricTitle")
-        t_lbl3.setStyleSheet("font-size: 13px; font-weight: 600;")
+        t_lbl3.setStyleSheet("font-size: 13px; font-weight: 600; font-family: 'Times New Roman'; color: #475569;")
         self.stats_exported_lbl = QLabel("0")
-        self.stats_exported_lbl.setStyleSheet("font-size: 28px; font-weight: 700; color: #EA580C;")
+        self.stats_exported_lbl.setStyleSheet("font-size: 28px; font-weight: bold; color: #EA580C; font-family: 'Times New Roman';")
         card3_layout.addWidget(t_lbl3)
         card3_layout.addWidget(self.stats_exported_lbl)
         metrics_layout.addWidget(self.card3)
@@ -354,7 +362,7 @@ class DashboardScreen(QWidget):
         
         self.section_title = QLabel("System Modules")
         self.section_title.setObjectName("SectionTitle")
-        self.section_title.setStyleSheet("font-size: 16px; font-weight: 700;")
+        self.section_title.setStyleSheet("font-size: 16px; font-weight: bold; font-family: 'Times New Roman'; color: #0F172A;")
         modules_layout.addWidget(self.section_title)
         
         grid_widget = QWidget()
@@ -366,7 +374,7 @@ class DashboardScreen(QWidget):
         modules = [
             ("Upload Statement", "upload", "Parse and extract transactions.", "#EFF6FF"),
             ("Generate Excel", "excel", "Export to clean sheets.", "#F0FDF4"),
-            ("AI Report", "ai", "Generate intelligent insights.", "#F5F3FF"),
+            ("AI Auditor", "ai", "Generate intelligent insights.", "#F5F3FF"),
             ("GST Report", "gst", "Prepare statements for tax filings.", "#FFFBEB"),
             ("Tally Export", "tally", "Export ready for Tally integration.", "#FFF7ED"),
             ("Duplicate Finder", "duplicate", "Find double entry transactions.", "#FEF2F2"),
@@ -386,6 +394,10 @@ class DashboardScreen(QWidget):
                 card.clicked.connect(lambda: self.switch_dashboard_page("upload"))
             elif title == "History Logs":
                 card.clicked.connect(lambda: self.switch_dashboard_page("history"))
+            elif title == "AI Auditor":
+                card.clicked.connect(lambda: self.switch_dashboard_page("ai_auditor"))
+            elif title == "Generate Excel":
+                card.clicked.connect(lambda: self.switch_dashboard_page("generate_excel"))
             else:
                 card.clicked.connect(lambda t=title: self.show_coming_soon(t))
                 
@@ -424,6 +436,18 @@ class DashboardScreen(QWidget):
         self.upload_widget.processingCompleted.connect(self.update_dashboard_stats)
         self.page_stack.addWidget(self.upload_widget)
 
+    def create_ai_auditor_page(self):
+        """Creates the interactive AI Auditor and recommendations module."""
+        from ui.ai_auditor import AIAuditorWidget
+        self.ai_auditor_widget = AIAuditorWidget(self)
+        self.page_stack.addWidget(self.ai_auditor_widget)
+
+    def create_generate_excel_page(self):
+        """Creates the dedicated Generate Excel module."""
+        from ui.generate_excel import GenerateExcelWidget
+        self.generate_excel_widget = GenerateExcelWidget(self)
+        self.page_stack.addWidget(self.generate_excel_widget)
+
     def create_history_page(self):
         """History Page presenting actual processed transaction logs."""
         page = QWidget()
@@ -441,14 +465,50 @@ class DashboardScreen(QWidget):
         
         # Table widget setup
         table_container = QFrame()
+        table_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         table_container.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;")
         tc_layout = QVBoxLayout(table_container)
         tc_layout.setContentsMargins(12, 12, 12, 12)
         
         self.history_table = QTableWidget()
+        self.history_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.history_table.setColumnCount(6)
         self.history_table.setHorizontalHeaderLabels(["Upload Date", "File Name", "Bank Name", "Status", "Output Format", "Action"])
-        self.history_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        
+        # Custom section resize modes and initial/minimum widths for columns
+        header = self.history_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive) # Upload Date
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)     # File Name
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)     # Bank Name
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive) # Status
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Interactive) # Output Format
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Interactive) # Action
+        
+        self.history_table.setColumnWidth(0, 150) # Upload Date
+        self.history_table.setColumnWidth(3, 130) # Status
+        self.history_table.setColumnWidth(4, 110) # Output Format
+        self.history_table.setColumnWidth(5, 120) # Action
+        
+        # Align headers explicitly
+        for col_idx, alignment in enumerate([
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
+            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
+            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+        ]):
+            header_item = self.history_table.horizontalHeaderItem(col_idx)
+            if header_item:
+                header_item.setTextAlignment(alignment)
+                
+        # Scrollbars only as needed
+        self.history_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.history_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # Row heights consistent at 44px
+        self.history_table.verticalHeader().setDefaultSectionSize(44)
+        
         self.history_table.setStyleSheet("border: none; gridline-color: #F1F5F9;")
         self.history_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.history_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
@@ -456,7 +516,6 @@ class DashboardScreen(QWidget):
         tc_layout.addWidget(self.history_table)
         page_layout.addWidget(table_container)
         
-        page_layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         self.page_stack.addWidget(page)
 
     def load_history_table(self):
@@ -489,6 +548,7 @@ class DashboardScreen(QWidget):
                 
             date_item = QTableWidgetItem(date_str)
             date_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            date_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             self.history_table.setItem(row_idx, 0, date_item)
             
             # 2. File Name
@@ -496,12 +556,14 @@ class DashboardScreen(QWidget):
             file_name = os.path.basename(pdf_path) if pdf_path else "Unknown.pdf"
             file_item = QTableWidgetItem(file_name)
             file_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            file_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             self.history_table.setItem(row_idx, 1, file_item)
             
             # 3. Bank Name
             bank_name = log.get("bank_name", "Unknown Bank")
             bank_item = QTableWidgetItem(bank_name)
             bank_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            bank_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
             self.history_table.setItem(row_idx, 2, bank_item)
             
             # 4. Status (Processing, Completed, Failed, Cancelled)
@@ -539,6 +601,7 @@ class DashboardScreen(QWidget):
             out_fmt = log.get("output_format", "Excel") if status == "Completed" else "-"
             fmt_item = QTableWidgetItem(out_fmt)
             fmt_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            fmt_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
             self.history_table.setItem(row_idx, 4, fmt_item)
             
             # 6. Action
@@ -693,7 +756,7 @@ class DashboardScreen(QWidget):
             self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #1E293B; border: 1px solid #334155; border-top: 4px solid #F97316; border-radius: 12px; }")
             self.activity_card.setStyleSheet("QFrame#ActivityCard { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; }")
         else:
-            self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #2563EB; border-radius: 12px; }")
+            self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #0037b0; border-radius: 12px; }")
             self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
             self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
             self.activity_card.setStyleSheet("QFrame#ActivityCard { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }")
@@ -728,5 +791,11 @@ class DashboardScreen(QWidget):
 
         if hasattr(self, "upload_widget") and self.upload_widget is not None:
             self.upload_widget.update_theme_style(theme)
+
+        if hasattr(self, "ai_auditor_widget") and self.ai_auditor_widget is not None:
+            self.ai_auditor_widget.update_theme_style(theme)
+
+        if hasattr(self, "generate_excel_widget") and self.generate_excel_widget is not None:
+            self.generate_excel_widget.update_theme_style(theme)
 
 

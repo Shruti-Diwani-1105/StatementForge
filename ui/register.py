@@ -33,7 +33,7 @@ class PremiumInputGroup(QWidget):
         # Label
         self.label = QLabel(label_text)
         self.label.setObjectName("FormLabel")
-        self.label.setStyleSheet("font-weight: 600; font-size: 13px;")
+        self.label.setStyleSheet("font-weight: bold; font-size: 12px; color: #191c1e; font-family: 'Times New Roman'; border: none;")
         layout.addWidget(self.label)
 
         # Custom Bordered Input Container
@@ -122,17 +122,17 @@ class PremiumInputGroup(QWidget):
         else:
             bg = "#FFFFFF"
             if self.has_error:
-                border_style = "border: 1px solid #EF4444;"
+                border_style = "border: 1px solid #ba1a1a;"
             elif focused:
-                border_style = "border: 2px solid #2563EB;"
+                border_style = "border: 2px solid #0037b0;"
             else:
-                border_style = "border: 1px solid #E5E7EB;"
+                border_style = "border: 1px solid #c4c5d7;"
 
         self.container.setStyleSheet(f"""
             QFrame#InputContainer {{
                 background-color: {bg};
                 {border_style}
-                border-radius: 10px;
+                border-radius: 6px;
             }}
         """)
 
@@ -185,7 +185,7 @@ class PasswordRequirementsWidget(QWidget):
         self.labels = {}
         for idx, req in enumerate(self.reqs):
             lbl = QLabel(f"✓ {req['text']}")
-            lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 600;")
+            lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 600; font-family: 'Times New Roman';")
             row = idx // 3
             col = idx % 3
             layout.addWidget(lbl, row, col)
@@ -204,9 +204,9 @@ class PasswordRequirementsWidget(QWidget):
         for req in self.reqs:
             lbl = self.labels[req["id"]]
             if req["valid"]:
-                lbl.setStyleSheet("color: #10B981; font-size: 11px; font-weight: 600;")
+                lbl.setStyleSheet("color: #10B981; font-size: 11px; font-weight: 600; font-family: 'Times New Roman';")
             else:
-                lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 500;")
+                lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 500; font-family: 'Times New Roman';")
                 all_valid = False
         return all_valid
 
@@ -233,7 +233,7 @@ class PasswordStrengthWidget(QWidget):
         layout.addLayout(self.segments_layout, stretch=2)
 
         self.strength_label = QLabel("")
-        self.strength_label.setStyleSheet("color: #64748B; font-size: 11px; font-weight: 600;")
+        self.strength_label.setStyleSheet("color: #64748B; font-size: 11px; font-weight: 600; font-family: 'Times New Roman';")
         layout.addWidget(self.strength_label, stretch=1)
 
     def update_strength(self, password):
@@ -266,7 +266,7 @@ class PasswordStrengthWidget(QWidget):
             active_segs = 3
 
         self.strength_label.setText(label)
-        self.strength_label.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: 700;")
+        self.strength_label.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: 700; font-family: 'Times New Roman';")
 
         for i, seg in enumerate(self.segments):
             if i < active_segs:
@@ -352,6 +352,7 @@ class RegisterScreen(QWidget):
 
     def init_ui(self):
         self.setObjectName("RegisterBackground")
+        self.setStyleSheet("background-color: #f1f5f9;")
 
         # Outer Layout
         main_layout = QVBoxLayout(self)
@@ -372,13 +373,25 @@ class RegisterScreen(QWidget):
         scroll_layout.setContentsMargins(0, 0, 0, 24)
         scroll_layout.setSpacing(0)
 
-        # Top Bar (Back Button)
+        # Top Bar (Back / Login Button)
         top_bar_layout = QHBoxLayout()
         top_bar_layout.setContentsMargins(32, 24, 32, 0)
         
-        self.back_btn = SecondaryButton("←  Back")
-        self.back_btn.setFixedWidth(100)
-        self.back_btn.clicked.connect(self.gotoWelcome.emit)
+        self.back_btn = LinkButton("←  Login")
+        self.back_btn.setStyleSheet("""
+            QPushButton {
+                color: #0037b0;
+                font-weight: bold;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+                border: none;
+                background: transparent;
+            }
+            QPushButton:hover {
+                text-decoration: underline;
+            }
+        """)
+        self.back_btn.clicked.connect(self.gotoLogin.emit)
         top_bar_layout.addWidget(self.back_btn)
         top_bar_layout.addStretch()
         scroll_layout.addLayout(top_bar_layout)
@@ -390,7 +403,15 @@ class RegisterScreen(QWidget):
         # The Registration Card Frame
         self.card = QFrame()
         self.card.setObjectName("RegisterCard")
-        self.card.setFixedWidth(620)
+        self.card.setFixedWidth(560)
+        self.card.setStyleSheet("""
+            QFrame#RegisterCard {
+                background-color: #FFFFFF;
+                border: 1px solid #e2e8f0;
+                border-top: 3px solid #0037b0;
+                border-radius: 12px;
+            }
+        """)
 
         # Card Stacked Widget
         self.card_stack = QStackedWidget(self.card)
@@ -405,30 +426,39 @@ class RegisterScreen(QWidget):
         
         form_layout = QVBoxLayout(self.form_widget)
         form_layout.setContentsMargins(40, 32, 40, 32)
-        form_layout.setSpacing(10)
+        form_layout.setSpacing(8)
 
         # Branding Header
-        logo_label = QLabel()
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_container = QLabel()
+        logo_container.setFixedSize(64, 64)
+        logo_container.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_container.setStyleSheet("""
+            background-color: rgba(0, 55, 176, 0.1);
+            border-radius: 16px;
+        """)
         logo_pixmap = QPixmap("assets/logo.png")
         if not logo_pixmap.isNull():
-            logo_label.setPixmap(logo_pixmap.scaled(
-                40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-            ))
-        form_layout.addWidget(logo_label)
+            logo_container.setPixmap(logo_pixmap.scaled(36, 36, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        
+        logo_wrapper = QHBoxLayout()
+        logo_wrapper.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_wrapper.addWidget(logo_container)
+        form_layout.addLayout(logo_wrapper)
 
         title_label = QLabel("StatementForge")
         title_label.setMinimumHeight(34)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 22px; font-weight: 800; border: 0px solid transparent; padding-bottom: 4px;")
+        title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #191c1e; font-family: 'Times New Roman'; border: none;")
         form_layout.addWidget(title_label)
 
         subtitle_label = QLabel("Create your account to securely manage and process financial statements.")
         subtitle_label.setObjectName("ScreenSubtitle")
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle_label.setWordWrap(True)
-        subtitle_label.setStyleSheet("")
+        subtitle_label.setStyleSheet("font-size: 13px; color: #434655; font-family: 'Times New Roman'; border: none;")
         form_layout.addWidget(subtitle_label)
+        
+        form_layout.addSpacing(10)
 
         # Inputs section
         self.name_input = PremiumInputGroup(
@@ -467,9 +497,22 @@ class RegisterScreen(QWidget):
         # Spacer
         form_layout.addSpacing(6)
 
-        # Create Account Button (Height 50px)
+        # Create Account Button (Height 40px)
         self.register_btn = PrimaryButton("Create Account")
-        self.register_btn.setFixedHeight(50)
+        self.register_btn.setFixedHeight(40)
+        self.register_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #0037b0;
+                color: white;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QPushButton:hover {
+                background-color: #1d4ed8;
+            }
+        """)
         self.register_btn.clicked.connect(self.handle_registration)
         form_layout.addWidget(self.register_btn)
 
@@ -479,13 +522,13 @@ class RegisterScreen(QWidget):
         or_line1 = QFrame()
         or_line1.setFrameShape(QFrame.Shape.HLine)
         or_line1.setFrameShadow(QFrame.Shadow.Sunken)
-        or_line1.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
+        or_line1.setStyleSheet("background-color: #c4c5d7; max-height: 1px; border: none;")
         or_lbl = QLabel("or")
-        or_lbl.setStyleSheet("color: #94A3B8; font-size: 12px; font-weight: 500; padding: 0 8px;")
+        or_lbl.setStyleSheet("color: #434655; font-size: 13px; font-weight: 500; padding: 0 8px; font-family: 'Times New Roman'; border: none;")
         or_line2 = QFrame()
         or_line2.setFrameShape(QFrame.Shape.HLine)
         or_line2.setFrameShadow(QFrame.Shadow.Sunken)
-        or_line2.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
+        or_line2.setStyleSheet("background-color: #c4c5d7; max-height: 1px; border: none;")
         or_layout.addWidget(or_line1)
         or_layout.addWidget(or_lbl)
         or_layout.addWidget(or_line2)
@@ -493,11 +536,25 @@ class RegisterScreen(QWidget):
 
         # Continue with Google button
         self.google_btn = SecondaryButton("Continue with Google")
-        self.google_btn.setFixedHeight(50)
+        self.google_btn.setFixedHeight(40)
+        self.google_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FFFFFF;
+                color: #191c1e;
+                border: 1px solid #c4c5d7;
+                border-radius: 6px;
+                font-weight: 500;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QPushButton:hover {
+                background-color: #f2f4f6;
+            }
+        """)
         google_pixmap = QPixmap("assets/icons/google.png")
         if not google_pixmap.isNull():
-            self.google_btn.setIcon(QIcon(google_pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
-        self.google_btn.setIconSize(QSize(20, 20))
+            self.google_btn.setIcon(QIcon(google_pixmap.scaled(18, 18, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
+        self.google_btn.setIconSize(QSize(18, 18))
         self.google_btn.clicked.connect(self.handle_google_login)
         form_layout.addWidget(self.google_btn)
 
@@ -508,10 +565,10 @@ class RegisterScreen(QWidget):
 
         login_lbl = QLabel("Already have an account?")
         login_lbl.setObjectName("ScreenSubtitle")
-        login_lbl.setStyleSheet("")
+        login_lbl.setStyleSheet("font-size: 13px; color: #434655; font-family: 'Times New Roman'; border: none;")
 
         self.login_btn = LinkButton("Sign In")
-        self.login_btn.setStyleSheet("font-weight: 700; border: none; padding: 0px;")
+        self.login_btn.setStyleSheet("font-weight: bold; border: none; padding: 0px; color: #0037b0; font-family: 'Times New Roman'; font-size: 13px; background: transparent;")
         self.login_btn.clicked.connect(self.gotoLogin.emit)
 
         login_link_layout.addWidget(login_lbl)
@@ -533,21 +590,42 @@ class RegisterScreen(QWidget):
         success_icon.setObjectName("SuccessIcon")
         success_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         success_icon.setFixedSize(64, 64)
+        success_icon.setStyleSheet("""
+            background-color: #ECFDF5;
+            color: #10B981;
+            font-size: 32px;
+            font-weight: bold;
+            border-radius: 32px;
+            border: 1px solid #A7F3D0;
+        """)
         success_layout.addWidget(success_icon, alignment=Qt.AlignmentFlag.AlignCenter)
 
         success_title = QLabel("✓ Registration Successful")
         success_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        success_title.setStyleSheet("font-size: 20px; font-weight: 800; color: #10B981;")
+        success_title.setStyleSheet("font-size: 20px; font-weight: 800; color: #10B981; font-family: 'Times New Roman';")
         success_layout.addWidget(success_title)
 
         success_desc = QLabel("Your account has been created successfully.")
         success_desc.setObjectName("ScreenSubtitle")
         success_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        success_desc.setStyleSheet("")
+        success_desc.setStyleSheet("font-size: 13px; color: #64748B; font-family: 'Times New Roman';")
         success_layout.addWidget(success_desc)
 
         self.success_login_btn = PrimaryButton("Go to Login")
-        self.success_login_btn.setFixedHeight(50)
+        self.success_login_btn.setFixedHeight(40)
+        self.success_login_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #0037b0;
+                color: white;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QPushButton:hover {
+                background-color: #1d4ed8;
+            }
+        """)
         self.success_login_btn.clicked.connect(self.on_go_to_login_clicked)
         success_layout.addWidget(self.success_login_btn)
 
@@ -562,6 +640,42 @@ class RegisterScreen(QWidget):
         scroll_layout.addStretch()
         scroll_layout.addLayout(center_layout)
         scroll_layout.addStretch()
+
+        # Footer Section
+        footer_widget = QFrame()
+        footer_widget.setObjectName("RegisterFooter")
+        footer_widget.setStyleSheet("""
+            QFrame#RegisterFooter {
+                border-top: 1px solid #E5E7EB;
+                background-color: transparent;
+                margin-top: 48px;
+                padding-top: 24px;
+            }
+        """)
+        footer_layout = QHBoxLayout(footer_widget)
+        footer_layout.setContentsMargins(64, 0, 64, 0)
+        
+        brand_lbl = QLabel("StatementForge")
+        brand_lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #111827; font-family: 'Times New Roman'; border: none;")
+        footer_layout.addWidget(brand_lbl)
+        
+        footer_layout.addStretch()
+        
+        copyright_lbl = QLabel("© 2024 StatementForge Inc. All rights reserved. Precision in Financial Data.")
+        copyright_lbl.setStyleSheet("font-size: 13px; color: #6B7280; font-family: 'Times New Roman'; border: none;")
+        footer_layout.addWidget(copyright_lbl)
+        
+        footer_layout.addStretch()
+        
+        right_links = QHBoxLayout()
+        right_links.setSpacing(16)
+        for link_text in ["Privacy Policy", "Terms of Service", "Security", "Contact"]:
+            link_btn = LinkButton(link_text)
+            link_btn.setStyleSheet("color: #6B7280; font-size: 13px; border: none; background: transparent; font-family: 'Times New Roman';")
+            right_links.addWidget(link_btn)
+        footer_layout.addLayout(right_links)
+        
+        scroll_layout.addWidget(footer_widget)
 
         scroll_area.setWidget(scroll_content)
         main_layout.addWidget(scroll_area)

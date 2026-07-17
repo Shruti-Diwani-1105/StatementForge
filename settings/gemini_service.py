@@ -29,7 +29,7 @@ class GeminiTestWorker(QThread):
             with urllib.request.urlopen(req, timeout=3.0) as response:
                 status = response.getcode()
                 if status == 200:
-                    self.finished.emit(True, "✓ Google Gemini Connected successfully!")
+                    self.finished.emit(True, "✓ AI Service Connected successfully!")
                 else:
                     self.finished.emit(False, f"Connection rejected (Status code {status}).")
         except urllib.error.HTTPError as e:
@@ -41,7 +41,7 @@ class GeminiTestWorker(QThread):
                 err_msg = f"HTTP Error {e.code}: {e.reason}"
             self.finished.emit(False, f"API key validation failed: {err_msg}")
         except Exception as e:
-            self.finished.emit(False, f"Failed to reach Gemini API server: {str(e)}")
+            self.finished.emit(False, f"Failed to reach AI service server: {str(e)}")
 
 class GeminiService:
     """Service wrapping Gemini LLM configurations."""

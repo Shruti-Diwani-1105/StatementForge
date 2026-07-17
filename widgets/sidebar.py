@@ -58,6 +58,7 @@ class Sidebar(QFrame):
         self.menu_items = [
             ("Dashboard", "dashboard", "dashboard"),
             ("Upload Statement", "upload", "upload"),
+            ("AI Auditor", "ai_auditor", "ai"),
             ("Statement History", "history", "history"),
             ("Reports", "reports", "reports"),
             ("Settings", "settings", "settings")

@@ -3,10 +3,10 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget,
     QScrollArea, QFrame, QLineEdit, QPushButton, QComboBox, QCheckBox,
     QSlider, QTextEdit, QFileDialog, QSizePolicy, QSpacerItem, QGraphicsOpacityEffect,
-    QGridLayout
+    QGridLayout, QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QTimer
-from PyQt6.QtGui import QCursor, QPixmap, QFont
+from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QTimer, pyqtProperty, QRectF
+from PyQt6.QtGui import QCursor, QPixmap, QFont, QPainter, QColor, QBrush, QPen
 
 from settings.widgets.setting_card import SettingCard
 from settings.widgets.toggle_switch import ToggleSwitch
@@ -14,6 +14,168 @@ from settings.widgets.sidebar_item import SettingsSidebarItem
 from settings.widgets.password_input import PasswordInput
 from settings.widgets.color_selector import ColorSelector
 from settings.widgets.avatar_widget import AvatarWidget
+
+class AnimatedButton(QPushButton):
+    def __init__(self, text, button_type="secondary", parent=None):
+        super().__init__(text, parent)
+        self.button_type = button_type  # "cancel", "restore", "save"
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.setFixedHeight(44)
+        
+        # Hover progress property (0.0 to 1.0)
+        self._hover_progress = 0.0
+        self.hover_anim = QPropertyAnimation(self, b"hover_progress", self)
+        self.hover_anim.setDuration(150)
+        
+        # Pressed state tracking
+        self.is_pressed = False
+        
+        # Active theme reference
+        self.current_theme = "light"
+        
+    @pyqtProperty(float)
+    def hover_progress(self):
+        return self._hover_progress
+        
+    @hover_progress.setter
+    def hover_progress(self, val):
+        self._hover_progress = val
+        self.update()
+        
+    def enterEvent(self, event):
+        if self.isEnabled():
+            self.hover_anim.stop()
+            self.hover_anim.setStartValue(self._hover_progress)
+            self.hover_anim.setEndValue(1.0)
+            self.hover_anim.start()
+        super().enterEvent(event)
+        
+    def leaveEvent(self, event):
+        if self.isEnabled():
+            self.hover_anim.stop()
+            self.hover_anim.setStartValue(self._hover_progress)
+            self.hover_anim.setEndValue(0.0)
+            self.hover_anim.start()
+        super().leaveEvent(event)
+        
+    def mousePressEvent(self, event):
+        if self.isEnabled() and event.button() == Qt.MouseButton.LeftButton:
+            self.is_pressed = True
+            self.update()
+        super().mousePressEvent(event)
+        
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.is_pressed = False
+            self.update()
+        super().mouseReleaseEvent(event)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Determine theme and state colors
+        is_dark = self.current_theme == "dark"
+        is_enabled = self.isEnabled()
+        
+        rect = QRectF(0, 0, self.width(), self.height())
+        draw_rect = rect.adjusted(0.5, 0.5, -0.5, -0.5)
+        
+        # Color helper to interpolate
+        def interpolate_color(color1, color2, progress):
+            r = int(color1.red() + (color2.red() - color1.red()) * progress)
+            g = int(color1.green() + (color2.green() - color1.green()) * progress)
+            b = int(color1.blue() + (color2.blue() - color1.blue()) * progress)
+            a = int(color1.alpha() + (color2.alpha() - color1.alpha()) * progress)
+            return QColor(r, g, b, a)
+            
+        if self.button_type == "cancel":
+            # Outlined secondary button
+            if is_dark:
+                base_border = QColor("#334155")
+                hover_border = QColor("#475569")
+                base_bg = QColor(30, 41, 59, 0) # transparent
+                hover_bg = QColor(255, 255, 255, 12) # ~0.05 opacity
+                text_color = QColor("#E2E8F0")
+            else:
+                base_border = QColor("#CBD5E1")
+                hover_border = QColor("#94A3B8")
+                base_bg = QColor(255, 255, 255, 0) # transparent
+                hover_bg = QColor(15, 23, 42, 12) # ~0.05 opacity
+                text_color = QColor("#4B5563")
+                
+            if not is_enabled:
+                text_color = QColor("#475569") if is_dark else QColor("#9CA3AF")
+                border_color = QColor("#1E293B") if is_dark else QColor("#E5E7EB")
+                bg_color = QColor(0, 0, 0, 0)
+            else:
+                bg_color = interpolate_color(base_bg, hover_bg, self._hover_progress)
+                border_color = interpolate_color(base_border, hover_border, self._hover_progress)
+                
+            painter.setPen(QPen(border_color, 1))
+            painter.setBrush(QBrush(bg_color))
+            painter.drawRoundedRect(draw_rect, 10, 10)
+            
+        elif self.button_type == "restore":
+            # Soft grey filled background
+            if is_dark:
+                base_bg = QColor("#334155")
+                hover_bg = QColor("#475569")
+                pressed_bg = QColor("#1E293B")
+                text_color = QColor("#F8FAFC")
+            else:
+                base_bg = QColor("#F3F4F6")
+                hover_bg = QColor("#E5E7EB")
+                pressed_bg = QColor("#D1D5DB")
+                text_color = QColor("#374151")
+                
+            if not is_enabled:
+                bg_color = QColor("#1E293B") if is_dark else QColor("#F9FAFB")
+                text_color = QColor("#475569") if is_dark else QColor("#D1D5DB")
+            else:
+                if self.is_pressed:
+                    bg_color = pressed_bg
+                else:
+                    bg_color = interpolate_color(base_bg, hover_bg, self._hover_progress)
+            
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(bg_color))
+            painter.drawRoundedRect(draw_rect, 10, 10)
+            
+        elif self.button_type == "save":
+            # Primary blue background
+            base_bg = QColor("#0037b0")
+            hover_bg = QColor("#1d4ed8")
+            pressed_bg = QColor("#002c8c")
+            text_color = QColor("#FFFFFF")
+            
+            if not is_enabled:
+                bg_color = QColor("#1E293B") if is_dark else QColor("#F3F4F6")
+                text_color = QColor("#475569") if is_dark else QColor("#9CA3AF")
+            else:
+                if self.is_pressed:
+                    bg_color = pressed_bg
+                else:
+                    bg_color = interpolate_color(base_bg, hover_bg, self._hover_progress)
+                    
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(bg_color))
+            painter.drawRoundedRect(draw_rect, 10, 10)
+            
+        # Draw Text / Icon
+        painter.setPen(text_color)
+        font = self.font()
+        font.setFamily("Times New Roman")
+        font.setPointSize(10)
+        if self.button_type == "save":
+            font.setBold(True)
+        else:
+            font.setBold(False)
+        painter.setFont(font)
+        
+        # Center the text
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self.text())
+        painter.end()
 
 class SettingsWindow(QWidget):
     """
@@ -104,35 +266,59 @@ class SettingsWindow(QWidget):
         # 3. STICKY FOOTER
         self.footer_frame = QFrame()
         self.footer_frame.setObjectName("SettingsStickyFooter")
-        self.footer_frame.setFixedHeight(68)
+        self.footer_frame.setFixedHeight(80)
+        
+        # Soft top shadow
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(12)
+        shadow.setXOffset(0)
+        shadow.setYOffset(-3)
+        shadow.setColor(QColor(0, 0, 0, 13)) # rgba(0,0,0,0.05)
+        self.footer_frame.setGraphicsEffect(shadow)
         
         footer_layout = QHBoxLayout(self.footer_frame)
-        footer_layout.setContentsMargins(0, 12, 0, 12)
+        footer_layout.setContentsMargins(24, 0, 24, 0)
         footer_layout.setSpacing(12)
         
-        footer_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        # Left side status indicator
+        self.status_container = QWidget()
+        self.status_container.setObjectName("StatusContainer")
+        self.status_container.setStyleSheet("background: transparent; border: none;")
+        status_layout = QHBoxLayout(self.status_container)
+        status_layout.setContentsMargins(0, 0, 0, 0)
+        status_layout.setSpacing(8)
+        
+        self.status_icon = QLabel()
+        self.status_icon.setFixedSize(8, 8)
+        self.status_icon.setStyleSheet("background-color: #10B981; border-radius: 4px; border: none;")
+        
+        self.status_text = QLabel("All changes saved")
+        self.status_text.setFont(QFont("Times New Roman", 10, QFont.Weight.Medium))
+        self.status_text.setStyleSheet("color: #6B7280; border: none; background: transparent;")
+        
+        status_layout.addWidget(self.status_icon, 0, Qt.AlignmentFlag.AlignVCenter)
+        status_layout.addWidget(self.status_text, 0, Qt.AlignmentFlag.AlignVCenter)
+        
+        footer_layout.addWidget(self.status_container, 0, Qt.AlignmentFlag.AlignVCenter)
+        
+        # Spacer between left status and right buttons
+        footer_layout.addStretch(1)
         
         # Footer Action Buttons
-        self.btn_cancel = QPushButton("Cancel")
-        self.btn_cancel.setObjectName("SecondaryButton")
-        self.btn_cancel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_cancel = AnimatedButton("Cancel", "cancel")
         self.btn_cancel.clicked.connect(self.cancel_clicked.emit)
         self.btn_cancel.setMinimumWidth(90)
-        footer_layout.addWidget(self.btn_cancel)
+        footer_layout.addWidget(self.btn_cancel, 0, Qt.AlignmentFlag.AlignVCenter)
         
-        self.btn_restore = QPushButton("Restore Defaults")
-        self.btn_restore.setObjectName("SecondaryButton")
-        self.btn_restore.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_restore = AnimatedButton("↻  Restore Defaults", "restore")
         self.btn_restore.clicked.connect(self.restore_defaults_clicked.emit)
-        self.btn_restore.setMinimumWidth(130)
-        footer_layout.addWidget(self.btn_restore)
+        self.btn_restore.setMinimumWidth(150)
+        footer_layout.addWidget(self.btn_restore, 0, Qt.AlignmentFlag.AlignVCenter)
         
-        self.btn_save = QPushButton("Save Changes")
-        self.btn_save.setObjectName("PrimaryButton")
-        self.btn_save.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_save = AnimatedButton("Save Changes", "save")
         self.btn_save.clicked.connect(self.save_clicked.emit)
         self.btn_save.setMinimumWidth(130)
-        footer_layout.addWidget(self.btn_save)
+        footer_layout.addWidget(self.btn_save, 0, Qt.AlignmentFlag.AlignVCenter)
         
         main_layout.addWidget(self.footer_frame)
         
@@ -191,8 +377,10 @@ class SettingsWindow(QWidget):
                     color: #F8FAFC;
                 }
                 QFrame#SettingsStickyFooter {
-                    background-color: #0F172A;
-                    border-top: 1px solid #1E293B;
+                    background-color: #1E293B;
+                    border-top: 1px solid #334155;
+                    border-top-left-radius: 12px;
+                    border-top-right-radius: 12px;
                 }
                 QLabel {
                     color: #F8FAFC;
@@ -279,8 +467,10 @@ class SettingsWindow(QWidget):
                     color: #0F172A;
                 }
                 QFrame#SettingsStickyFooter {
-                    background-color: #F8FAFC;
-                    border-top: 1px solid #E2E8F0;
+                    background-color: #FFFFFF;
+                    border-top: 1px solid #E5E7EB;
+                    border-top-left-radius: 12px;
+                    border-top-right-radius: 12px;
                 }
                 QLabel {
                     color: #0F172A;
@@ -301,7 +491,7 @@ class SettingsWindow(QWidget):
                 QComboBox QAbstractItemView {
                     background-color: #FFFFFF;
                     border: 1px solid #E2E8F0;
-                    selection-background-color: #2563EB;
+                    selection-background-color: #0037b0;
                     selection-color: #FFFFFF;
                 }
             """
@@ -317,7 +507,7 @@ class SettingsWindow(QWidget):
                     color: #0F172A;
                 }
                 QLineEdit:focus {
-                    border-color: #2563EB;
+                    border-color: #0037b0;
                 }
             """
             for line_edit in self.findChildren(QLineEdit):
@@ -334,7 +524,7 @@ class SettingsWindow(QWidget):
                     color: #0F172A;
                 }
                 QTextEdit:focus {
-                    border-color: #2563EB;
+                    border-color: #0037b0;
                 }
             """
             for text_edit in self.findChildren(QTextEdit):
@@ -349,7 +539,7 @@ class SettingsWindow(QWidget):
                         border-radius: 3px;
                     }
                     QSlider::handle:horizontal {
-                        background: #2563EB;
+                        background: #0037b0;
                         border: none;
                         width: 16px;
                         height: 16px;
@@ -357,6 +547,20 @@ class SettingsWindow(QWidget):
                         border-radius: 8px;
                     }
                 """)
+        
+        # Propagate theme down to animated buttons and left status
+        if hasattr(self, "btn_cancel"):
+            self.btn_cancel.current_theme = theme
+            self.btn_cancel.update()
+        if hasattr(self, "btn_restore"):
+            self.btn_restore.current_theme = theme
+            self.btn_restore.update()
+        if hasattr(self, "btn_save"):
+            self.btn_save.current_theme = theme
+            self.btn_save.update()
+            
+        if hasattr(self, "btn_save"):
+            self.set_buttons_dirty(self.btn_save.isEnabled())
 
     def switch_tab(self, key):
         """Switches the right stacked widget tab index with a smooth fade animation."""
@@ -398,6 +602,17 @@ class SettingsWindow(QWidget):
         """Enables/disables footer actions based on dirty flags."""
         self.btn_save.setEnabled(dirty)
         self.btn_cancel.setEnabled(dirty)
+        
+        is_dark = getattr(self, "current_theme", "light") == "dark"
+        text_color = "#94A3B8" if is_dark else "#6B7280"
+        self.status_text.setStyleSheet(f"color: {text_color}; border: none; background: transparent;")
+        
+        if dirty:
+            self.status_icon.setStyleSheet("background-color: #F59E0B; border-radius: 4px; border: none;")
+            self.status_text.setText("Changes not saved")
+        else:
+            self.status_icon.setStyleSheet("background-color: #10B981; border-radius: 4px; border: none;")
+            self.status_text.setText("All changes saved")
 
     # ----------------------------------------------------
     # CARD LAYOUT CONSTRUCTORS FOR PAGES
@@ -578,29 +793,29 @@ class SettingsWindow(QWidget):
 
     def _build_ai_page(self):
         _, layout = self.pages[2]
-        self._add_page_header(layout, "AI Configuration", "Configure credentials and parameters for Google Gemini LLM integration.")
+        self._add_page_header(layout, "AI Configuration", "Configure credentials and parameters for AI LLM integration.")
         
         # Card 1: Main Toggle & API Key
-        card1 = SettingCard("Google Gemini Integration", "Authorize parser to interact with Gemini API services.")
+        card1 = SettingCard("AI Integration", "Authorize parser to interact with AI API services.")
         
         # Toggle AI
         row_ai = QHBoxLayout()
-        row_ai.addWidget(QLabel("Enable Gemini AI Parsing:"))
+        row_ai.addWidget(QLabel("Enable AI Parsing:"))
         self.ai_enabled = ToggleSwitch()
         row_ai.addWidget(self.ai_enabled)
         row_ai.addStretch()
         card1.add_layout(row_ai)
         
         # API Key password widget
-        card1.add_widget(QLabel("Gemini API Key:"))
-        self.ai_api_key_field = PasswordInput("Enter Google AI Studio API Key")
+        card1.add_widget(QLabel("AI API Key:"))
+        self.ai_api_key_field = PasswordInput("Enter AI Studio API Key")
         self.ai_api_key_err = self._create_error_label()
         card1.add_widget(self.ai_api_key_field)
         card1.add_widget(self.ai_api_key_err)
         
         # Test Connection & status badge
         row_test = QHBoxLayout()
-        self.btn_test_gemini = QPushButton("Test Gemini Connection")
+        self.btn_test_gemini = QPushButton("Test AI Connection")
         self.btn_test_gemini.setObjectName("SecondaryButton")
         self.btn_test_gemini.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_test_gemini.clicked.connect(lambda: self.test_gemini_clicked.emit(self.ai_api_key_field.text()))

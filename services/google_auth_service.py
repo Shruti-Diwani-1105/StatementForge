@@ -41,7 +41,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
                 <title>Authentication Successful</title>
                 <style>
                     body {
-                        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+                        font-family: 'Times New Roman', Times, Georgia, serif;
                         background-color: #F8FAFC;
                         color: #0F172A;
                         display: flex;
@@ -97,7 +97,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
                 <title>Authentication Failed</title>
                 <style>
                     body {{
-                        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+                        font-family: 'Times New Roman', Times, Georgia, serif;
                         background-color: #F8FAFC;
                         color: #0F172A;
                         display: flex;

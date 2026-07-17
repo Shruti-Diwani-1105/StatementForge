@@ -22,13 +22,13 @@ class SettingCard(QFrame):
             self.header_layout.setSpacing(4)
             
             self.title_lbl = QLabel(title)
-            self.title_lbl.setStyleSheet("font-weight: 700; font-size: 16px; color: #0F172A;")
+            self.title_lbl.setStyleSheet("font-weight: bold; font-size: 16px; color: #0F172A; font-family: 'Times New Roman';")
             self.title_lbl.setObjectName("SettingCardTitle")
             self.header_layout.addWidget(self.title_lbl)
             
             if description:
                 self.desc_lbl = QLabel(description)
-                self.desc_lbl.setStyleSheet("color: #64748B; font-size: 13px; line-height: 18px;")
+                self.desc_lbl.setStyleSheet("color: #64748B; font-size: 13px; line-height: 18px; font-family: 'Times New Roman';")
                 self.desc_lbl.setWordWrap(True)
                 self.desc_lbl.setObjectName("SettingCardDesc")
                 self.header_layout.addWidget(self.desc_lbl)
@@ -56,9 +56,9 @@ class SettingCard(QFrame):
                 }
             """)
             if hasattr(self, "title_lbl"):
-                self.title_lbl.setStyleSheet("font-weight: 700; font-size: 16px; color: #F8FAFC;")
+                self.title_lbl.setStyleSheet("font-weight: bold; font-size: 16px; color: #F8FAFC; font-family: 'Times New Roman';")
             if hasattr(self, "desc_lbl"):
-                self.desc_lbl.setStyleSheet("color: #94A3B8; font-size: 13px; line-height: 18px;")
+                self.desc_lbl.setStyleSheet("color: #94A3B8; font-size: 13px; line-height: 18px; font-family: 'Times New Roman';")
         else:
             self.setStyleSheet("""
                 QFrame#SettingCardFrame {
@@ -68,9 +68,9 @@ class SettingCard(QFrame):
                 }
             """)
             if hasattr(self, "title_lbl"):
-                self.title_lbl.setStyleSheet("font-weight: 700; font-size: 16px; color: #0F172A;")
+                self.title_lbl.setStyleSheet("font-weight: bold; font-size: 16px; color: #0F172A; font-family: 'Times New Roman';")
             if hasattr(self, "desc_lbl"):
-                self.desc_lbl.setStyleSheet("color: #64748B; font-size: 13px; line-height: 18px;")
+                self.desc_lbl.setStyleSheet("color: #64748B; font-size: 13px; line-height: 18px; font-family: 'Times New Roman';")
 
     def add_widget(self, widget):
         """Adds a widget to the card's content area."""

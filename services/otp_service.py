@@ -45,7 +45,7 @@ class SendOTPWorker(QThread):
         
         html_content = f"""
         <html>
-          <body style="font-family: 'Segoe UI', Arial, sans-serif; background-color: #F8FAFC; color: #1E293B; padding: 40px 20px; margin: 0;">
+          <body style="font-family: 'Times New Roman', Times, Georgia, serif; background-color: #F8FAFC; color: #1E293B; padding: 40px 20px; margin: 0;">
             <div style="max-width: 500px; margin: 0 auto; background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
               <!-- Header -->
               <div style="background-color: #2563EB; padding: 24px; text-align: center; color: #FFFFFF;">

@@ -289,6 +289,42 @@ class PDFStatementParser:
                 if method_used == "AI Vision Fallback" and idx < page_count - 1:
                     time.sleep(3.5)
             except Exception as e:
+                # Retry strategy
+                if logger:
+                    logger.log(f"Page {idx + 1} processing failed: {e}. Retrying with AI Vision fallback...")
+                try:
+                    # Render page as PIL image and run AI Vision fallback directly
+                    from parser.ocr_parser import OCRParser
+                    from services.gemini_service import GeminiService
+                    pil_image = OCRParser.render_pdf_page_to_pil(pdf_path, idx)
+                    ai_data = GeminiService.parse_page_image(pil_image)
+                    if ai_data and "transactions" in ai_data:
+                        raw_txs = ai_data["transactions"]
+                        page_txs = []
+                        for tx in raw_txs:
+                            date_val = tx.get("Date") or tx.get("date") or ""
+                            narr_val = tx.get("Narration") or tx.get("narration") or tx.get("Description") or tx.get("description") or ""
+                            debit_val = tx.get("Debit") or tx.get("debit") or ""
+                            credit_val = tx.get("Credit") or tx.get("credit") or ""
+                            bal_val = tx.get("Balance") or tx.get("balance") or ""
+                            
+                            from parser.utils import ParserUtils
+                            page_txs.append({
+                                "date": str(date_val),
+                                "narration": str(narr_val),
+                                "debit": ParserUtils.clean_amount(debit_val),
+                                "credit": ParserUtils.clean_amount(credit_val),
+                                "balance": ParserUtils.clean_balance(bal_val)
+                            })
+                        if page_txs:
+                            transactions.extend(page_txs)
+                            if logger:
+                                logger.log(f"Page {idx + 1} successfully recovered and parsed via AI Vision retry fallback.")
+                            continue
+                except Exception as retry_err:
+                    if logger:
+                        logger.log(f"Page {idx + 1} retry failed: {retry_err}")
+                
                 failed_pages.append(idx + 1)
                 logger.log_page_failure(idx + 1, str(e))
 
@@ -296,6 +332,14 @@ class PDFStatementParser:
         # Post-processing deduplication
         initial_count = len(transactions)
         transactions = DuplicateChecker.remove_duplicates(transactions)
+        
+        # Run Gemini AI validation on extracted transactions to correct typos and align columns
+        try:
+            from services.gemini_service import GeminiService
+            transactions = GeminiService.validate_extracted_transactions(first_page_text, transactions, meta.get("currency", "INR"))
+        except Exception as e:
+            logger.log(f"AI Enhancement failed or skipped: {e}")
+            
         dedup_count = len(transactions)
 
         # Expected transactions check
