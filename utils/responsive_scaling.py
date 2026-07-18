@@ -494,8 +494,9 @@ def update_all_widgets_zoom(effective_zoom=None):
                 _original_set_maximum_height(widget, int(widget._original_maximum_height * effective_zoom))
                 
             # Layout margins and spaces
-            if widget.layout():
-                update_layout_zoom(widget.layout(), effective_zoom)
+            layout = QtWidgets.QWidget.layout(widget)
+            if layout:
+                update_layout_zoom(layout, effective_zoom)
                 
             # Button Icon sizes
             if isinstance(widget, QtWidgets.QAbstractButton) and hasattr(widget, '_original_icon_size') and widget._original_icon_size:
