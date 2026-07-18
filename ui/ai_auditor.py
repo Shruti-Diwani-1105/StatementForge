@@ -197,8 +197,10 @@ class AIAuditorWidget(QWidget):
             l.setSpacing(4)
             lbl = QLabel(title)
             lbl.setStyleSheet("font-size: 11px; color: #64748B; text-transform: uppercase; font-weight: 700; font-family: 'Times New Roman';")
+            lbl.setWordWrap(True)
             val = QLabel("-")
             val.setStyleSheet("font-size: 15px; font-weight: 700; color: #0F172A; font-family: 'Times New Roman';")
+            val.setWordWrap(True)
             setattr(self, value_attr, val)
             l.addWidget(lbl)
             l.addWidget(val)
@@ -228,6 +230,7 @@ class AIAuditorWidget(QWidget):
         
         score_lbl = QLabel("Audit Score")
         score_lbl.setStyleSheet("font-size: 9px; color: rgba(255, 255, 255, 0.85); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Times New Roman';")
+        score_lbl.setWordWrap(True)
         
         self.lbl_score = QLabel("-")
         self.lbl_score.setFixedSize(48, 48)
@@ -246,6 +249,7 @@ class AIAuditorWidget(QWidget):
         l_score.addWidget(score_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
         l_score.addWidget(self.lbl_score, alignment=Qt.AlignmentFlag.AlignCenter)
         stats_layout.addWidget(score_box)
+
 
         card_layout.addWidget(self.stats_box)
         left_layout.addWidget(self.preview_card)
