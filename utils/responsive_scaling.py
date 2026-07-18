@@ -558,7 +558,7 @@ class GlobalZoomFilter(QObject):
                 return True
                 
         # 3. Capture Main Window resize to implement Fluid Font and Layout Scaling
-        elif event.type() == QEvent.Type.Resize and obj.isWindow() and isinstance(obj, QtWidgets.QMainWindow):
+        elif event.type() == QEvent.Type.Resize and isinstance(obj, QtWidgets.QMainWindow):
             w = obj.width()
             h = obj.height()
             
