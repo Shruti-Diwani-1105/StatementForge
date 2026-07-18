@@ -53,10 +53,22 @@ def scale_qss(qss_content, factor):
     pattern = r'\b(-?\d+(?:\.\d+)?)px\b'
     return re.sub(pattern, replace_px, qss_content)
 
+def scale_dim(val, factor):
+    if val is None:
+        return None
+    # Do not scale default extreme/max/min sizes in Qt (typically >= 100000 or <= -100000)
+    if val >= 100000 or val <= -100000:
+        return val
+    scaled = int(val * factor)
+    # Clamp to signed 32-bit integer range
+    return max(-2147483648, min(2147483647, scaled))
+
 def scale_qsize(qsize, factor):
     if qsize is None:
         return None
-    return QSize(max(1, int(qsize.width() * factor)), max(1, int(qsize.height() * factor)))
+    w = scale_dim(qsize.width(), factor)
+    h = scale_dim(qsize.height(), factor)
+    return QSize(max(1, w) if w is not None else 1, max(1, h) if h is not None else 1)
 
 # --- Monkey-Patched QWidget/QApplication Setters ---
 
@@ -421,8 +433,13 @@ def update_layout_zoom(layout, zoom_factor):
                 spacer._original_policies = (spacer.sizePolicy().horizontalPolicy(), spacer.sizePolicy().verticalPolicy())
             orig_size = spacer._original_size
             hp, vp = spacer._original_policies
-            scaled_w = int(orig_size.width() * zoom_factor)
-            scaled_h = int(orig_size.height() * zoom_factor)
+            scaled_w = scale_dim(orig_size.width(), zoom_factor)
+            scaled_h = scale_dim(orig_size.height(), zoom_factor)
+            
+            # Make sure we don't pass None or negative values for spacer sizes
+            scaled_w = max(0, scaled_w) if scaled_w is not None else 0
+            scaled_h = max(0, scaled_h) if scaled_h is not None else 0
+            
             spacer.changeSize(scaled_w, scaled_h, hp, vp)
             
         sub_layout = item.layout()
