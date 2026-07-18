@@ -1,0 +1,253 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>StatementForge Registration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#dce1ff",
+                        "primary-container": "#1d4ed8",
+                        "surface-container-high": "#e6e8ea",
+                        "on-secondary-container": "#fefcff",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#36455b",
+                        "surface-bright": "#f7f9fb",
+                        "outline-variant": "#c4c5d7",
+                        "on-primary-fixed-variant": "#0039b5",
+                        "secondary": "#0058be",
+                        "surface-container": "#eceef0",
+                        "secondary-fixed": "#d8e2ff",
+                        "on-surface": "#191c1e",
+                        "on-surface-variant": "#434655",
+                        "inverse-primary": "#b7c4ff",
+                        "inverse-on-surface": "#eff1f3",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#2170e4",
+                        "on-secondary": "#ffffff",
+                        "background": "#f1f5f9",
+                        "tertiary-fixed-dim": "#b7c8e1",
+                        "primary": "#1d4ed8",
+                        "tertiary-fixed": "#d3e4fe",
+                        "surface": "#ffffff",
+                        "tertiary-container": "#4d5d73",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary-container": "#c5d6f0",
+                        "on-secondary-fixed-variant": "#004395",
+                        "on-background": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "on-primary-container": "#cad3ff",
+                        "on-secondary-fixed": "#001a42",
+                        "surface-dim": "#d8dadc",
+                        "surface-tint": "#2151da",
+                        "outline": "#e2e8f0",
+                        "on-primary-fixed": "#001551",
+                        "primary-fixed-dim": "#b7c4ff",
+                        "on-tertiary-fixed": "#0b1c30",
+                        "on-tertiary-fixed-variant": "#38485d",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "toolbar-height": "64px",
+                        "margin-page": "24px",
+                        "container-gap": "12px",
+                        "sidebar-width": "240px",
+                        "table-row-height": "40px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "label-bold": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "mono-data": ["JetBrains Mono"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "mono-data": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<!-- Top Nav Bar (Suppressed for Transactional Intent, replaced with simple back button) -->
+<div class="fixed top-0 left-0 p-gutter">
+<a class="flex items-center gap-2 text-primary font-body-sm hover:underline" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="login">login</span>
+            Login
+        </a>
+</div>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex items-center justify-center p-margin-page">
+<div class="w-full max-w-[600px] bg-surface border border-outline rounded-xl p-8 sm:p-12">
+<!-- Header -->
+<div class="text-center mb-8">
+<div class="inline-flex items-center justify-center w-16 h-16 bg-primary-container text-on-primary rounded-2xl mb-6">
+<span class="material-symbols-outlined text-4xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg mb-2">StatementForge</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Create your account to securely manage and process financial statements.</p>
+</div>
+<!-- Registration Form -->
+<form class="space-y-6">
+<!-- Full Name -->
+<div class="space-y-1">
+<label class="block font-label-bold text-label-bold text-on-surface" for="fullName">Full Name <span class="text-error">*</span></label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline-variant text-[20px]" data-icon="person">person</span>
+</div>
+<input class="block w-full h-[36px] pl-10 border-outline rounded focus:ring-2 focus:ring-primary focus:border-primary font-body-sm text-body-sm bg-surface" id="fullName" placeholder="Enter your full name" type="text">
+</div>
+</div>
+<!-- Email Address -->
+<div class="space-y-1">
+<label class="block font-label-bold text-label-bold text-on-surface" for="email">Email Address <span class="text-error">*</span></label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline-variant text-[20px]" data-icon="mail">mail</span>
+</div>
+<input class="block w-full h-[36px] pl-10 border-outline rounded focus:ring-2 focus:ring-primary focus:border-primary font-body-sm text-body-sm bg-surface" id="email" placeholder="Enter your email address" type="email">
+</div>
+</div>
+<!-- Phone Number -->
+<div class="space-y-1">
+<label class="block font-label-bold text-label-bold text-on-surface" for="phone">Phone Number <span class="text-error">*</span></label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline-variant text-[20px]" data-icon="phone">phone</span>
+</div>
+<input class="block w-full h-[36px] pl-10 border-outline rounded focus:ring-2 focus:ring-primary focus:border-primary font-body-sm text-body-sm bg-surface" id="phone" placeholder="Enter your phone number" type="tel">
+</div>
+</div>
+<!-- Password -->
+<div class="space-y-1">
+<label class="block font-label-bold text-label-bold text-on-surface" for="password">Password <span class="text-error">*</span></label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline-variant text-[20px]" data-icon="lock">lock</span>
+</div>
+<input class="block w-full h-[36px] pl-10 pr-10 border-outline rounded focus:ring-2 focus:ring-primary focus:border-primary font-body-sm text-body-sm bg-surface" id="password" placeholder="Enter password" type="password">
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
+<span class="material-symbols-outlined text-outline-variant text-[20px] hover:text-on-surface" data-icon="visibility_off">visibility_off</span>
+</div>
+</div>
+<!-- Password Strength Checker -->
+<div class="pt-2 grid grid-cols-2 gap-y-1 gap-x-4">
+<div class="flex items-center gap-1 font-body-sm text-body-sm text-on-surface-variant opacity-70">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+                            Minimum 8 characters
+                        </div>
+<div class="flex items-center gap-1 font-body-sm text-body-sm text-on-surface-variant opacity-70">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+                            Uppercase letter
+                        </div>
+<div class="flex items-center gap-1 font-body-sm text-body-sm text-on-surface-variant opacity-70">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+                            Lowercase letter
+                        </div>
+<div class="flex items-center gap-1 font-body-sm text-body-sm text-on-surface-variant opacity-70">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+                            Number
+                        </div>
+<div class="flex items-center gap-1 font-body-sm text-body-sm text-on-surface-variant opacity-70 col-span-2">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+                            Special character
+                        </div>
+</div>
+<div class="flex gap-1 h-1 w-full mt-2 rounded overflow-hidden bg-surface-container">
+<div class="w-1/3 bg-outline-variant h-full"></div>
+<div class="w-1/3 bg-outline-variant h-full"></div>
+<div class="w-1/3 bg-outline-variant h-full"></div>
+</div>
+</div>
+<!-- Confirm Password -->
+<div class="space-y-1">
+<label class="block font-label-bold text-label-bold text-on-surface" for="confirmPassword">Confirm Password <span class="text-error">*</span></label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline-variant text-[20px]" data-icon="lock">lock</span>
+</div>
+<input class="block w-full h-[36px] pl-10 pr-10 border-outline rounded focus:ring-2 focus:ring-primary focus:border-primary font-body-sm text-body-sm bg-surface" id="confirmPassword" placeholder="Confirm password" type="password">
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
+<span class="material-symbols-outlined text-outline-variant text-[20px] hover:text-on-surface" data-icon="visibility_off">visibility_off</span>
+</div>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="w-full h-10 bg-primary text-on-primary font-label-bold text-label-bold rounded flex items-center justify-center hover:bg-primary-container transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" type="submit">
+                    Create Account
+                </button>
+<!-- Divider -->
+<div class="relative flex items-center py-2">
+<div class="flex-grow border-t border-outline"></div>
+<span class="flex-shrink-0 mx-4 font-body-sm text-body-sm text-on-surface-variant">or</span>
+<div class="flex-grow border-t border-outline"></div>
+</div>
+<!-- Social Auth -->
+<button class="w-full h-10 bg-surface border border-outline text-on-surface font-label-bold text-label-bold rounded flex items-center justify-center gap-2 hover:bg-surface-container-low transition-colors" type="button">
+<svg class="w-5 h-5" viewBox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+<path d="M1 1h22v22H1z" fill="none"></path>
+</svg>
+                    Continue with Google
+                </button>
+</form>
+<!-- Footer Link -->
+<div class="mt-8 text-center font-body-sm text-body-sm text-on-surface-variant">
+                Already have an account? <a class="text-primary font-label-bold hover:underline" href="#">Sign In</a>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low dark:bg-inverse-surface full-width bottom-0 border-t border-outline-variant dark:border-outline flat no shadows text-on-surface-variant dark:text-surface-variant none flex flex-col md:flex-row justify-between items-center py-gutter px-margin-page w-full mt-auto">
+<div class="font-label-bold text-label-bold text-on-surface dark:text-on-surface-variant mb-2 md:mb-0">
+            StatementForge
+        </div>
+<div class="font-body-sm text-body-sm text-secondary dark:text-secondary-fixed">
+            © 2024 StatementForge Inc. All rights reserved. Precision in Financial Data.
+        </div>
+<nav class="flex gap-4 mt-2 md:mt-0 font-body-sm text-body-sm">
+<a class="text-on-surface-variant dark:text-surface-variant hover:underline decoration-primary" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:underline decoration-primary" href="#">Terms of Service</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:underline decoration-primary" href="#">Security</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:underline decoration-primary" href="#">Contact</a>
+</nav>
+</footer>
+
+
+</body></html>

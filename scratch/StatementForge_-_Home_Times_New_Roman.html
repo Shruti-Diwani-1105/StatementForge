@@ -1,0 +1,280 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-error-container": "#93000a",
+                "inverse-on-surface": "#eff1f3",
+                "on-secondary-fixed": "#001a42",
+                "error": "#ba1a1a",
+                "on-surface-variant": "#434655",
+                "outline": "#747686",
+                "on-primary-fixed-variant": "#0039b5",
+                "on-secondary-container": "#fefcff",
+                "secondary-fixed-dim": "#adc6ff",
+                "on-secondary": "#ffffff",
+                "on-primary-container": "#cad3ff",
+                "on-background": "#191c1e",
+                "on-tertiary-fixed": "#0b1c30",
+                "on-primary-fixed": "#001551",
+                "secondary-container": "#2170e4",
+                "primary-fixed-dim": "#b7c4ff",
+                "inverse-primary": "#b7c4ff",
+                "primary-container": "#1d4ed8",
+                "surface-container-lowest": "#ffffff",
+                "on-secondary-fixed-variant": "#004395",
+                "primary-fixed": "#dce1ff",
+                "primary": "#0037b0",
+                "on-primary": "#ffffff",
+                "surface-dim": "#d8dadc",
+                "surface-container-highest": "#e0e3e5",
+                "surface": "#f7f9fb",
+                "secondary-fixed": "#d8e2ff",
+                "outline-variant": "#c4c5d7",
+                "tertiary-container": "#4d5d73",
+                "on-tertiary": "#ffffff",
+                "background": "#f7f9fb",
+                "tertiary": "#36455b",
+                "surface-tint": "#2151da",
+                "surface-bright": "#f7f9fb",
+                "tertiary-fixed-dim": "#b7c8e1",
+                "surface-container-high": "#e6e8ea",
+                "surface-variant": "#e0e3e5",
+                "inverse-surface": "#2d3133",
+                "surface-container": "#eceef0",
+                "on-tertiary-fixed-variant": "#38485d",
+                "surface-container-low": "#f2f4f6",
+                "error-container": "#ffdad6",
+                "on-tertiary-container": "#c5d6f0",
+                "on-surface": "#191c1e",
+                "on-error": "#ffffff",
+                "tertiary-fixed": "#d3e4fe",
+                "secondary": "#0058be"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "table-row-height": "40px",
+                "margin-page": "24px",
+                "toolbar-height": "64px",
+                "sidebar-width": "240px",
+                "gutter": "16px",
+                "container-gap": "12px"
+        },
+        "fontFamily": {
+                "body-lg": [
+                        "Times New Roman",
+                        "serif"
+                ],
+                "headline-md": [
+                        "Times New Roman",
+                        "serif"
+                ],
+                "body-md": [
+                        "Times New Roman",
+                        "serif"
+                ],
+                "headline-lg": [
+                        "Times New Roman",
+                        "serif"
+                ],
+                "body-sm": [
+                        "Times New Roman",
+                        "serif"
+                ],
+                "mono-data": [
+                        "JetBrains Mono"
+                ],
+                "label-bold": [
+                        "Times New Roman",
+                        "serif"
+                ]
+        },
+        "fontSize": {
+                "body-lg": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-md": [
+                        "18px",
+                        {
+                                "lineHeight": "24px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-sm": [
+                        "13px",
+                        {
+                                "lineHeight": "18px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "mono-data": [
+                        "13px",
+                        {
+                                "lineHeight": "18px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-bold": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ]
+        }
+},
+    },
+  }
+}catch(_e){}</script></head><body class="font-body-md text-on-surface antialiased min-h-screen flex flex-col bg-background">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-50 shadow-sm">
+<div class="flex justify-between items-center h-toolbar-height px-margin-page w-full mx-auto max-w-7xl">
+<!-- Brand -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-on-primary font-bold shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-original-icon="account_balance">account_balance</span>
+</div>
+<span class="font-headline-md text-headline-md font-bold text-primary tracking-tight">StatementForge</span>
+</div>
+<!-- Navigation Links -->
+<nav class="hidden md:flex gap-8 h-full items-center">
+<a class="text-on-surface-variant font-body-md text-body-md hover:text-primary transition-colors flex items-center h-full font-medium" href="#">Features</a>
+<a class="text-on-surface-variant font-body-md text-body-md hover:text-primary transition-colors flex items-center h-full font-medium" href="#">Pricing</a>
+<a class="text-on-surface-variant font-body-md text-body-md hover:text-primary transition-colors flex items-center h-full font-medium" href="#">Documentation</a>
+<a class="text-on-surface-variant font-body-md text-body-md hover:text-primary transition-colors flex items-center h-full font-medium" href="#">Support</a>
+</nav>
+<!-- Actions -->
+<div class="flex items-center gap-4">
+<button class="px-5 py-2.5 rounded font-label-bold text-label-bold text-primary border border-primary hover:bg-surface-container hover:border-primary-container transition-all">Login</button>
+<button class="px-5 py-2.5 rounded font-label-bold text-label-bold bg-primary text-on-primary hover:bg-primary-container hover:shadow-md transition-all shadow-sm">Register</button>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow flex flex-col items-center pb-24 w-full">
+<!-- Hero Section -->
+<div class="w-full hero-bg pt-28 pb-24 px-4 flex flex-col items-center border-b border-outline-variant/30">
+<div class="text-center max-w-4xl space-y-6">
+<span class="text-primary font-label-bold text-label-bold uppercase tracking-[0.2em] bg-primary-fixed-dim/20 px-3 py-1 rounded-full">StatementForge</span>
+<h1 class="font-headline-lg text-headline-lg text-primary md:text-[52px] md:leading-[60px] font-bold tracking-tight">Automated Bank Statement<br>Parser &amp; Accounting Hub</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto pt-4 text-[18px] leading-relaxed">
+                An intelligent offline desktop application that extracts, verifies, and organizes financial transactions from multiple bank statement formats.
+            </p>
+<div class="pt-8">
+<button class="px-8 py-4 rounded-xl font-label-bold text-[15px] bg-primary text-on-primary hover:bg-primary-container transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2 mx-auto">
+                    Get Started
+                    <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Modules Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-7xl px-margin-page mx-auto -mt-8 relative z-10">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col duration-300">
+<div class="feature-icon-wrapper bg-primary-fixed-dim/30 text-primary-fixed">
+<span class="material-symbols-outlined" style="color: #0037b0;">magic_button</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3 font-semibold">AI Bank Detection</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Auto-detects statement formats from supported banks.</p>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col duration-300">
+<div class="feature-icon-wrapper bg-secondary-fixed-dim/30 text-secondary-fixed">
+<span class="material-symbols-outlined" style="color: #0058be;">grid_view</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3 font-semibold">OCR Support</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Scans paper and image-based statements using Tesseract.</p>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col duration-300">
+<div class="feature-icon-wrapper bg-green-100 text-green-700">
+<span class="material-symbols-outlined" style="color: #10b981;">table</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3 font-semibold">Excel Export</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Exports transactions to clean, formatted Excel sheets.</p>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col duration-300">
+<div class="feature-icon-wrapper bg-tertiary-fixed-dim/30 text-tertiary-fixed">
+<span class="material-symbols-outlined" style="color: #0369a1;">analytics</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3 font-semibold">Financial Reports</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Generates beautiful charts and cash-flow summaries.</p>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col duration-300">
+<div class="feature-icon-wrapper bg-yellow-100 text-yellow-700">
+<span class="material-symbols-outlined" style="color: #ca8a04;">receipt_long</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3 font-semibold">GST Reports</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Prepares tax-ready reports for simple GST filings.</p>
+</div>
+<!-- Card 6 -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col duration-300">
+<div class="feature-icon-wrapper bg-red-100 text-red-700">
+<span class="material-symbols-outlined" style="color: #dc2626;">content_copy</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3 font-semibold">Duplicate Detection</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Detects duplicate transactions and entry anomalies.</p>
+</div>
+<!-- Card 7 -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col duration-300">
+<div class="feature-icon-wrapper bg-purple-100 text-purple-700">
+<span class="material-symbols-outlined" style="color: #7e22ce;">history</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3 font-semibold">Database History</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Saves processed transactions to a local SQLite log.</p>
+</div>
+<!-- Card 8 -->
+<div class="bg-surface-container-lowest p-8 rounded-2xl border border-outline-variant/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col duration-300">
+<div class="feature-icon-wrapper bg-sky-100 text-sky-700">
+<span class="material-symbols-outlined" style="color: #0284c7;">mail</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-3 font-semibold">Email Export</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Exports financial reports securely via local mail clients.</p>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-low border-t border-outline-variant mt-auto py-10">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-page w-full max-w-7xl mx-auto gap-6 md:gap-0">
+<div class="flex items-center gap-2 mb-4 md:mb-0">
+<span class="font-label-bold text-label-bold text-on-surface-variant">© 2024 StatementForge Inc. All rights reserved. Precision in Financial Data.</span>
+</div>
+<div class="flex gap-8">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors font-medium" href="#">Privacy Policy</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors font-medium" href="#">Terms of Service</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors font-medium" href="#">Security</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors font-medium" href="#">Contact</a>
+</div>
+</div>
+</footer>
+</body></html>

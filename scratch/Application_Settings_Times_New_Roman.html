@@ -1,0 +1,279 @@
+<!DOCTYPE html><html lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{try{try{
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#434655",
+                        "outline": "#747686",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary-fixed": "#d8e2ff",
+                        "surface-bright": "#f7f9fb",
+                        "surface-tint": "#2151da",
+                        "on-tertiary-container": "#c5d6f0",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#38485d",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#001551",
+                        "surface-container": "#eceef0",
+                        "on-background": "#191c1e",
+                        "primary": "#0037b0",
+                        "primary-fixed-dim": "#b7c4ff",
+                        "inverse-primary": "#b7c4ff",
+                        "on-tertiary-fixed": "#0b1c30",
+                        "outline-variant": "#c4c5d7",
+                        "on-secondary-container": "#fefcff",
+                        "surface-container-high": "#e6e8ea",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#2170e4",
+                        "secondary": "#0058be",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#1d4ed8",
+                        "tertiary-container": "#4d5d73",
+                        "on-secondary-fixed-variant": "#004395",
+                        "background": "#f7f9fb",
+                        "on-primary-fixed-variant": "#0039b5",
+                        "surface": "#f7f9fb",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-surface": "#191c1e",
+                        "tertiary": "#36455b",
+                        "surface-dim": "#d8dadc",
+                        "on-secondary-fixed": "#001a42",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "primary-fixed": "#dce1ff",
+                        "tertiary-fixed-dim": "#b7c8e1",
+                        "on-primary-container": "#cad3ff",
+                        "inverse-surface": "#2d3133",
+                        "on-error-container": "#93000a",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#d3e4fe"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "table-row-height": "40px",
+                        "gutter": "16px",
+                        "sidebar-width": "240px",
+                        "margin-page": "24px",
+                        "container-gap": "12px",
+                        "toolbar-height": "64px"
+                    },
+                    "fontFamily": {
+                        "mono-data": ["JetBrains Mono"],
+                        "body-sm": ["Times New Roman", "serif"],
+                        "headline-lg": ["Times New Roman", "serif"],
+                        "body-lg": ["Times New Roman", "serif"],
+                        "headline-md": ["Times New Roman", "serif"],
+                        "body-md": ["Times New Roman", "serif"],
+                        "label-bold": ["Times New Roman", "serif"]
+                    },
+                    "fontSize": {
+                        "mono-data": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    }catch(_e){}}catch(_e){}}catch(_e){}</script><meta charset="utf-8"></head><body class="bg-surface text-on-surface font-body-md text-body-md antialiased min-h-screen">
+<!-- TopNavBar Component -->
+<header class="h-16 fixed top-0 right-0 left-0 z-50 bg-surface-container-lowest border-b border-outline-variant flex items-center px-6 w-full">
+<!-- Left section: Logo -->
+<div class="flex items-center gap-3 w-[240px] shrink-0">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary">
+<span aria-hidden="true" class="material-symbols-outlined font-variation-settings: 'FILL' 1" data-icon="account_balance" data-original-icon="account_balance">account_balance</span>
+</div>
+<div>
+<div class="text-[14px] font-bold text-on-surface leading-tight">StatementForge</div>
+<div class="text-[11px] text-outline leading-tight mt-0.5">v1.0</div>
+</div>
+</div>
+<!-- Center section:-->
+<div class="flex-1 flex justify-center px-8">
+<div class="relative flex items-center w-full max-w-2xl">
+<span class="material-symbols-outlined absolute left-3 text-outline text-[20px]" data-icon="search">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-body-sm focus:ring-1 focus:ring-outline outline-none" placeholder="Search statements, reports, or entities..." type="text">
+</div>
+</div>
+<!-- Right section: Actions & Profile -->
+<div class="flex items-center gap-6 shrink-0">
+<div class="flex items-center gap-4">
+<button aria-label="Notifications" class="relative text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]" data-icon="notifications" data-original-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2.5 h-2.5 bg-error rounded-full border-2 border-surface-container-lowest"></span>
+</button>
+<button aria-label="Theme Toggle" class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]" data-icon="contrast">contrast</span>
+</button>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant"></div>
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-sm">
+                K
+            </div>
+<div class="flex flex-col">
+<span class="font-body-sm font-semibold text-on-surface leading-none">Kinjal Rajyaguru</span>
+<span class="text-[11px] text-outline mt-0.5">Profile</span>
+</div>
+</div>
+</div>
+</header>
+<!-- SideNavBar Component -->
+<nav aria-label="Main Navigation" class="w-[240px] h-[calc(100vh-64px)] fixed left-0 top-16 bg-surface-container-lowest border-r border-outline-variant flex flex-col py-6 z-40">
+<!-- Navigation Links -->
+<div class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard" data-original-icon="dashboard">dashboard</span>
+<span class="font-body-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="cloud_upload" data-original-icon="cloud_upload">cloud_upload</span>
+<span class="font-body-sm">Upload</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="history">history</span>
+<span class="font-body-sm">History</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="psychology" data-original-icon="psych">psychology</span>
+<span class="font-body-sm">AI Auditor</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="bar_chart">bar_chart</span>
+<span class="font-body-sm">Reports</span>
+</a>
+<a aria-current="page" class="flex items-center gap-3 bg-blue-50 text-primary px-6 py-3 border-l-4 border-primary" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="font-body-sm font-semibold">Settings</span>
+</a>
+</div>
+<!-- Footer Links -->
+<div class="mt-auto flex flex-col gap-1 pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+<span class="font-body-sm">Help Center</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
+<span class="font-body-sm">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-[240px] mt-[64px] p-margin-page min-h-[calc(100vh-64px)] bg-surface">
+<div class="max-w-4xl mx-auto">
+<!-- Page Header -->
+<div class="mb-8">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Settings</h2>
+<p class="font-body-lg text-body-lg text-outline">Manage your application preferences and configurations.</p>
+</div>
+<!-- Settings Layout Container -->
+<div class="flex flex-col md:flex-row gap-8">
+<!-- Settings Tabs Sidebar (Internal Navigation) -->
+<nav class="w-full md:w-56 shrink-0 flex flex-col gap-1">
+<a class="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-DEFAULT transition-colors font-body-md text-body-md" href="#">General</a>
+<a class="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-DEFAULT transition-colors font-body-md text-body-md" href="#">Account</a>
+<!-- Active Tab -->
+<a class="px-4 py-2 bg-surface-container-highest text-primary font-bold rounded-DEFAULT transition-colors font-body-md text-body-md" href="#">Appearance</a>
+<a class="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-DEFAULT transition-colors font-body-md text-body-md" href="#">Security</a>
+<a class="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-DEFAULT transition-colors font-body-md text-body-md" href="#">Notifications</a>
+</nav>
+<!-- Active Tab Content: Appearance -->
+<div class="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant p-8 shadow-sm">
+<div class="mb-8">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Appearance Settings</h3>
+<p class="font-body-sm text-body-sm text-outline">Customize the visual density and color theme of StatementForge.</p>
+</div>
+<!-- Single Column Form Layout -->
+<form class="flex flex-col gap-8 max-w-2xl">
+<!-- Theme Toggle Section -->
+<div class="flex flex-col gap-3 border-b border-outline-variant pb-8">
+<label class="font-label-bold text-label-bold text-on-surface uppercase tracking-wider">Application Theme</label>
+<p class="font-body-sm text-body-sm text-outline mb-2">Select your preferred color mode for the interface.</p>
+<div class="flex gap-4">
+<!-- Light Mode Option (Selected) -->
+<label class="cursor-pointer group relative">
+<input checked="" class="peer sr-only" name="theme" type="radio" value="light">
+<div class="w-32 h-24 rounded-DEFAULT border-2 border-primary bg-surface-container-lowest p-2 shadow-sm">
+<div class="w-full h-4 bg-surface-container-low rounded-sm mb-2"></div>
+<div class="w-1/2 h-2 bg-primary rounded-sm mb-1"></div>
+<div class="w-3/4 h-2 bg-surface-container rounded-sm"></div>
+</div>
+<span class="block mt-2 font-body-sm text-body-sm text-center text-primary font-bold">Light</span>
+</label>
+<!-- Dark Mode Option -->
+<label class="cursor-pointer group relative">
+<input class="peer sr-only" name="theme" type="radio" value="dark">
+<div class="w-32 h-24 rounded-DEFAULT border-2 border-outline-variant peer-checked:border-primary bg-inverse-surface p-2 shadow-sm transition-colors">
+<div class="w-full h-4 bg-tertiary-container rounded-sm mb-2"></div>
+<div class="w-1/2 h-2 bg-primary-fixed-dim rounded-sm mb-1"></div>
+<div class="w-3/4 h-2 bg-tertiary rounded-sm"></div>
+</div>
+<span class="block mt-2 font-body-sm text-body-sm text-center text-outline group-hover:text-on-surface transition-colors">Dark</span>
+</label>
+<!-- System Default Option -->
+<label class="cursor-pointer group relative">
+<input class="peer sr-only" name="theme" type="radio" value="system">
+<div class="w-32 h-24 rounded-DEFAULT border-2 border-outline-variant peer-checked:border-primary bg-gradient-to-br from-surface-container-lowest to-inverse-surface p-2 shadow-sm transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-outline">desktop_windows</span>
+</div>
+<span class="block mt-2 font-body-sm text-body-sm text-center text-outline group-hover:text-on-surface transition-colors">System</span>
+</label>
+</div>
+</div>
+<!-- Density Settings Section -->
+<div class="flex flex-col gap-3 border-b border-outline-variant pb-8">
+<label class="font-label-bold text-label-bold text-on-surface uppercase tracking-wider">UI Density</label>
+<p class="font-body-sm text-body-sm text-outline mb-2">Adjust the spacing and size of elements, specifically data tables.</p>
+<div class="flex flex-col gap-2">
+<label class="flex items-center gap-3 p-3 border border-outline-variant rounded-DEFAULT cursor-pointer hover:bg-surface-container-low transition-colors has-[:checked]:border-primary has-[:checked]:bg-secondary-fixed">
+<input checked="" class="text-primary focus:ring-primary h-4 w-4" name="density" type="radio" value="compact">
+<div class="">
+<span class="block font-body-md text-body-md font-medium text-on-surface">High Density (Compact)</span>
+<span class="block font-body-sm text-body-sm text-outline">Maximum data visibility. Row height: 32px.</span>
+</div>
+</label>
+<label class="flex items-center gap-3 p-3 border border-outline-variant rounded-DEFAULT cursor-pointer hover:bg-surface-container-low transition-colors has-[:checked]:border-primary has-[:checked]:bg-secondary-fixed">
+<input class="text-primary focus:ring-primary h-4 w-4" name="density" type="radio" value="standard">
+<div class="">
+<span class="block font-body-md text-body-md font-medium text-on-surface">Standard Density</span>
+<span class="block font-body-sm text-body-sm text-outline">Balanced spacing. Row height: 40px.</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Color Palette Selection Section -->
+<div class="flex flex-col gap-3 pb-4">
+<label class="font-label-bold text-label-bold text-on-surface uppercase tracking-wider">Accent Color</label>
+<p class="font-body-sm text-body-sm text-outline mb-2">Choose the primary brand color used for highlights and actions.</p>
+<div class="flex gap-3">
+<!-- Blue (Default) -->
+<button aria-label="Default Blue" class="w-10 h-10 rounded-full bg-[#0037b0] border-2 border-outline-variant ring-2 ring-primary ring-offset-2 flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-white text-sm">check</span>
+</button>
+<!-- Slate/Gray -->
+<button aria-label="Slate Gray" class="w-10 h-10 rounded-full bg-[#475569] border-2 border-transparent hover:border-outline-variant transition-colors" type="button"></button>
+<!-- Teal -->
+<button aria-label="Teal" class="w-10 h-10 rounded-full bg-[#0f766e] border-2 border-transparent hover:border-outline-variant transition-colors" type="button"></button>
+<!-- Indigo -->
+<button aria-label="Indigo" class="w-10 h-10 rounded-full bg-[#4338ca] border-2 border-transparent hover:border-outline-variant transition-colors" type="button"></button>
+</div>
+</div>
+<!-- Action Buttons-->
+<div class="flex justify-end gap-3 mt-4 pt-6 border-t border-outline-variant">
+<button class="px-4 py-2 bg-white border border-primary text-primary font-label-bold text-label-bold uppercase rounded-DEFAULT hover:bg-surface-container-low transition-colors h-9 flex items-center justify-center" type="button">
+                                Reset to Default
+                            </button>
+</div></form></div></div></div></main></body></html>

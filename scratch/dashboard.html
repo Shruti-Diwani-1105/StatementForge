@@ -1,0 +1,394 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">try{try{try{
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary": "#0058be",
+                      "on-primary-fixed": "#001551",
+                      "on-secondary-container": "#fefcff",
+                      "on-primary-container": "#cad3ff",
+                      "surface-container": "#eceef0",
+                      "primary-fixed": "#dce1ff",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#4d5d73",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-secondary-fixed-variant": "#004395",
+                      "on-tertiary-fixed": "#0b1c30",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#1d4ed8",
+                      "on-surface-variant": "#434655",
+                      "tertiary-fixed": "#d3e4fe",
+                      "inverse-primary": "#b7c4ff",
+                      "on-tertiary-fixed-variant": "#38485d",
+                      "surface-container-low": "#f2f4f6",
+                      "inverse-on-surface": "#eff1f3",
+                      "tertiary-fixed-dim": "#b7c8e1",
+                      "surface-dim": "#d8dadc",
+                      "on-surface": "#191c1e",
+                      "surface-variant": "#e0e3e5",
+                      "on-error-container": "#93000a",
+                      "on-background": "#191c1e",
+                      "on-tertiary-container": "#c5d6f0",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "on-primary-fixed-variant": "#0039b5",
+                      "surface-tint": "#2151da",
+                      "inverse-surface": "#2d3133",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-fixed": "#d8e2ff",
+                      "primary-fixed-dim": "#b7c4ff",
+                      "primary": "#0037b0",
+                      "on-secondary-fixed": "#001a42",
+                      "on-secondary": "#ffffff",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f7f9fb",
+                      "secondary-container": "#2170e4",
+                      "error": "#ba1a1a",
+                      "outline": "#747686",
+                      "tertiary": "#36455b",
+                      "outline-variant": "#c4c5d7",
+                      "surface-container-high": "#e6e8ea",
+                      "surface": "#f7f9fb",
+                      "background": "#f7f9fb"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "gutter": "16px",
+                      "table-row-height": "40px",
+                      "toolbar-height": "64px",
+                      "container-gap": "12px",
+                      "margin-page": "24px",
+                      "sidebar-width": "240px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Times New Roman",
+                              "serif"
+                      ],
+                      "headline-lg": [
+                              "Times New Roman",
+                              "serif"
+                      ],
+                      "headline-md": [
+                              "Times New Roman",
+                              "serif"
+                      ],
+                      "mono-data": [
+                              "JetBrains Mono"
+                      ],
+                      "body-md": [
+                              "Times New Roman",
+                              "serif"
+                      ],
+                      "label-bold": [
+                              "Times New Roman",
+                              "serif"
+                      ],
+                      "body-sm": [
+                              "Times New Roman",
+                              "serif"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "mono-data": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-bold": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    }catch(_e){}}catch(_e){}}catch(_e){}</script></head><body class="bg-surface text-on-surface font-body-md h-screen overflow-hidden flex selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- SideNavBar -->
+<nav aria-label="Main Navigation" class="w-[240px] h-[calc(100vh-64px)] fixed left-0 top-16 bg-surface-container-lowest border-r border-outline-variant flex flex-col py-6 z-40">
+<!-- Navigation Links -->
+<div class="flex-1 flex flex-col gap-1">
+<a aria-current="page" class="flex items-center gap-3 bg-blue-50 text-primary px-6 py-3 border-l-4 border-primary" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard" data-original-icon="dashboard">dashboard</span>
+<span class="font-body-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="cloud_upload" data-original-icon="cloud_upload">cloud_upload</span>
+<span class="font-body-sm">Upload</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="history">history</span>
+<span class="font-body-sm">History</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="psychology" data-original-icon="psychology">psychology</span>
+<span class="font-body-sm">AI Auditor</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="bar_chart">bar_chart</span>
+<span class="font-body-sm">Reports</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="font-body-sm">Settings</span>
+</a>
+</div>
+<!-- Footer Links -->
+<div class="mt-auto flex flex-col gap-1 pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+<span class="font-body-sm">Help Center</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-low transition-colors px-6 py-3 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
+<span class="font-body-sm">Logout</span>
+</a>
+</div>
+</nav>
+<!-- TopNavBar -->
+<header class="h-16 fixed top-0 right-0 left-0 z-50 bg-surface-container-lowest border-b border-outline-variant flex items-center px-6 w-full">
+<!-- Left section: Logo -->
+<div class="flex items-center gap-3 w-[240px] shrink-0">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary">
+<span aria-hidden="true" class="material-symbols-outlined font-variation-settings: 'FILL' 1" data-icon="account_balance" data-original-icon="account_balance">account_balance</span>
+</div>
+<div>
+<div class="text-[14px] font-bold text-on-surface leading-tight">StatementForge</div>
+<div class="text-[11px] text-outline leading-tight mt-0.5">v1.0</div>
+</div>
+</div>
+<!-- Center section:-->
+<div class="flex-1 flex justify-center px-8">
+<div class="relative flex items-center w-full max-w-2xl">
+<span class="material-symbols-outlined absolute left-3 text-outline text-[20px]" data-icon="search">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-body-sm focus:ring-1 focus:ring-outline outline-none" placeholder="Search statements, reports, or entities..." type="text">
+</div>
+</div>
+<!-- Right section: Actions & Profile -->
+<div class="flex items-center gap-6 shrink-0">
+<div class="flex items-center gap-4">
+<button aria-label="Notifications" class="relative text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]" data-icon="notifications" data-original-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2.5 h-2.5 bg-error rounded-full border-2 border-surface-container-lowest"></span>
+</button>
+<button aria-label="Theme Toggle" class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[24px]" data-icon="contrast">contrast</span>
+</button>
+</div>
+<div class="h-8 w-[1px] bg-outline-variant"></div>
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-sm">
+                K
+            </div>
+<div class="flex flex-col">
+<span class="font-body-sm font-semibold text-on-surface leading-none">Kinjal Rajyaguru</span>
+<span class="text-[11px] text-outline mt-0.5">Profile</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="mt-16 p-8 w-full h-[calc(100vh-64px)] overflow-y-auto ml-[240px]">
+<!-- Header -->
+<div class="mb-8">
+<h1 class="font-headline-lg text-2xl text-on-surface font-bold mb-1">Welcome Back, Kinjal!</h1>
+<p class="font-body-sm text-on-surface-variant">Here's an overview of your local financial statements parser activities.</p>
+</div>
+<!-- Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+<div class="bg-surface-container-lowest border border-outline-variant border-t-4 border-t-primary rounded-xl p-6 shadow-sm flex flex-col gap-2">
+<div class="text-body-sm text-on-surface font-medium mb-1">
+<span class="">Statements Processed</span>
+</div>
+<div class="font-headline-lg text-3xl text-primary font-bold">1</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant border-t-4 border-t-green-500 rounded-xl p-6 shadow-sm flex flex-col gap-2">
+<div class="text-body-sm text-on-surface font-medium mb-1">
+<span class="">Transactions Verified</span>
+</div>
+<div class="font-headline-lg text-3xl text-green-600 font-bold">4</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant border-t-4 border-t-orange-500 rounded-xl p-6 shadow-sm flex flex-col gap-2">
+<div class="text-body-sm text-on-surface font-medium mb-1">
+<span class="">Reports Exported</span>
+</div>
+<div class="font-headline-lg text-3xl text-orange-600 font-bold">1</div>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+<!-- Left Column: System Modules (Grid) -->
+<div class="xl:col-span-9 flex flex-col gap-4">
+<h2 class="font-headline-md text-lg text-on-surface font-bold">System Modules</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<a href="#" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
+<div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="upload">upload</span>
+</div>
+<div>
+<h3 class="font-headline-md text-base text-on-surface font-semibold mb-1">Upload Statement</h3>
+<p class="font-body-sm text-on-surface-variant">Parse and extract transactions.</p>
+</div>
+</a>
+<!-- Card 2 -->
+<a href="#" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
+<div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center text-green-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="table_view">table_view</span>
+</div>
+<div>
+<h3 class="font-headline-md text-base text-on-surface font-semibold mb-1">Generate Excel</h3>
+<p class="font-body-sm text-on-surface-variant">Export to clean sheets.</p>
+</div>
+</a>
+<!-- Card 3 -->
+<a href="#" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
+<div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div>
+<h3 class="font-headline-md text-base text-on-surface font-semibold mb-1">AI Report</h3>
+<p class="font-body-sm text-on-surface-variant">Generate intelligent insights.</p>
+</div>
+</a>
+<!-- Card 4 -->
+<a href="#" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
+<div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+</div>
+<div class="">
+<h3 class="font-headline-md text-base text-on-surface font-semibold mb-1">GST Report</h3>
+<p class="font-body-sm text-on-surface-variant">Prepare statements for tax filings.</p>
+</div>
+</a>
+<!-- Card 5 -->
+<a href="#" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
+<div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+</div>
+<div>
+<h3 class="font-headline-md text-base text-on-surface font-semibold mb-1">Tally Export</h3>
+<p class="font-body-sm text-on-surface-variant">Export ready for Tally integration.</p>
+</div>
+</a>
+<!-- Card 6 -->
+<a href="#" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
+<div class="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="file_copy">file_copy</span>
+</div>
+<div>
+<h3 class="font-headline-md text-base text-on-surface font-semibold mb-1">Duplicate Finder</h3>
+<p class="font-body-sm text-on-surface-variant">Find double entry transactions.</p>
+</div>
+</a>
+<!-- Card 7 -->
+<a href="#" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
+<div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="manage_history">manage_history</span>
+</div>
+<div class="">
+<h3 class="font-headline-md text-base text-on-surface font-semibold mb-1">History Logs</h3>
+<p class="font-body-sm text-on-surface-variant">Browse localized SQLite history.</p>
+</div>
+</a>
+<!-- Card 8 -->
+<a href="#" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-4 group">
+<div class="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+</div>
+<div class="">
+<h3 class="font-headline-md text-base text-on-surface font-semibold mb-1">Email Report</h3>
+<p class="font-body-sm text-on-surface-variant">Send parsed summaries safely.</p>
+</div>
+</a>
+</div>
+</div>
+<!-- Right Column: Recent Activity (Compact) -->
+<div class="xl:col-span-3 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm flex flex-col">
+<h2 class="font-headline-md text-base text-on-surface font-bold mb-4">Recent Activity</h2>
+<div class="flex flex-col gap-3">
+<div class="flex items-start gap-3 p-3 border border-outline-variant rounded-lg bg-surface">
+<div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 mt-0.5 shrink-0">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+</div>
+<div class="">
+<div class="font-body-sm text-on-surface font-medium">Kotak Mahindra Somaiya.pdf</div>
+<div class="font-body-sm text-[11px] text-on-surface-variant">Kotak Mahindra Bank • 1d ago</div>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 border border-outline-variant rounded-lg bg-surface">
+<div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 mt-0.5 shrink-0">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+</div>
+<div>
+<div class="font-body-sm text-on-surface font-medium">Devika CA.pdf</div>
+<div class="font-body-sm text-[11px] text-on-surface-variant">HDFC Bank • 2d ago</div>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 border border-outline-variant rounded-lg bg-surface">
+<div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 mt-0.5 shrink-0">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+</div>
+<div class="">
+<div class="font-body-sm text-on-surface font-medium">Devika CA.pdf</div>
+<div class="font-body-sm text-[11px] text-on-surface-variant">HDFC Bank • 2d ago</div>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 border border-outline-variant rounded-lg bg-surface">
+<div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 mt-0.5 shrink-0">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+</div>
+<div class="">
+<div class="font-body-sm text-on-surface font-medium">Kotak Mahindra Somaiya.pdf</div>
+<div class="font-body-sm text-[11px] text-on-surface-variant">Kotak Mahindra Bank • 2d ago</div>
+</div>
+</div>
+</div></div></div></main></body></html>

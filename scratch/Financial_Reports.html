@@ -1,0 +1,323 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>StatementForge - Financial Reports</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts (Inter & JetBrains Mono as per Design System) -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#b7c4ff",
+                    "on-error": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-tertiary-container": "#c5d6f0",
+                    "surface": "#f7f9fb",
+                    "inverse-surface": "#2d3133",
+                    "primary-fixed": "#dce1ff",
+                    "primary-container": "#1d4ed8",
+                    "primary": "#0037b0",
+                    "on-secondary": "#ffffff",
+                    "surface-bright": "#f7f9fb",
+                    "secondary-fixed": "#d8e2ff",
+                    "tertiary": "#36455b",
+                    "secondary": "#0058be",
+                    "surface-variant": "#e0e3e5",
+                    "on-primary-fixed": "#001551",
+                    "tertiary-container": "#4d5d73",
+                    "on-tertiary-fixed-variant": "#38485d",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#004395",
+                    "surface-container": "#eceef0",
+                    "secondary-container": "#2170e4",
+                    "on-primary-container": "#cad3ff",
+                    "tertiary-fixed-dim": "#b7c8e1",
+                    "on-secondary-fixed": "#001a42",
+                    "error": "#ba1a1a",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-surface-variant": "#434655",
+                    "on-primary": "#ffffff",
+                    "on-secondary-container": "#fefcff",
+                    "on-primary-fixed-variant": "#0039b5",
+                    "secondary-fixed-dim": "#adc6ff",
+                    "inverse-primary": "#b7c4ff",
+                    "error-container": "#ffdad6",
+                    "on-surface": "#191c1e",
+                    "background": "#f7f9fb",
+                    "surface-container-low": "#f2f4f6",
+                    "surface-container-high": "#e6e8ea",
+                    "outline-variant": "#c4c5d7",
+                    "on-tertiary-fixed": "#0b1c30",
+                    "surface-tint": "#2151da",
+                    "outline": "#747686",
+                    "on-background": "#191c1e",
+                    "tertiary-fixed": "#d3e4fe",
+                    "surface-dim": "#d8dadc"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "table-row-height": "40px",
+                    "container-gap": "12px",
+                    "gutter": "16px",
+                    "toolbar-height": "64px",
+                    "sidebar-width": "240px",
+                    "margin-page": "24px"
+            },
+            "fontFamily": {
+                    "label-bold": [
+                            "Inter"
+                    ],
+                    "body-sm": [
+                            "Inter"
+                    ],
+                    "mono-data": [
+                            "JetBrains Mono"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "headline-lg": [
+                            "Inter"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "body-lg": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "label-bold": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-sm": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "mono-data": [
+                            "13px",
+                            {
+                                    "lineHeight": "18px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-lg": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        /* Smooth scrolling and base resets */
+        html { scroll-behavior: smooth; }
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md min-h-screen">
+<!-- SideNavBar -->
+<aside class="bg-surface dark:bg-inverse-surface fixed left-0 top-0 h-full w-sidebar-width flex flex-col py-gutter space-y-2 border-r border-surface-container z-20">
+<!-- Brand Header -->
+<div class="px-gutter mb-6 flex items-center space-x-3">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-primary text-xl" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim tracking-tight">StatementForge</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Financial Auditing</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 px-3 space-y-1">
+<!-- Inactive: Dashboard -->
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest dark:hover:bg-surface-container-low transition-colors duration-150 cursor-pointer active:scale-95 group" href="#">
+<span class="material-symbols-outlined mr-3 text-lg group-hover:text-primary transition-colors">dashboard</span>
+<span class="font-body-md text-body-md font-medium">Dashboard</span>
+</a>
+<!-- Inactive: Upload -->
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest dark:hover:bg-surface-container-low transition-colors duration-150 cursor-pointer active:scale-95 group" href="#">
+<span class="material-symbols-outlined mr-3 text-lg group-hover:text-primary transition-colors">cloud_upload</span>
+<span class="font-body-md text-body-md font-medium">Upload</span>
+</a>
+<!-- Inactive: History -->
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest dark:hover:bg-surface-container-low transition-colors duration-150 cursor-pointer active:scale-95 group" href="#">
+<span class="material-symbols-outlined mr-3 text-lg group-hover:text-primary transition-colors">history</span>
+<span class="font-body-md text-body-md font-medium">History</span>
+</a>
+<!-- Inactive: AI Auditor -->
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest dark:hover:bg-surface-container-low transition-colors duration-150 cursor-pointer active:scale-95 group" href="#">
+<span class="material-symbols-outlined mr-3 text-lg group-hover:text-primary transition-colors">psychology</span>
+<span class="font-body-md text-body-md font-medium">AI Auditor</span>
+</a>
+<!-- Active: Reports -->
+<a class="flex items-center px-3 py-2 rounded-lg bg-primary-container/10 text-primary border-l-4 border-primary dark:text-primary-fixed-dim dark:border-primary-fixed-dim cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined mr-3 text-lg" data-weight="fill" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-body-md text-body-md font-medium">Reports</span>
+</a>
+<!-- Inactive: Settings -->
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest dark:hover:bg-surface-container-low transition-colors duration-150 cursor-pointer active:scale-95 group" href="#">
+<span class="material-symbols-outlined mr-3 text-lg group-hover:text-primary transition-colors">settings</span>
+<span class="font-body-md text-body-md font-medium">Settings</span>
+</a>
+</nav>
+<!-- Bottom Actions (e.g., Logout placeholder to match typical sidebar density) -->
+<div class="px-6 mt-auto">
+<a class="flex items-center py-2 text-error hover:text-error/80 transition-colors duration-150 cursor-pointer" href="#">
+<span class="material-symbols-outlined mr-3 text-lg">logout</span>
+<span class="font-body-md text-body-md font-medium">Logout</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="bg-surface-bright dark:bg-surface-dim border-b border-outline-variant fixed top-0 right-0 h-toolbar-height w-[calc(100%-theme(spacing.sidebar-width))] flex justify-between items-center px-margin-page z-10">
+<!-- Search Bar (on_left) -->
+<div class="flex-1 max-w-xl">
+<div class="relative flex items-center w-full h-10 rounded bg-surface-container-low border border-outline-variant/50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<span class="material-symbols-outlined absolute left-3 text-outline text-sm">search</span>
+<input class="w-full h-full pl-10 pr-4 bg-transparent border-none focus:ring-0 font-body-sm text-body-sm text-on-surface placeholder-on-surface-variant/70" placeholder="Search transactions, statements..." type="text">
+</div>
+</div>
+<!-- Trailing Actions & Profile -->
+<div class="flex items-center space-x-4 ml-6">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-all cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-[20px]">light_mode</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-all cursor-pointer active:opacity-80 relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-error border border-surface-bright"></span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-all cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-[20px]">help_outline</span>
+</button>
+<div class="h-6 w-px bg-outline-variant/50 mx-2"></div>
+<button class="flex items-center space-x-2 hover:bg-surface-container-low dark:hover:bg-surface-container-high py-1 px-2 rounded transition-all cursor-pointer active:opacity-80">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-label-bold text-label-bold shrink-0">
+                    K
+                </div>
+<div class="flex items-center">
+<span class="font-label-bold text-label-bold text-on-surface mr-1">Kinjal Rajyaguru</span>
+<span class="material-symbols-outlined text-sm text-on-surface-variant">arrow_drop_down</span>
+</div>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-sidebar-width pt-toolbar-height min-h-screen flex flex-col">
+<div class="p-margin-page flex-1 max-w-5xl">
+<!-- Page Header -->
+<div class="mb-8">
+<h2 class="font-headline-lg text-headline-lg font-bold text-on-background mb-2">Financial Reports</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Analyze transactions and export tax-compliant ledgers.</p>
+</div>
+<!-- Reports List Container -->
+<div class="space-y-4">
+<!-- Report Item 1: Profit & Loss -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:border-primary/40 transition-colors shadow-sm shadow-surface-variant/20">
+<div class="flex items-start sm:items-center space-x-4 mb-4 sm:mb-0">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center shrink-0 border border-primary-container/20">
+<span class="material-symbols-outlined text-primary">receipt_long</span>
+</div>
+<div>
+<h3 class="font-label-bold text-label-bold text-on-surface text-[14px] mb-1">Profit &amp; Loss Statement</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Detailed revenue vs expenditure breakdown.</p>
+</div>
+</div>
+<div class="flex items-center sm:w-auto w-full border-t sm:border-t-0 border-outline-variant/30 pt-4 sm:pt-0">
+<button class="w-full sm:w-auto px-5 py-2 bg-primary-container/10 text-primary font-label-bold text-label-bold rounded hover:bg-primary-container/20 transition-colors border border-transparent focus:ring-2 focus:ring-primary/30">
+                            Download PDF
+                        </button>
+</div>
+</div>
+<!-- Report Item 2: GST Tax Ledger -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:border-primary/40 transition-colors shadow-sm shadow-surface-variant/20">
+<div class="flex items-start sm:items-center space-x-4 mb-4 sm:mb-0">
+<!-- Using secondary colors to mimic the green subtle tint from user request within design system constraints -->
+<div class="w-12 h-12 rounded-full bg-secondary-container/10 flex items-center justify-center shrink-0 border border-secondary-container/20">
+<span class="material-symbols-outlined text-secondary">verified_user</span>
+</div>
+<div>
+<h3 class="font-label-bold text-label-bold text-on-surface text-[14px] mb-1">GST Tax Ledger</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Clean spreadsheet formatting ready for tax filing.</p>
+</div>
+</div>
+<div class="flex items-center sm:w-auto w-full border-t sm:border-t-0 border-outline-variant/30 pt-4 sm:pt-0">
+<button class="w-full sm:w-auto px-5 py-2 bg-secondary-container/10 text-secondary font-label-bold text-label-bold rounded hover:bg-secondary-container/20 transition-colors border border-transparent focus:ring-2 focus:ring-secondary/30">
+                            Export Excel
+                        </button>
+</div>
+</div>
+<!-- Report Item 3: Duplicate Transaction Log -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-lg p-5 flex flex-col sm:flex-row sm:items-center justify-between hover:border-primary/40 transition-colors shadow-sm shadow-surface-variant/20">
+<div class="flex items-start sm:items-center space-x-4 mb-4 sm:mb-0">
+<!-- Using error colors to mimic the red subtle tint for 'Audit/Warning' actions -->
+<div class="w-12 h-12 rounded-full bg-error-container/20 flex items-center justify-center shrink-0 border border-error-container/30">
+<span class="material-symbols-outlined text-error">file_copy</span>
+</div>
+<div>
+<h3 class="font-label-bold text-label-bold text-on-surface text-[14px] mb-1">Duplicate Transaction Log</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Flagged entries audit summary sheet.</p>
+</div>
+</div>
+<div class="flex items-center sm:w-auto w-full border-t sm:border-t-0 border-outline-variant/30 pt-4 sm:pt-0">
+<button class="w-full sm:w-auto px-5 py-2 bg-error-container/20 text-error font-label-bold text-label-bold rounded hover:bg-error-container/30 transition-colors border border-transparent focus:ring-2 focus:ring-error/30">
+                            View Audit
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

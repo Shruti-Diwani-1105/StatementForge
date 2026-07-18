@@ -1,0 +1,277 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Statement History - StatementForge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed-dim": "#b7c4ff",
+                      "on-error": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-tertiary-container": "#c5d6f0",
+                      "surface": "#f7f9fb",
+                      "inverse-surface": "#2d3133",
+                      "primary-fixed": "#dce1ff",
+                      "primary-container": "#1d4ed8",
+                      "primary": "#0037b0",
+                      "on-secondary": "#ffffff",
+                      "surface-bright": "#f7f9fb",
+                      "secondary-fixed": "#d8e2ff",
+                      "tertiary": "#36455b",
+                      "secondary": "#0058be",
+                      "surface-variant": "#e0e3e5",
+                      "on-primary-fixed": "#001551",
+                      "tertiary-container": "#4d5d73",
+                      "on-tertiary-fixed-variant": "#38485d",
+                      "on-error-container": "#93000a",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-fixed-variant": "#004395",
+                      "surface-container": "#eceef0",
+                      "secondary-container": "#2170e4",
+                      "on-primary-container": "#cad3ff",
+                      "tertiary-fixed-dim": "#b7c8e1",
+                      "on-secondary-fixed": "#001a42",
+                      "error": "#ba1a1a",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-surface-variant": "#434655",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#fefcff",
+                      "on-primary-fixed-variant": "#0039b5",
+                      "secondary-fixed-dim": "#adc6ff",
+                      "inverse-primary": "#b7c4ff",
+                      "error-container": "#ffdad6",
+                      "on-surface": "#191c1e",
+                      "background": "#f7f9fb",
+                      "surface-container-low": "#f2f4f6",
+                      "surface-container-high": "#e6e8ea",
+                      "outline-variant": "#c4c5d7",
+                      "on-tertiary-fixed": "#0b1c30",
+                      "surface-tint": "#2151da",
+                      "outline": "#747686",
+                      "on-background": "#191c1e",
+                      "tertiary-fixed": "#d3e4fe",
+                      "surface-dim": "#d8dadc"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "table-row-height": "40px",
+                      "container-gap": "12px",
+                      "gutter": "16px",
+                      "toolbar-height": "64px",
+                      "sidebar-width": "240px",
+                      "margin-page": "24px"
+              },
+              "fontFamily": {
+                      "label-bold": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "mono-data": ["JetBrains Mono"],
+                      "headline-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "label-bold": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "mono-data": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                      "headline-md": ["18px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md min-h-screen">
+<aside class="fixed left-0 top-0 h-full w-sidebar-width bg-surface border-r border-surface-container-high flex flex-col py-gutter space-y-2 z-20">
+<div class="px-gutter mb-6 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+</div>
+<div>
+<div class="font-headline-md text-headline-md font-bold text-primary">StatementForge</div>
+<div class="font-label-bold text-label-bold text-on-surface-variant">v1.0</div>
+</div>
+</div>
+<nav class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-150 cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-150 cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="cloud_upload">cloud_upload</span>
+<span class="font-body-md text-body-md">Upload</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary-container/10 text-primary border-l-4 border-primary transition-colors duration-150 cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="history">history</span>
+<span class="font-body-md text-body-md font-bold">History</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-150 cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="psychology">psychology</span>
+<span class="font-body-md text-body-md">AI Auditor</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-150 cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="analytics">analytics</span>
+<span class="font-body-md text-body-md">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-colors duration-150 cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="px-3 mt-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-error hover:bg-error-container transition-colors duration-150 cursor-pointer active:scale-95" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="logout">logout</span>
+<span class="font-body-md text-body-md">Logout</span>
+</a>
+</div>
+</aside>
+<header class="fixed top-0 right-0 h-toolbar-height w-[calc(100%-theme(spacing.sidebar-width))] bg-surface border-b border-outline-variant flex justify-between items-center px-margin-page z-10">
+<div class="flex items-center bg-surface-container-low rounded-lg px-4 py-2 w-96 border border-transparent focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant mr-2" data-icon="search">search</span>
+<input class="bg-transparent border-none outline-none w-full font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:ring-0 p-0" placeholder="Search transactions, statements..." type="text">
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="flex items-center gap-2 ml-2 cursor-pointer hover:opacity-80 transition-opacity">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-label-bold text-label-bold">
+                    KR
+                </div>
+<span class="font-body-sm text-body-sm text-on-surface font-semibold hidden md:block">Kinjal Rajyaguru</span>
+<span class="material-symbols-outlined text-on-surface-variant text-sm" data-icon="arrow_drop_down">arrow_drop_down</span>
+</div>
+</div>
+</header>
+<main class="ml-sidebar-width mt-toolbar-height p-margin-page">
+<div class="mb-6">
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Statement History</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Review previously uploaded and parsed financial statements.</p>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface border-b border-outline-variant">
+<th class="px-6 py-3 font-label-bold text-label-bold text-on-surface-variant w-12 text-center">#</th>
+<th class="px-6 py-3 font-label-bold text-label-bold text-on-surface-variant">Upload Date</th>
+<th class="px-6 py-3 font-label-bold text-label-bold text-on-surface-variant">File Name</th>
+<th class="px-6 py-3 font-label-bold text-label-bold text-on-surface-variant">Bank Name</th>
+<th class="px-6 py-3 font-label-bold text-label-bold text-on-surface-variant text-center">Status</th>
+<th class="px-6 py-3 font-label-bold text-label-bold text-on-surface-variant">Output Format</th>
+<th class="px-6 py-3 font-label-bold text-label-bold text-on-surface-variant text-center">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/50">
+<tr class="hover:bg-surface-container-low transition-colors h-table-row-height">
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface-variant text-center">1</td>
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface">2026-07-14 15:03</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface font-medium">Kotak Mahindra Somaiya.pdf</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">Kotak Mahindra Bank</td>
+<td class="px-6 py-2 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-bold text-label-bold bg-error text-on-error w-24 justify-center">Failed</span>
+</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">-</td>
+<td class="px-6 py-2 text-center">
+<span class="font-body-sm text-body-sm text-error">Failed</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-table-row-height bg-surface/30">
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface-variant text-center">2</td>
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface">2026-07-14 05:43</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface font-medium">Devika CA.pdf</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">HDFC Bank</td>
+<td class="px-6 py-2 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-bold text-label-bold bg-primary-fixed text-on-primary-fixed w-24 justify-center">Completed</span>
+</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface">Excel</td>
+<td class="px-6 py-2 text-center">
+<button class="px-3 py-1 rounded border border-primary text-primary font-label-bold text-label-bold hover:bg-primary-fixed-dim transition-colors text-xs">View</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-table-row-height">
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface-variant text-center">3</td>
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface">2026-07-13 12:53</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface font-medium">Devika CA.pdf</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">HDFC Bank</td>
+<td class="px-6 py-2 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-bold text-label-bold bg-secondary-fixed text-on-secondary-fixed w-24 justify-center gap-1">
+                                Processing
+                            </span>
+</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">-</td>
+<td class="px-6 py-2 text-center">
+<span class="font-body-sm text-body-sm text-secondary">Processing</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-table-row-height bg-surface/30">
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface-variant text-center">4</td>
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface">2026-07-13 12:21</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface font-medium">Kotak Mahindra Somaiya.pdf</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">Kotak Mahindra Bank</td>
+<td class="px-6 py-2 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-bold text-label-bold bg-error text-on-error w-24 justify-center">Failed</span>
+</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">-</td>
+<td class="px-6 py-2 text-center">
+<span class="font-body-sm text-body-sm text-error">Failed</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-table-row-height">
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface-variant text-center">5</td>
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface">2026-07-13 12:04</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface font-medium">Kotak Mahindra Somaiya.pdf</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">Kotak Mahindra Bank</td>
+<td class="px-6 py-2 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-bold text-label-bold bg-error text-on-error w-24 justify-center">Failed</span>
+</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">-</td>
+<td class="px-6 py-2 text-center">
+<span class="font-body-sm text-body-sm text-error">Failed</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors h-table-row-height bg-surface/30">
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface-variant text-center">6</td>
+<td class="px-6 py-2 font-mono-data text-mono-data text-on-surface">2026-07-11 12:02</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface font-medium">Devika CA.pdf</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface-variant">HDFC Bank</td>
+<td class="px-6 py-2 text-center">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-bold text-label-bold bg-primary-fixed text-on-primary-fixed w-24 justify-center">Completed</span>
+</td>
+<td class="px-6 py-2 font-body-sm text-body-sm text-on-surface">Excel</td>
+<td class="px-6 py-2 text-center">
+<button class="px-3 py-1 rounded border border-primary text-primary font-label-bold text-label-bold hover:bg-primary-fixed-dim transition-colors text-xs">View</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</main>
+</body></html>
