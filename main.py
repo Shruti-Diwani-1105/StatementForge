@@ -28,6 +28,10 @@ def main():
     # 2. Create the Qt application instance
     app = QApplication(sys.argv)
     
+    # Initialize global responsive scaling and Ctrl+Scroll/Key zoom filter
+    from utils.responsive_scaling import apply_responsive_patches
+    apply_responsive_patches(app)
+    
     # Set default modern font weight/style
     default_font = QFont("Times New Roman", 10)
     app.setFont(default_font)

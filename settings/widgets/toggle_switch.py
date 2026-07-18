@@ -82,15 +82,24 @@ class ToggleSwitch(QAbstractButton):
                 bg_color = QColor("#94A3B8") if self.hovered else QColor("#CBD5E1")
             thumb_color = QColor("#FFFFFF")
             
+        # Scale parameters based on zoom factor
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication.instance()
+        zoom_factor = getattr(app, 'zoom_factor', 1.0)
+        window_scale = getattr(app, 'window_scale', 1.0)
+        effective_zoom = zoom_factor * window_scale
+        
+        radius = int(13 * effective_zoom)
+        thumb_diameter = int(20 * effective_zoom)
+        margin = int(3 * effective_zoom)
+
         # Draw background pill
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(bg_color))
         rect = QRectF(0, 0, self.width(), self.height())
-        painter.drawRoundedRect(rect, 13, 13)
+        painter.drawRoundedRect(rect, radius, radius)
         
         # Calculate thumb size and position
-        thumb_diameter = 20
-        margin = 3
         start_x = margin
         end_x = self.width() - thumb_diameter - margin
         
@@ -102,3 +111,4 @@ class ToggleSwitch(QAbstractButton):
         painter.drawEllipse(QRectF(current_x, current_y, thumb_diameter, thumb_diameter))
         
         painter.end()
+

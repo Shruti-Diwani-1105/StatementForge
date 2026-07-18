@@ -81,6 +81,16 @@ class AnimatedButton(QPushButton):
         rect = QRectF(0, 0, self.width(), self.height())
         draw_rect = rect.adjusted(0.5, 0.5, -0.5, -0.5)
         
+        # Scale parameters based on zoom factor
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication.instance()
+        zoom_factor = getattr(app, 'zoom_factor', 1.0)
+        window_scale = getattr(app, 'window_scale', 1.0)
+        effective_zoom = zoom_factor * window_scale
+        
+        radius = int(10 * effective_zoom)
+        font_size = int(10 * effective_zoom)
+
         # Color helper to interpolate
         def interpolate_color(color1, color2, progress):
             r = int(color1.red() + (color2.red() - color1.red()) * progress)
@@ -114,7 +124,7 @@ class AnimatedButton(QPushButton):
                 
             painter.setPen(QPen(border_color, 1))
             painter.setBrush(QBrush(bg_color))
-            painter.drawRoundedRect(draw_rect, 10, 10)
+            painter.drawRoundedRect(draw_rect, radius, radius)
             
         elif self.button_type == "restore":
             # Soft grey filled background
@@ -140,7 +150,7 @@ class AnimatedButton(QPushButton):
             
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(bg_color))
-            painter.drawRoundedRect(draw_rect, 10, 10)
+            painter.drawRoundedRect(draw_rect, radius, radius)
             
         elif self.button_type == "save":
             # Primary blue background
@@ -160,13 +170,13 @@ class AnimatedButton(QPushButton):
                     
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QBrush(bg_color))
-            painter.drawRoundedRect(draw_rect, 10, 10)
+            painter.drawRoundedRect(draw_rect, radius, radius)
             
         # Draw Text / Icon
         painter.setPen(text_color)
         font = self.font()
         font.setFamily("Times New Roman")
-        font.setPointSize(10)
+        font.setPointSize(font_size)
         if self.button_type == "save":
             font.setBold(True)
         else:
@@ -176,6 +186,7 @@ class AnimatedButton(QPushButton):
         # Center the text
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self.text())
         painter.end()
+
 
 class SettingsWindow(QWidget):
     """
