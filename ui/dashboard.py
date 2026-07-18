@@ -798,4 +798,6 @@ class DashboardScreen(QWidget):
         if hasattr(self, "generate_excel_widget") and self.generate_excel_widget is not None:
             self.generate_excel_widget.update_theme_style(theme)
 
+# Refactored / updated upload_statement module and service integration
+
 

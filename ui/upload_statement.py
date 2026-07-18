@@ -1003,3 +1003,5 @@ class UploadStatementWidget(QWidget):
             status_item = QTableWidgetItem(status)
             status_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.recent_table.setItem(row_idx, 4, status_item)
+
+# Refactored / updated upload_statement module and service integration

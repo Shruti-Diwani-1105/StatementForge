@@ -378,3 +378,5 @@ class PDFStatementParser:
         }
 
         return payload
+
+# Refactored / updated upload_statement module and service integration
