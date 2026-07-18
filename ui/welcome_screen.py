@@ -163,7 +163,7 @@ class WelcomeScreen(QWidget):
         hero_desc.setObjectName("HeroDesc")
         hero_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         hero_desc.setWordWrap(True)
-        hero_desc.setFixedWidth(750)
+        hero_desc.setMaximumWidth(750)
         hero_desc.setStyleSheet("""
             font-size: 16px;
             color: #4B5563;
@@ -199,7 +199,7 @@ class WelcomeScreen(QWidget):
         
         # Grid layout for Feature Cards
         grid_widget = QWidget()
-        grid_widget.setFixedWidth(1080)
+        grid_widget.setMaximumWidth(1200)
         grid_layout = QGridLayout(grid_widget)
         grid_layout.setSpacing(24)
         grid_layout.setContentsMargins(0, 0, 0, 0)
@@ -225,7 +225,8 @@ class WelcomeScreen(QWidget):
             card.clicked.connect(self.gotoLogin.emit)
             grid_layout.addWidget(card, row, col)
             
-        scroll_layout.addWidget(grid_widget)
+        scroll_layout.addWidget(grid_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+
         
         # 3. Footer Section (Branding on Left, Copyright in Center, Links on Right)
         footer_widget = QFrame()

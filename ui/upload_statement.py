@@ -580,7 +580,7 @@ class UploadStatementWidget(QWidget):
         layout.addWidget(self.proc_title)
 
         details_box = QFrame()
-        details_box.setFixedWidth(500)
+        details_box.setMaximumWidth(500)
         details_box.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
         grid = QGridLayout(details_box)
         grid.setContentsMargins(20, 20, 20, 20)
@@ -600,10 +600,10 @@ class UploadStatementWidget(QWidget):
         add_row(grid, 2, "Current Status:", "proc_status_lbl")
         add_row(grid, 3, "Transactions Extracted:", "proc_txs_lbl")
 
-        layout.addWidget(details_box)
+        layout.addWidget(details_box, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.proc_bar = QProgressBar()
-        self.proc_bar.setFixedWidth(500)
+        self.proc_bar.setMaximumWidth(500)
         self.proc_bar.setFixedHeight(8)
         self.proc_bar.setStyleSheet("""
             QProgressBar {
@@ -618,7 +618,7 @@ class UploadStatementWidget(QWidget):
         """)
         self.proc_bar.setTextVisible(False)
         self.proc_bar.setValue(0)
-        layout.addWidget(self.proc_bar)
+        layout.addWidget(self.proc_bar, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.proc_cancel_btn = QPushButton("Cancel Processing")
         self.proc_cancel_btn.setFixedSize(160, 36)
@@ -637,7 +637,8 @@ class UploadStatementWidget(QWidget):
             }
         """)
         self.proc_cancel_btn.clicked.connect(self.cancel_processing)
-        layout.addWidget(self.proc_cancel_btn)
+        layout.addWidget(self.proc_cancel_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+
 
         self.stack.addWidget(page)
 
@@ -835,7 +836,7 @@ class UploadStatementWidget(QWidget):
         layout.addWidget(title)
 
         details_box = QFrame()
-        details_box.setFixedWidth(540)
+        details_box.setMaximumWidth(540)
         details_box.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
         grid = QGridLayout(details_box)
         grid.setContentsMargins(20, 20, 20, 20)
@@ -857,7 +858,8 @@ class UploadStatementWidget(QWidget):
         add_row(grid, 4, "Transactions Extracted:", "suc_txs_lbl")
         add_row(grid, 5, "Processing Time:", "suc_time_lbl")
 
-        layout.addWidget(details_box)
+        layout.addWidget(details_box, alignment=Qt.AlignmentFlag.AlignCenter)
+
 
         # Action bar buttons
         btn_box = QHBoxLayout()

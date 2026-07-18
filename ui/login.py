@@ -54,7 +54,7 @@ class LoginScreen(QWidget):
         # Centered Login Card Container
         self.card = QFrame()
         self.card.setObjectName("LoginCard")
-        self.card.setFixedWidth(440)
+        self.card.setMaximumWidth(440)
         self.card.setStyleSheet("""
             QFrame#LoginCard {
                 background-color: #FFFFFF;
@@ -63,6 +63,7 @@ class LoginScreen(QWidget):
                 border-radius: 12px;
             }
         """)
+
         
         card_layout = QVBoxLayout(self.card)
         card_layout.setContentsMargins(40, 40, 40, 40)

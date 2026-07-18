@@ -1,6 +1,6 @@
 import re
 import PyQt6.QtWidgets as QtWidgets
-from PyQt6.QtCore import QObject, QEvent, Qt, QSize, QMargins
+from PyQt6.QtCore import QObject, QEvent, Qt, QSize
 from PyQt6.QtGui import QFont, QPixmap
 
 # --- Original Qt Methods ---
@@ -20,9 +20,6 @@ _original_set_minimum_height = QtWidgets.QWidget.setMinimumHeight
 _original_set_maximum_size = QtWidgets.QWidget.setMaximumSize
 _original_set_maximum_width = QtWidgets.QWidget.setMaximumWidth
 _original_set_maximum_height = QtWidgets.QWidget.setMaximumHeight
-
-_original_layout_set_spacing = QtWidgets.QLayout.setSpacing
-_original_layout_set_contents_margins = QtWidgets.QLayout.setContentsMargins
 
 _original_set_icon_size = QtWidgets.QAbstractButton.setIconSize
 _original_tab_set_icon_size = QtWidgets.QTabWidget.setIconSize
@@ -60,7 +57,7 @@ def scale_dim(val, factor):
     if val >= 100000 or val <= -100000:
         return val
     scaled = int(val * factor)
-    # Clamp to signed 32-bit integer range
+    # Clamp to signed 32-bit integer range to prevent C++ binding overflow
     return max(-2147483648, min(2147483647, scaled))
 
 def scale_qsize(qsize, factor):
@@ -300,45 +297,6 @@ def new_set_maximum_height(self, height):
     else:
         _original_set_maximum_height(self, height)
 
-# --- Monkey-Patched QLayout Setters ---
-
-def new_layout_set_spacing(self, spacing):
-    self._original_spacing = spacing
-    if _in_zoom_update:
-        _original_layout_set_spacing(self, spacing)
-        return
-    app = QtWidgets.QApplication.instance()
-    zoom_factor = getattr(app, 'zoom_factor', 1.0)
-    window_scale = getattr(app, 'window_scale', 1.0)
-    effective_zoom = zoom_factor * window_scale
-    _original_layout_set_spacing(self, int(spacing * effective_zoom))
-
-def new_layout_set_contents_margins(self, *args):
-    if len(args) == 1:
-        margins = args[0]
-        if isinstance(margins, QMargins):
-            self._original_margins = (margins.left(), margins.top(), margins.right(), margins.bottom())
-        else:
-            self._original_margins = None
-    elif len(args) == 4:
-        self._original_margins = args
-    else:
-        self._original_margins = None
-        
-    if _in_zoom_update:
-        _original_layout_set_contents_margins(self, *args)
-        return
-        
-    app = QtWidgets.QApplication.instance()
-    zoom_factor = getattr(app, 'zoom_factor', 1.0)
-    window_scale = getattr(app, 'window_scale', 1.0)
-    effective_zoom = zoom_factor * window_scale
-    if self._original_margins:
-        l, t, r, b = self._original_margins
-        _original_layout_set_contents_margins(self, int(l * effective_zoom), int(t * effective_zoom), int(r * effective_zoom), int(b * effective_zoom))
-    else:
-        _original_layout_set_contents_margins(self, *args)
-
 # --- Monkey-Patched Button Icon / Table Setters ---
 
 def new_set_icon_size(self, size):
@@ -409,46 +367,14 @@ def new_set_pixmap(self, pixmap):
     else:
         _original_set_pixmap(self, pixmap)
 
-# --- Batch Layout & Widget Traverser ---
-
-def update_layout_zoom(layout, zoom_factor):
-    if not layout:
-        return
-    if hasattr(layout, '_original_spacing') and layout._original_spacing is not None:
-        _original_layout_set_spacing(layout, int(layout._original_spacing * zoom_factor))
-    if hasattr(layout, '_original_margins') and layout._original_margins is not None:
-        l, t, r, b = layout._original_margins
-        _original_layout_set_contents_margins(layout, int(l * zoom_factor), int(t * zoom_factor), int(r * zoom_factor), int(b * zoom_factor))
-        
-    for i in range(layout.count()):
-        item = layout.itemAt(i)
-        if not item:
-            continue
-            
-        # Scale Spacers
-        spacer = item.spacerItem()
-        if spacer:
-            if not hasattr(spacer, '_original_size'):
-                spacer._original_size = QSize(spacer.sizeHint())
-                spacer._original_policies = (spacer.sizePolicy().horizontalPolicy(), spacer.sizePolicy().verticalPolicy())
-            orig_size = spacer._original_size
-            hp, vp = spacer._original_policies
-            scaled_w = scale_dim(orig_size.width(), zoom_factor)
-            scaled_h = scale_dim(orig_size.height(), zoom_factor)
-            
-            # Make sure we don't pass None or negative values for spacer sizes
-            scaled_w = max(0, scaled_w) if scaled_w is not None else 0
-            scaled_h = max(0, scaled_h) if scaled_h is not None else 0
-            
-            spacer.changeSize(scaled_w, scaled_h, hp, vp)
-            
-        sub_layout = item.layout()
-        if sub_layout:
-            update_layout_zoom(sub_layout, zoom_factor)
-            
-    layout.invalidate()
+# --- Optimized Zoom Updater ---
 
 def update_all_widgets_zoom(effective_zoom=None):
+    """
+    Refactored lightweight zoom manager. Updates application stylesheet, application font, 
+    and individual widget stylesheet/font/size properties using a flat list rather than 
+    recursively traversing layouts and resizing spacers.
+    """
     if effective_zoom is None:
         app = QtWidgets.QApplication.instance()
         zoom_factor = getattr(app, 'zoom_factor', 1.0)
@@ -470,7 +396,7 @@ def update_all_widgets_zoom(effective_zoom=None):
             scaled_font.setPointSize(max(1, int(app._original_font.pointSize() * effective_zoom)))
             _original_app_set_font(scaled_font)
             
-        # 3. Update all instanced widgets
+        # 3. Update all instanced widgets (only style sheets, fonts, and fixed size constraints)
         for widget in app.allWidgets():
             # Stylesheet
             if hasattr(widget, '_original_style_sheet') and widget._original_style_sheet:
@@ -510,11 +436,6 @@ def update_all_widgets_zoom(effective_zoom=None):
             if hasattr(widget, '_original_maximum_height') and widget._original_maximum_height is not None:
                 _original_set_maximum_height(widget, int(widget._original_maximum_height * effective_zoom))
                 
-            # Layout margins and spaces
-            layout = QtWidgets.QWidget.layout(widget)
-            if layout:
-                update_layout_zoom(layout, effective_zoom)
-                
             # Button Icon sizes
             if isinstance(widget, QtWidgets.QAbstractButton) and hasattr(widget, '_original_icon_size') and widget._original_icon_size:
                 _original_set_icon_size(widget, scale_qsize(widget._original_icon_size, effective_zoom))
@@ -541,7 +462,7 @@ def update_all_widgets_zoom(effective_zoom=None):
                     scaled_pixmap = orig_pixmap.scaled(scaled_w, scaled_h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                     _original_set_pixmap(widget, scaled_pixmap)
                     
-            # Force trigger update/repaint of current custom painted switches and buttons
+            # Force trigger update/repaint of custom elements
             widget.update()
     finally:
         _in_zoom_update = False
@@ -624,8 +545,8 @@ class GlobalZoomFilter(QObject):
 # --- Initialization Entry Point ---
 
 def apply_responsive_patches(app):
-    """Hooks QWidget, QLayout, and widget subclasses to allow responsive layout & dynamic scale scaling."""
-    # Apply monkey patches to Qt prototype classes
+    """Hooks QWidget and widget subclasses to allow responsive layout & dynamic scale scaling."""
+    # Apply monkey patches to Qt prototype classes (only widgets, no layouts)
     QtWidgets.QWidget.setStyleSheet = new_set_stylesheet
     QtWidgets.QApplication.setStyleSheet = new_app_set_stylesheet
     
@@ -643,9 +564,6 @@ def apply_responsive_patches(app):
     QtWidgets.QWidget.setMaximumSize = new_set_maximum_size
     QtWidgets.QWidget.setMaximumWidth = new_set_maximum_width
     QtWidgets.QWidget.setMaximumHeight = new_set_maximum_height
-    
-    QtWidgets.QLayout.setSpacing = new_layout_set_spacing
-    QtWidgets.QLayout.setContentsMargins = new_layout_set_contents_margins
     
     QtWidgets.QAbstractButton.setIconSize = new_set_icon_size
     QtWidgets.QTabWidget.setIconSize = new_tab_set_icon_size
