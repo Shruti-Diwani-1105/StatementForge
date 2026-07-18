@@ -41,7 +41,7 @@ class ExcelWriter:
             bottom=Side(style='thin', color='CBD5E1')
         )
 
-        currency_format = '₹ #,##0.00'
+        currency_format = '#,##0.00'
 
         # ----------------------------------------------------
         # SHEET 1: TRANSACTIONS

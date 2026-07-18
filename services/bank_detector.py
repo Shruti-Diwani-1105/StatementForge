@@ -81,14 +81,6 @@ class BankDetector:
                     if matches > 0:
                         scores[bank_name] += matches * 10
 
-        # 3. Last-resort fallback: check for any IFSC code prefix anywhere on the page
-        ifsc_pattern = r"\b(HDFC|SBIN|ICIC|UTIB|BARB|KKBK|CNRB|PUNB|UBIN|FDRL|INDB|YESB|IDFB|BDBL|BKID|AUBL)[A-Z0-9]{4,8}\b"
-        match = re.search(ifsc_pattern, text.upper())
-        if match:
-            prefix = match.group(1)
-            if prefix in mapping:
-                scores[mapping[prefix]] += 80
-
         # Select the bank with the highest score
         best_bank = "Unknown Bank"
         max_score = 0
@@ -96,6 +88,22 @@ class BankDetector:
             if score > max_score:
                 max_score = score
                 best_bank = bank
+
+        # 3. Last-resort fallback: check for any IFSC code prefix anywhere on the page
+        # (Only applied if no strong signature match is found to avoid false positives from third-party IFSCs in transaction narratives)
+        if max_score < 30:
+            ifsc_pattern = r"\b(HDFC|SBIN|ICIC|UTIB|BARB|KKBK|CNRB|PUNB|UBIN|FDRL|INDB|YESB|IDFB|BDBL|BKID|AUBL)[A-Z0-9]{4,8}\b"
+            match = re.search(ifsc_pattern, text.upper())
+            if match:
+                prefix = match.group(1)
+                if prefix in mapping:
+                    scores[mapping[prefix]] += 80
+                    # Recalculate best bank
+                    max_score = 0
+                    for bank, score in scores.items():
+                        if score > max_score:
+                            max_score = score
+                            best_bank = bank
                 
         if max_score >= 10:
             return best_bank

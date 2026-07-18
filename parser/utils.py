@@ -5,11 +5,11 @@ class ParserUtils:
     """Shared utility functions for date parsing, number cleaning, and format standardizations."""
 
     DATE_PATTERNS = [
-        r"^\d{1,2}[/\-\s]\d{1,2}[/\-\s]\d{2,4}$",         # 12/04/2026, 12-04-2026, 12 04 26
-        r"^\d{1,2}[/\-\s][a-zA-Z]{3,9}[/\-\s]\d{2,4}$",   # 12-Apr-2026, 12/Apr/26
-        r"^\d{4}[/\-\s]\d{1,2}[/\-\s]\d{1,2}$",           # 2026-04-12
-        r"^[a-zA-Z]{3,9}\s*\d{1,2}[,\s/\-]+\d{2,4}$",      # March 31, 2026 or March31, 2026
-        r"^\d{1,2}\s*[a-zA-Z]{3,9}[,\s/\-]+\d{2,4}$",      # 31March, 2026 or 31 March, 2026
+        r"^\d{1,2}[/\-\.\s]\d{1,2}[/\-\.\s]\d{2,4}$",         # 12/04/2026, 12-04-2026, 12.04.2026, 12 04 26
+        r"^\d{1,2}[/\-\.\s][a-zA-Z]{3,9}[/\-\.\s]\d{2,4}$",   # 12-Apr-2026, 12/Apr/26, 12.Apr.2026
+        r"^\d{4}[/\-\.\s]\d{1,2}[/\-\.\s]\d{1,2}$",           # 2026-04-12, 2026.04.12
+        r"^[a-zA-Z]{3,9}\s*\d{1,2}[,\s/\-\.]+\d{2,4}$",      # March 31, 2026 or March31, 2026
+        r"^\d{1,2}\s*[a-zA-Z]{3,9}[,\s/\-\.]+\d{2,4}$",      # 31March, 2026 or 31 March, 2026
     ]
 
     @classmethod
@@ -29,7 +29,7 @@ class ParserUtils:
         """Standardizes debit/credit amounts. Returns empty string if zero/blank, else float string."""
         if val is None:
             return ""
-        val_str = str(val).split('\n')[0].strip()
+        val_str = str(val).replace('\n', '').replace('\r', '').strip()
         if val_str == "" or val_str.lower() in ["none", "null", "-", "cr", "dr", "0", "0.0", "0.00"]:
             return ""
         
@@ -50,7 +50,7 @@ class ParserUtils:
         """Standardizes running balance fields. Returns clean float string or original if invalid."""
         if val is None:
             return ""
-        val_str = str(val).split('\n')[0].strip()
+        val_str = str(val).replace('\n', '').replace('\r', '').strip()
         if val_str == "" or val_str.lower() in ["none", "null", "-"]:
             return ""
         clean_str = re.sub(r"[^\d\.\-]", "", val_str)
@@ -66,17 +66,19 @@ class ParserUtils:
         """Attempts to parse a value to int or float. Returns parsed number, or original string."""
         if val is None:
             return None
-        val_str = str(val).split('\n')[0].strip()
+        val_str = str(val).replace('\n', '').replace('\r', '').strip()
         if val_str == "" or val_str.lower() in ["none", "null", "-", "cr", "dr"]:
             return None
             
         clean_test = val_str.replace(",", "").replace("₹", "").replace("$", "").replace("£", "").replace("€", "").strip()
+        clean_test = clean_test.replace(" ", "")
+        
         if clean_test.lower().endswith("cr"):
             clean_test = clean_test[:-2].strip()
         elif clean_test.lower().endswith("dr"):
             clean_test = clean_test[:-2].strip()
             
-        if re.match(r"^\-?\d+(\.\d+)?$", clean_test):
+        if re.match(r"^[+\-]?\d+(\.\d+)?$", clean_test):
             try:
                 if "." in clean_test:
                     return float(clean_test)
@@ -94,9 +96,9 @@ class ParserUtils:
         val_str = re.sub(r"\s+", " ", val_str)
         val_str = val_str.title()
         date_formats = [
-            "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d",
-            "%d/%m/%y", "%d-%m-%y",
-            "%d %b %Y", "%d-%b-%Y", "%d-%b-%y",
+            "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%d.%m.%Y", "%Y.%m.%d",
+            "%d/%m/%y", "%d-%m-%y", "%d.%m.%y",
+            "%d %b %Y", "%d-%b-%Y", "%d-%b-%y", "%d.%b.%Y", "%d.%b.%y",
             "%B %d, %Y", "%b %d, %Y",
             "%B%d, %Y", "%b%d, %Y",
             "%B %d %Y", "%b %d %Y",

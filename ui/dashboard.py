@@ -86,6 +86,16 @@ class DashboardScreen(QWidget):
             elif key == "generate_excel":
                 self.generate_excel_widget.load_recent_generated_sheets()
 
+    def switch_to_upload_with_preset(self, flow):
+        """Pre-sets the format selection on the upload widget before switching pages."""
+        if hasattr(self, "upload_widget"):
+            self.upload_widget.target_flow_preset = flow
+            if flow == "gst":
+                self.upload_widget.format_combo.setCurrentIndex(1)
+            else:
+                self.upload_widget.format_combo.setCurrentIndex(0)
+        self.switch_dashboard_page("upload")
+
     def set_user_profile(self, user_details):
         """Updates the dashboard greeting and topbar initials avatar with user details."""
         full_name = user_details.get("name", "User")
@@ -391,7 +401,9 @@ class DashboardScreen(QWidget):
             
             # Map dashboard cards to their respective pages, fallback to coming soon
             if title == "Upload Statement":
-                card.clicked.connect(lambda: self.switch_dashboard_page("upload"))
+                card.clicked.connect(lambda: self.switch_to_upload_with_preset("excel"))
+            elif title == "GST Report":
+                card.clicked.connect(lambda: self.switch_to_upload_with_preset("gst"))
             elif title == "History Logs":
                 card.clicked.connect(lambda: self.switch_dashboard_page("history"))
             elif title == "AI Auditor":
@@ -727,7 +739,10 @@ class DashboardScreen(QWidget):
                     background-color: {txt_col}22;
                 }}
             """)
-            dl_btn.clicked.connect(lambda checked, t=r_title: self.show_coming_soon(t))
+            if r_title == "GST Tax Ledger":
+                dl_btn.clicked.connect(lambda checked: self.export_gst_ledger_action())
+            else:
+                dl_btn.clicked.connect(lambda checked, t=r_title: self.show_coming_soon(t))
             rc_layout.addWidget(dl_btn)
             rl_layout.addWidget(r_card)
             
@@ -735,6 +750,15 @@ class DashboardScreen(QWidget):
         
         page_layout.addWidget(reports_list)
         self.page_stack.addWidget(page)
+
+    def export_gst_ledger_action(self):
+        """Guides the user to the statement upload screen to parse and generate a GST report."""
+        self.switch_to_upload_with_preset("gst")
+        QMessageBox.information(
+            self,
+            "GST Tax Ledger Export Mode",
+            "Please upload your bank statement PDF. The app is set to automatically extract transactions and calculate the GST Tax Ledger report for this upload."
+        )
 
     def create_settings_page(self):
         """Instantiates the premium MVC Settings view and controller."""

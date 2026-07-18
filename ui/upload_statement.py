@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton,
     QFileDialog, QTableWidget, QTableWidgetItem, QHeaderView, QLineEdit,
     QSpacerItem, QSizePolicy, QStackedWidget, QDialog, QProgressBar, QMessageBox, QGridLayout,
-    QGraphicsDropShadowEffect, QCheckBox, QScrollArea
+    QGraphicsDropShadowEffect, QCheckBox, QScrollArea, QComboBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QStandardPaths
 from PyQt6.QtGui import QPixmap, QCursor, QColor
@@ -88,6 +88,7 @@ class UploadStatementWidget(QWidget):
         self.page_count = 0
         self.detected_bank = "Unknown Bank"
         self.doc_type_desc = "Digital PDF"
+        self.target_flow_preset = None
         
         self.parsed_payload = None
         self.active_thread = None
@@ -201,6 +202,53 @@ class UploadStatementWidget(QWidget):
         
         zone_layout.addStretch()
         layout.addWidget(self.drop_zone)
+        
+        self.auto_convert_cb = QCheckBox("Automatically detect bank & convert to Excel on upload")
+        self.auto_convert_cb.setChecked(True)
+        self.auto_convert_cb.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        layout.addWidget(self.auto_convert_cb)
+
+        # Select Output Format
+        format_layout = QHBoxLayout()
+        format_layout.setSpacing(10)
+        self.format_label = QLabel("Output Format:")
+        self.format_label.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569;")
+        
+        self.format_combo = QComboBox()
+        self.format_combo.addItems(["Standard Excel Ledger", "GST Tax Ledger"])
+        self.format_combo.setStyleSheet("""
+            QComboBox {
+                padding: 6px 12px;
+                border: 1px solid #CBD5E1;
+                border-radius: 6px;
+                background-color: #FFFFFF;
+                font-weight: 500;
+                min-width: 200px;
+            }
+        """)
+        format_layout.addWidget(self.format_label)
+        format_layout.addWidget(self.format_combo)
+        format_layout.addStretch()
+        layout.addLayout(format_layout)
+        
+        # Bottom Institutions list
+        banks_layout = QVBoxLayout()
+        banks_layout.setSpacing(12)
+        banks_title = QLabel("Automatically Detects Indian Financial Institutions")
+        banks_title.setStyleSheet("font-weight: 600; font-size: 13px; color: #64748B; margin-top: 10px;")
+        banks_layout.addWidget(banks_title)
+        
+        pills_layout = QHBoxLayout()
+        pills_layout.setSpacing(10)
+        
+        banks_list = ["HDFC", "SBI", "ICICI", "Axis", "Kotak", "Canara", "BoB", "IndusInd"]
+        for name in banks_list:
+            pill = QLabel(name)
+            pill.setObjectName("BankPill")
+            pills_layout.addWidget(pill)
+        pills_layout.addStretch()
+        banks_layout.addLayout(pills_layout)
+        layout.addLayout(banks_layout)
 
         # Supported banks card list
         supported_card = QFrame()
@@ -361,8 +409,18 @@ class UploadStatementWidget(QWidget):
             is_digital = PDFReader.is_digital_pdf(self.file_path)
             self.doc_type_desc = "Digital PDF" if is_digital else "Scanned PDF"
 
-            # Launch Feature Selection dialogue
-            self.show_feature_selection()
+            selected_flow = "gst" if self.format_combo.currentIndex() == 1 else "excel"
+            preset_flow = getattr(self, "target_flow_preset", None)
+            flow_to_use = preset_flow or selected_flow
+
+            if preset_flow:
+                self.target_flow_preset = None
+
+            if self.auto_convert_cb.isChecked():
+                self.start_processing_flow(target_flow=flow_to_use)
+            else:
+                # Launch Feature Selection dialogue
+                self.show_feature_selection()
 
         def on_error(err):
             self.progress_box.reject()
@@ -442,7 +500,7 @@ class UploadStatementWidget(QWidget):
             "assets/icons/gst.png",
             "#FFFBEB"
         )
-        self.choice_gst_card.clicked.connect(lambda: self.show_coming_soon("GST Report"))
+        self.choice_gst_card.clicked.connect(self.choice_gst_report)
         grid_layout.addWidget(self.choice_gst_card, 0, 2)
 
         # Card 4: Tally Export
@@ -595,9 +653,10 @@ class UploadStatementWidget(QWidget):
     # ==========================================
     # WORKFLOW STEP 2: PARSE & COMPILE EXCEL
     # ==========================================
-    def start_processing_flow(self):
+    def start_processing_flow(self, target_flow="excel"):
         """Launches the sequential processing steps 1-4."""
         from services.history_service import HistoryService
+        self.target_flow = target_flow
         self.proc_bank_lbl.setText(self.detected_bank)
         self.proc_pages_lbl.setText(f"{self.page_count} pages")
         self.proc_status_lbl.setText("Initializing parse engines...")
@@ -613,7 +672,7 @@ class UploadStatementWidget(QWidget):
             pdf_path=self.file_path,
             bank_name=self.detected_bank,
             status="Processing",
-            output_format="Excel"
+            output_format="GST Report" if target_flow == "gst" else "Excel"
         )
 
         def on_started():
@@ -649,23 +708,26 @@ class UploadStatementWidget(QWidget):
                 )
                 return
             
-            action = getattr(self, "post_process_action", "excel")
-            if action == "ai_report":
-                self.generate_excel_in_background(payload)
-                p = self.parent()
-                dashboard = None
-                while p:
-                    if hasattr(p, "page_stack") and hasattr(p, "ai_auditor_widget"):
-                        dashboard = p
-                        break
-                    p = p.parent()
-                if dashboard:
-                    dashboard.ai_auditor_widget.set_active_statement(payload)
-                    dashboard.switch_dashboard_page("ai_auditor")
-                    dashboard.ai_auditor_widget.run_ai_task("report")
-                self.reset_to_upload()
+            if self.target_flow == "gst":
+                self.generate_gst_report_flow()
             else:
-                self.generate_excel_flow()
+                action = getattr(self, "post_process_action", "excel")
+                if action == "ai_report":
+                    self.generate_excel_in_background(payload)
+                    p = self.parent()
+                    dashboard = None
+                    while p:
+                        if hasattr(p, "page_stack") and hasattr(p, "ai_auditor_widget"):
+                            dashboard = p
+                            break
+                        p = p.parent()
+                    if dashboard:
+                        dashboard.ai_auditor_widget.set_active_statement(payload)
+                        dashboard.switch_dashboard_page("ai_auditor")
+                        dashboard.ai_auditor_widget.run_ai_task("report")
+                    self.reset_to_upload()
+                else:
+                    self.generate_excel_flow()
 
         def on_error(err):
             from services.history_service import HistoryService
@@ -706,6 +768,32 @@ class UploadStatementWidget(QWidget):
         record_id = getattr(self, "history_record_id", None)
         self.active_thread = StatementService.start_generate_excel(
             user_id, self.parsed_payload, record_id, on_started, on_step_started, on_step_completed, on_finished, on_error
+        )
+
+    def generate_gst_report_flow(self):
+        """Filters transactions for GST relevance and writes GST Tax Excel report."""
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else "guest"
+
+        self.proc_status_lbl.setText("Analyzing transactions & writing GST worksheets...")
+
+        def on_started():
+            pass
+
+        def on_finished(excel_path):
+            self.transition_to_success(excel_path)
+
+        def on_error(err):
+            back_idx = 0 if self.auto_convert_cb.isChecked() else 1
+            self.stack.setCurrentIndex(back_idx)
+            if hasattr(self, "history_record_id"):
+                from services.history_service import HistoryService
+                HistoryService.update_record_status(self.history_record_id, status="Failed")
+            self.show_error_popup(err)
+
+        record_id = getattr(self, "history_record_id", None)
+        self.active_thread = StatementService.start_generate_gst_report(
+            user_id, self.parsed_payload, record_id, on_started, on_finished, on_error
         )
 
     # ==========================================
@@ -956,6 +1044,9 @@ class UploadStatementWidget(QWidget):
     def choice_ai_report(self):
         self.post_process_action = "ai_report"
         self.start_processing_flow()
+
+    def choice_gst_report(self):
+        self.start_processing_flow(target_flow="gst")
 
     def choice_history(self):
         p = self.parent()

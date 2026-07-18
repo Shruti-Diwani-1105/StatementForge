@@ -85,7 +85,7 @@ class ExcelGenerator:
         ]
 
         # Currency formatting rule
-        currency_format = '"₹ "#,##0.00'
+        currency_format = '#,##0.00'
 
         for idx, (label, val) in enumerate(summary_rows, start=2):
             ws_sum.row_dimensions[idx].height = 22

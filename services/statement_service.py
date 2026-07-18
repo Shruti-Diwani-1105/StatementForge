@@ -179,6 +179,65 @@ class ExcelWorker(QObject):
             self.error.emit(str(e))
 
 
+class GSTWorker(QObject):
+    """Worker object that runs GST ledger processing and database logging in a background thread."""
+    started = pyqtSignal()
+    finished = pyqtSignal(str)  # Emits output GST Excel file path
+    error = pyqtSignal(str)
+
+    def __init__(self, user_id, payload, history_record_id=None):
+        super().__init__()
+        self.user_id = user_id
+        self.payload = payload
+        self.history_record_id = history_record_id
+
+    def run(self):
+        try:
+            self.started.emit()
+
+            # 1. Generate GST ledger entries
+            from services.gst_service import GSTService
+            gst_ledger = GSTService.generate_gst_ledger(self.payload.get("transactions", []))
+            
+            if not gst_ledger:
+                raise ValueError("No GST-linked transactions were found in this statement.")
+
+            # 2. Write to custom GST Excel report
+            from parser.gst_excel_writer import GSTExcelWriter
+            excel_path = GSTExcelWriter.write_gst_excel(
+                pdf_path=self.payload["file_path"],
+                bank_name=self.payload["bank_name"],
+                account_holder=self.payload["account_holder"],
+                period=self.payload["period"],
+                gst_ledger=gst_ledger
+            )
+
+            # 3. DB Logging
+            if self.history_record_id:
+                HistoryService.update_record_completed(
+                    record_id=self.history_record_id,
+                    excel_path=excel_path,
+                    period=self.payload["period"],
+                    processing_time=self.payload["processing_time"],
+                    total_transactions=len(gst_ledger)
+                )
+            else:
+                HistoryService.save_record(
+                    user_id=self.user_id,
+                    pdf_path=self.payload["file_path"],
+                    excel_path=excel_path,
+                    bank_name=self.payload["bank_name"],
+                    statement_period=self.payload["period"],
+                    processing_time=self.payload["processing_time"],
+                    total_transactions=len(gst_ledger)
+                )
+
+            self.finished.emit(excel_path)
+
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 class StatementService:
     """Service to spawn thread workers for statement processing."""
     
@@ -281,4 +340,34 @@ class StatementService:
         return thread
 
 # Refactored / updated upload_statement module and service integration
+
+    @classmethod
+    def start_generate_gst_report(cls, user_id, payload, history_record_id, on_started, on_finished, on_error):
+        """Spawns a GSTWorker in a background thread."""
+        thread = QThread()
+        worker = GSTWorker(user_id, payload, history_record_id)
+        worker.moveToThread(thread)
+
+        thread.worker = worker # Keep references to prevent GC
+
+        thread.started.connect(worker.run)
+        worker.started.connect(on_started)
+
+        def cleanup():
+            thread.quit()
+            thread.wait()
+
+        def handle_finished(excel_path):
+            on_finished(excel_path)
+            cleanup()
+
+        def handle_error(err_msg):
+            on_error(err_msg)
+            cleanup()
+
+        worker.finished.connect(handle_finished)
+        worker.error.connect(handle_error)
+
+        thread.start()
+        return thread
 

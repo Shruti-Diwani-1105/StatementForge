@@ -35,21 +35,22 @@ class TransactionParser:
         if header_row is not None:
             for col_idx, cell in enumerate(header_row):
                 cell_clean = cell.replace("_", " ").replace("\n", " ").strip()
-                if "value date" in cell_clean or "val date" in cell_clean:
+                cell_no_space = cell_clean.replace(" ", "")
+                if "value date" in cell_clean or "val date" in cell_clean or "valuedate" in cell_no_space or "valdate" in cell_no_space:
                     mapping["value_date"] = col_idx
                 elif "date" in cell_clean and "date" not in mapping:
                     mapping["date"] = col_idx
-                elif any(x in cell_clean for x in ["narration", "description", "particulars", "remarks"]):
+                elif any(x in cell_clean for x in ["narration", "description", "particulars", "remarks"]) or any(x in cell_no_space for x in ["narration", "description", "particulars", "remarks"]):
                     mapping["narration"] = col_idx
-                elif any(x in cell_clean for x in ["chq no", "cheque", "ref no", "reference", "utr", "instrument"]):
+                elif any(x in cell_clean for x in ["chq no", "cheque", "ref no", "reference", "utr", "instrument"]) or any(x in cell_no_space for x in ["chqno", "cheque", "refno", "reference", "utr", "instrument"]):
                     mapping["ref_no"] = col_idx
-                elif any(x in cell_clean for x in ["debit", "withdrawal", "amount dr", "withdraw"]):
+                elif any(x in cell_clean for x in ["debit", "withdrawal", "amount dr", "withdraw"]) or any(x in cell_no_space for x in ["debit", "withdrawal", "amountdr", "withdraw"]):
                     mapping["debit"] = col_idx
-                elif any(x in cell_clean for x in ["credit", "deposit", "amount cr", "depo"]):
+                elif any(x in cell_clean for x in ["credit", "deposit", "amount cr", "depo"]) or any(x in cell_no_space for x in ["credit", "deposit", "amountcr", "depo"]):
                     mapping["credit"] = col_idx
-                elif "balance" in cell_clean or cell_clean == "bal":
+                elif "balance" in cell_clean or cell_clean == "bal" or "balance" in cell_no_space or cell_no_space == "bal":
                     mapping["balance"] = col_idx
-                elif any(x in cell_clean for x in ["dr/cr", "dr / cr", "type"]):
+                elif any(x in cell_clean for x in ["dr/cr", "dr / cr", "type"]) or any(x in cell_no_space for x in ["dr/cr", "drcr", "type"]):
                     mapping["type"] = col_idx
 
             # Single amount column fallback check if no separate debit/credit columns were matched
