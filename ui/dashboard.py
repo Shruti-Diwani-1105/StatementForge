@@ -58,6 +58,7 @@ class DashboardScreen(QWidget):
         self.create_reports_page()
         self.create_settings_page()
         self.create_generate_excel_page()
+        self.create_gst_report_page()
         
         right_layout.addWidget(self.page_stack)
         layout.addWidget(right_container)
@@ -71,7 +72,8 @@ class DashboardScreen(QWidget):
             "history": 3,
             "reports": 4,
             "settings": 5,
-            "generate_excel": 6
+            "generate_excel": 6,
+            "gst_report": 7
         }
         if key in mapping:
             self.page_stack.setCurrentIndex(mapping[key])
@@ -460,6 +462,12 @@ class DashboardScreen(QWidget):
         self.generate_excel_widget = GenerateExcelWidget(self)
         self.page_stack.addWidget(self.generate_excel_widget)
 
+    def create_gst_report_page(self):
+        """Creates the GST Report module."""
+        from ui.gst_report import GSTReportWidget
+        self.gst_report_widget = GSTReportWidget(self)
+        self.page_stack.addWidget(self.gst_report_widget)
+
     def create_history_page(self):
         """History Page presenting actual processed transaction logs."""
         page = QWidget()
@@ -821,6 +829,9 @@ class DashboardScreen(QWidget):
 
         if hasattr(self, "generate_excel_widget") and self.generate_excel_widget is not None:
             self.generate_excel_widget.update_theme_style(theme)
+
+        if hasattr(self, "gst_report_widget") and self.gst_report_widget is not None:
+            self.gst_report_widget.update_theme_style(theme)
 
 # Refactored / updated upload_statement module and service integration
 

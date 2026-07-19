@@ -1958,3 +1958,146 @@ Return valid JSON list only. Do not wrap in markdown or write explanation text.
             print(f"GeminiService: Validation failed, falling back to local result. Error: {e}")
             
         return transactions
+
+    @classmethod
+    def analyze_gst_transactions(cls, transactions, currency="INR") -> list:
+        """
+        Calls Gemini to perform tax auditing and classification on transaction data.
+        Returns a list of dictionaries containing audited GST metadata.
+        """
+        if not transactions:
+            return []
+            
+        tx_text = cls._format_transactions(transactions, currency)
+        
+        prompt = f"""
+You are an expert corporate tax auditor. Analyze the following list of transactions from a bank statement:
+
+{tx_text}
+
+For each transaction, determine:
+1. "category": Classify into one of these EXACT categories:
+   - Bank Charges
+   - Processing Fees
+   - Service Charges
+   - Courier Charges
+   - Office Expenses
+   - Utilities
+   - Software Subscription
+   - Vendor Payment
+   - Fuel
+   - Travel
+   - Miscellaneous
+   - Personal (if it represents non-business spending like swiggy, starbucks, netflix, personal dining, shopping, grocery, etc.)
+2. "vendor": Detect/normalize the merchant or vendor name (e.g. "UBER", "AMAZON", "HDFC BANK").
+3. "is_business": Boolean (true if business-related, false if personal).
+4. "gst_rate": The standard Indian GST rate that applies to this transaction category (0.18, 0.05, 0.12, 0.28, or 0.00). If the transaction is personal or GST doesn't apply, set to 0.00.
+5. "itc_eligible": "Yes" if it's a business expense eligible for Input Tax Credit (ITC) under GST laws (blocked credits like Fuel or Personal expenses should be "No"), otherwise "No".
+6. "confidence": Integer percentage (0-100) representing your confidence in this classification.
+7. "is_duplicate": Boolean (true if there's another transaction on the same date with the identical description and amount, representing double-billing).
+8. "is_missing_invoice": Boolean (true if this is a business expense where GST was paid/applicable but no invoice number, invoice reference, or bill ID is in the transaction narration).
+
+Output format: A valid JSON array of objects, each containing:
+- "date": (the date from the transaction)
+- "narration": (the narration from the transaction)
+- "category": (string)
+- "vendor": (string)
+- "is_business": (boolean)
+- "gst_rate": (float)
+- "itc_eligible": (string: "Yes" or "No")
+- "confidence": (integer)
+- "is_duplicate": (boolean)
+- "is_missing_invoice": (boolean)
+
+Ensure the output is ONLY a valid JSON list. Do not wrap in markdown or add explanations.
+"""
+        try:
+            client = cls.get_client()
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1
+            )
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=config
+            )
+            
+            response_text = response.text.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text.replace("```json", "", 1)
+            if response_text.endswith("```"):
+                response_text = response_text.rsplit("```", 1)[0]
+            response_text = response_text.strip()
+            
+            import json
+            cleaned = json.loads(response_text)
+            
+            ledger = []
+            tx_map = {}
+            for tx in transactions:
+                key = (tx.get("date", ""), tx.get("narration", ""))
+                tx_map[key] = tx
+                
+            for item in cleaned:
+                date = item.get("date", "")
+                narration = item.get("narration", "")
+                
+                orig_tx = tx_map.get((date, narration)) or next((tx for tx in transactions if tx.get("narration") == narration), None)
+                if not orig_tx:
+                    continue
+                    
+                debit = orig_tx.get("debit", 0.0)
+                credit = orig_tx.get("credit", 0.0)
+                try:
+                    debit_val = float(str(debit).replace(",", "").strip()) if debit else 0.0
+                except:
+                    debit_val = 0.0
+                try:
+                    credit_val = float(str(credit).replace(",", "").strip()) if credit else 0.0
+                except:
+                    credit_val = 0.0
+                    
+                if debit_val > 0:
+                    amount = debit_val
+                    tx_type = "Debit (ITC Claimable)"
+                elif credit_val > 0:
+                    amount = credit_val
+                    tx_type = "Credit (GST Output)"
+                else:
+                    continue
+                    
+                rate = float(item.get("gst_rate", 0.18))
+                base_value = amount / (1.0 + rate)
+                total_gst = amount - base_value
+                
+                if "igst" in narration.lower() or "interstate" in narration.lower():
+                    cgst, sgst, igst = 0.0, 0.0, total_gst
+                else:
+                    cgst, sgst, igst = total_gst / 2.0, total_gst / 2.0, 0.0
+                    
+                ledger.append({
+                    "date": date,
+                    "narration": narration,
+                    "type": tx_type,
+                    "category": item.get("category", "Miscellaneous"),
+                    "vendor": item.get("vendor", "Unknown Vendor"),
+                    "total_amount": amount,
+                    "base_value": round(base_value, 2),
+                    "gst_rate": rate,
+                    "cgst": round(cgst, 2),
+                    "sgst": round(sgst, 2),
+                    "igst": round(igst, 2),
+                    "total_gst": round(total_gst, 2),
+                    "itc_eligible": item.get("itc_eligible", "No"),
+                    "is_business": bool(item.get("is_business", True)),
+                    "confidence": float(item.get("confidence", 80.0)),
+                    "status": "Verified" if float(item.get("confidence", 80.0)) >= 85 else "Estimated",
+                    "is_duplicate": bool(item.get("is_duplicate", False)),
+                    "is_missing_invoice": bool(item.get("is_missing_invoice", False))
+                })
+            return ledger
+        except Exception as e:
+            print(f"GeminiService: GST transaction analysis failed: {e}")
+            return []
+

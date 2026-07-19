@@ -199,6 +199,40 @@ class PDFStatementParser:
                 metadata["account_holder"] = match.group(1).strip()
                 break
 
+        # Cleanup/Fix for "Account holder address" or similar layout-based parsing errors
+        holder_lower = metadata["account_holder"].lower()
+        if holder_lower in ("", "unknown", "account holder address", "holder address") or "account holder address" in holder_lower:
+            lines = [l.strip() for l in text.split("\n") if l.strip()]
+            found = False
+            
+            # Fallback 1: Look for lines containing Indian name structures (W/O, S/O, D/O)
+            for idx, line in enumerate(lines):
+                if any(x in line.lower() for x in [" w/o ", " s/o ", " d/o ", " w/o:", " s/o:", " d/o:"]):
+                    name_cand = line
+                    if idx + 1 < len(lines):
+                        next_line = lines[idx+1]
+                        if "account holder" in next_line.lower() or "customer name" in next_line.lower():
+                            if idx + 2 < len(lines):
+                                next_line = lines[idx+2]
+                        if next_line.replace(" ", "").isalpha() and len(next_line) > 2 and next_line.lower() not in ("address", "customer", "account", "holder", "number"):
+                            name_cand += " " + next_line
+                    metadata["account_holder"] = name_cand
+                    found = True
+                    break
+                    
+            # Fallback 2: Look at the line immediately preceding the "Account holder name" label
+            if not found:
+                for idx, line in enumerate(lines):
+                    if "account holder name" in line.lower() or "customer name" in line.lower():
+                        if idx > 0:
+                            name_cand = lines[idx-1]
+                            if idx + 1 < len(lines):
+                                next_line = lines[idx+1]
+                                if next_line.replace(" ", "").isalpha() and len(next_line) > 2 and next_line.lower() not in ("address", "customer", "account", "holder", "number"):
+                                    name_cand += " " + next_line
+                            metadata["account_holder"] = name_cand
+                            break
+
         acc_patterns = [
             r"(?:Account Number|A/c No\.?|Account No\.?|Acc No\.?)\s*:\s*(\w+)",
             r"Account\s+No\s+(\w+)",

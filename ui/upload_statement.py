@@ -781,7 +781,17 @@ class UploadStatementWidget(QWidget):
             pass
 
         def on_finished(excel_path):
-            self.transition_to_success(excel_path)
+            p = self.parent()
+            dashboard = None
+            while p:
+                if hasattr(p, "page_stack") and hasattr(p, "gst_report_widget"):
+                    dashboard = p
+                    break
+                p = p.parent()
+            if dashboard:
+                dashboard.gst_report_widget.set_active_report(self.parsed_payload, excel_path)
+                dashboard.switch_dashboard_page("gst_report")
+            self.reset_to_upload()
 
         def on_error(err):
             back_idx = 0 if self.auto_convert_cb.isChecked() else 1
