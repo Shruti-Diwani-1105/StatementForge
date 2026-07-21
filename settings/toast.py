@@ -125,3 +125,22 @@ class Toast(QWidget):
         toast = cls(parent, message, "info")
         toast.show_toast()
         return toast
+
+    @classmethod
+    def warning(cls, parent, message):
+        """Convenience method for warning toast."""
+        toast = cls(parent, message, "info")
+        toast.show_toast()
+        return toast
+
+    @classmethod
+    def display_toast(cls, parent, message, toast_type="info"):
+        """Convenience method to show toast by type string."""
+        if toast_type == "success":
+            return cls.success(parent, message)
+        elif toast_type == "error":
+            return cls.error(parent, message)
+        elif toast_type == "warning":
+            return cls.warning(parent, message)
+        else:
+            return cls.info(parent, message)

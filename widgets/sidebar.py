@@ -59,6 +59,7 @@ class Sidebar(QFrame):
             ("Dashboard", "dashboard", "dashboard"),
             ("Upload Statement", "upload", "upload"),
             ("AI Auditor", "ai_auditor", "ai"),
+            ("Duplicate Finder", "duplicate_finder", "duplicate"),
             ("Statement History", "history", "history"),
             ("Reports", "reports", "reports"),
             ("Settings", "settings", "settings")

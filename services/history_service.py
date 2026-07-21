@@ -222,6 +222,9 @@ class HistoryService:
             try:
                 query = {"user_id": user_id} if user_id else {}
                 records = list(col.find(query).sort("upload_date", -1))
+                for r in records:
+                    if "_id" in r:
+                        r["_id"] = str(r["_id"])
                 return records
             except Exception as e:
                 print(f"HistoryService: MongoDB history fetch failed: {e}")
@@ -231,6 +234,11 @@ class HistoryService:
         if user_id:
             filtered = [log for log in cls._local_fallback_logs if log.get("user_id") == user_id]
         return sorted(filtered, key=lambda x: x.get("upload_date", ""), reverse=True)
+
+    @classmethod
+    def get_history(cls, user_id=None):
+        """Alias for get_history_logs."""
+        return cls.get_history_logs(user_id)
 
     @classmethod
     def save_record(cls, user_id, pdf_path, excel_path, bank_name, statement_period, processing_time, total_transactions):

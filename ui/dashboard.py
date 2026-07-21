@@ -59,6 +59,7 @@ class DashboardScreen(QWidget):
         self.create_settings_page()
         self.create_generate_excel_page()
         self.create_gst_report_page()
+        self.create_duplicate_finder_page()
         
         right_layout.addWidget(self.page_stack)
         layout.addWidget(right_container)
@@ -73,7 +74,8 @@ class DashboardScreen(QWidget):
             "reports": 4,
             "settings": 5,
             "generate_excel": 6,
-            "gst_report": 7
+            "gst_report": 7,
+            "duplicate_finder": 8
         }
         if key in mapping:
             self.page_stack.setCurrentIndex(mapping[key])
@@ -87,6 +89,8 @@ class DashboardScreen(QWidget):
                 self.ai_auditor_widget.load_history_dropdown()
             elif key == "generate_excel":
                 self.generate_excel_widget.load_recent_generated_sheets()
+            elif key == "duplicate_finder":
+                self.duplicate_finder_widget.load_history_dropdown()
 
     def switch_to_upload_with_preset(self, flow):
         """Pre-sets the format selection on the upload widget before switching pages."""
@@ -412,6 +416,8 @@ class DashboardScreen(QWidget):
                 card.clicked.connect(lambda: self.switch_dashboard_page("ai_auditor"))
             elif title == "Generate Excel":
                 card.clicked.connect(lambda: self.switch_dashboard_page("generate_excel"))
+            elif title == "Duplicate Finder":
+                card.clicked.connect(lambda: self.switch_dashboard_page("duplicate_finder"))
             else:
                 card.clicked.connect(lambda t=title: self.show_coming_soon(t))
                 
@@ -467,6 +473,13 @@ class DashboardScreen(QWidget):
         from ui.gst_report import GSTReportWidget
         self.gst_report_widget = GSTReportWidget(self)
         self.page_stack.addWidget(self.gst_report_widget)
+
+    def create_duplicate_finder_page(self):
+        """Creates the Duplicate Finder module."""
+        from ui.duplicate_finder import DuplicateFinderWidget
+        self.duplicate_finder_widget = DuplicateFinderWidget(self)
+        self.duplicate_finder_widget.closed.connect(lambda: self.switch_dashboard_page("dashboard"))
+        self.page_stack.addWidget(self.duplicate_finder_widget)
 
     def create_history_page(self):
         """History Page presenting actual processed transaction logs."""
@@ -749,6 +762,8 @@ class DashboardScreen(QWidget):
             """)
             if r_title == "GST Tax Ledger":
                 dl_btn.clicked.connect(lambda checked: self.export_gst_ledger_action())
+            elif r_title == "Duplicate Transaction Log":
+                dl_btn.clicked.connect(lambda checked: self.switch_dashboard_page("duplicate_finder"))
             else:
                 dl_btn.clicked.connect(lambda checked, t=r_title: self.show_coming_soon(t))
             rc_layout.addWidget(dl_btn)
