@@ -96,8 +96,8 @@ class GSTExcelWriter:
             ("Report Export Date", datetime.datetime.now().strftime("%Y-%m-%d %I:%M %p")),
             ("", ""),
             ("GST Reconciliation Summary", ""),
-            ("Total GST Paid (ITC claimable)", "=SUMIF('GST Transactions'!L:L, \"Yes\", 'GST Transactions'!K:K)"),
-            ("Total GST Collected (Output tax)", "=SUMIF('GST Transactions'!C:C, \"*Credit*\", 'GST Transactions'!K:K)"),
+            ("Total GST Paid (ITC claimable)", "=SUMIF('GST Transactions'!M:M, \"Yes\", 'GST Transactions'!L:L)"),
+            ("Total GST Collected (Output tax)", "=SUMIF('GST Transactions'!C:C, \"*Credit*\", 'GST Transactions'!L:L)"),
             ("Net GST Payable/Refundable", "=B14-B13"), # Collected - Paid
             ("Total GST-Linked Transactions", "=COUNTA('GST Transactions'!A:A)-1"),
         ]
@@ -158,9 +158,9 @@ class GSTExcelWriter:
         ws_led.page_setup.fitToHeight = 0
         
         headers = [
-            "Date", "Narration", "Category", "Vendor Name", "Total Amount", 
+            "Date", "Narration", "Category", "Vendor Name", "Vendor GSTIN", "Total Amount", 
             "Taxable Value", "GST Rate", "CGST", "SGST", "IGST", 
-            "Total GST", "ITC Eligible", "AI Confidence", "Status"
+            "Total GST", "ITC Eligible", "GSTR-2B Status", "AI Confidence", "Status"
         ]
         
         # Write headers
@@ -186,6 +186,7 @@ class GSTExcelWriter:
                 tx.get("narration", ""),
                 tx.get("category", ""),
                 tx.get("vendor", ""),
+                tx.get("gstin", "Unassigned"),
                 tx.get("total_amount", 0.0),
                 tx.get("base_value", 0.0),
                 tx.get("gst_rate", 0.18),
@@ -194,6 +195,7 @@ class GSTExcelWriter:
                 tx.get("igst", 0.0),
                 tx.get("total_gst", 0.0),
                 tx.get("itc_eligible", "No"),
+                tx.get("gstr2b_status", "Not Reconciled"),
                 conf_val,
                 tx.get("status", "Estimated")
             ]
@@ -212,20 +214,20 @@ class GSTExcelWriter:
                     cell.fill = zebra_fill
                 
                 # Column alignments and formats
-                if c_idx in (5, 6, 8, 9, 10, 11): # Amounts
+                if c_idx in (6, 7, 9, 10, 11, 12): # Amounts
                     cell.number_format = currency_format
                     cell.alignment = Alignment(horizontal="right", vertical="center")
-                elif c_idx in (7, 13): # Rates / Percentages
+                elif c_idx in (8, 15): # Rates / Percentages
                     cell.number_format = percent_format
                     cell.alignment = Alignment(horizontal="right", vertical="center")
-                elif c_idx in (1, 12, 14): # Center details
+                elif c_idx in (1, 5, 13, 14, 16): # Center details
                     cell.alignment = Alignment(horizontal="center", vertical="center")
                 else:
                     cell.alignment = Alignment(vertical="center")
 
         # Freeze headers & enable auto-filtering
         ws_led.freeze_panes = "A2"
-        ws_led.auto_filter.ref = f"A1:N{len(gst_ledger) + 1}"
+        ws_led.auto_filter.ref = f"A1:P{len(gst_ledger) + 1}"
 
         # Adjust columns dynamically
         for col in ws_led.columns:
@@ -235,9 +237,9 @@ class GSTExcelWriter:
             for cell in col:
                 val_str = str(cell.value or "")
                 if cell.value is not None:
-                    if c_idx in (5, 6, 8, 9, 10, 11) and isinstance(cell.value, (int, float)):
+                    if c_idx in (6, 7, 9, 10, 11, 12) and isinstance(cell.value, (int, float)):
                         val_str = f"₹ {cell.value:,.2f}"
-                    elif c_idx in (7, 13) and isinstance(cell.value, (int, float)):
+                    elif c_idx in (8, 15) and isinstance(cell.value, (int, float)):
                         val_str = f"{cell.value * 100:.1f}%"
                 max_len = max(max_len, len(val_str))
             ws_led.column_dimensions[col_letter].width = max(max_len + 3, 10)

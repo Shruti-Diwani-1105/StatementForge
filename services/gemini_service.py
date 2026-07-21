@@ -1990,18 +1990,20 @@ For each transaction, determine:
    - Miscellaneous
    - Personal (if it represents non-business spending like swiggy, starbucks, netflix, personal dining, shopping, grocery, etc.)
 2. "vendor": Detect/normalize the merchant or vendor name (e.g. "UBER", "AMAZON", "HDFC BANK").
-3. "is_business": Boolean (true if business-related, false if personal).
-4. "gst_rate": The standard Indian GST rate that applies to this transaction category (0.18, 0.05, 0.12, 0.28, or 0.00). If the transaction is personal or GST doesn't apply, set to 0.00.
-5. "itc_eligible": "Yes" if it's a business expense eligible for Input Tax Credit (ITC) under GST laws (blocked credits like Fuel or Personal expenses should be "No"), otherwise "No".
-6. "confidence": Integer percentage (0-100) representing your confidence in this classification.
-7. "is_duplicate": Boolean (true if there's another transaction on the same date with the identical description and amount, representing double-billing).
-8. "is_missing_invoice": Boolean (true if this is a business expense where GST was paid/applicable but no invoice number, invoice reference, or bill ID is in the transaction narration).
+3. "gstin": Predict 15-character GSTIN identifier if known for this enterprise (e.g., "27AAACH111221Z3") or return "Unassigned".
+4. "is_business": Boolean (true if business-related, false if personal).
+5. "gst_rate": The standard Indian GST rate that applies to this transaction category (0.18, 0.05, 0.12, 0.28, or 0.00). If the transaction is personal or GST doesn't apply, set to 0.00.
+6. "itc_eligible": "Yes" if it's a business expense eligible for Input Tax Credit (ITC) under GST laws (blocked credits like Fuel or Personal expenses should be "No"), otherwise "No".
+7. "confidence": Integer percentage (0-100) representing your confidence in this classification.
+8. "is_duplicate": Boolean (true if there's another transaction on the same date with the identical description and amount, representing double-billing).
+9. "is_missing_invoice": Boolean (true if this is a business expense where GST was paid/applicable but no invoice number, invoice reference, or bill ID is in the transaction narration).
 
 Output format: A valid JSON array of objects, each containing:
 - "date": (the date from the transaction)
 - "narration": (the narration from the transaction)
 - "category": (string)
 - "vendor": (string)
+- "gstin": (string)
 - "is_business": (boolean)
 - "gst_rate": (float)
 - "itc_eligible": (string: "Yes" or "No")
@@ -2082,6 +2084,7 @@ Ensure the output is ONLY a valid JSON list. Do not wrap in markdown or add expl
                     "type": tx_type,
                     "category": item.get("category", "Miscellaneous"),
                     "vendor": item.get("vendor", "Unknown Vendor"),
+                    "gstin": item.get("gstin", "Unassigned"),
                     "total_amount": amount,
                     "base_value": round(base_value, 2),
                     "gst_rate": rate,
@@ -2094,7 +2097,8 @@ Ensure the output is ONLY a valid JSON list. Do not wrap in markdown or add expl
                     "confidence": float(item.get("confidence", 80.0)),
                     "status": "Verified" if float(item.get("confidence", 80.0)) >= 85 else "Estimated",
                     "is_duplicate": bool(item.get("is_duplicate", False)),
-                    "is_missing_invoice": bool(item.get("is_missing_invoice", False))
+                    "is_missing_invoice": bool(item.get("is_missing_invoice", False)),
+                    "gstr2b_status": "Not Reconciled"
                 })
             return ledger
         except Exception as e:

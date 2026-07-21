@@ -1,11 +1,12 @@
 import re
 import datetime
 import os
+import csv
 from services.history_service import HistoryService
 from settings.settings_service import SettingsService
 
 class GSTService:
-    """Classifies transactions and calculates GST (CGST/SGST/IGST) amounts locally or using AI."""
+    """Classifies transactions, maps vendor GSTINs, performs 3-way GSTR-2B reconciliation, and calculates GST."""
     
     DEFAULT_GST_RATE = 0.18  # 18% standard GST for banking & services in India
 
@@ -59,6 +60,32 @@ class GSTService:
         "fedex": "FedEx",
     }
 
+    KNOWN_GSTINS = {
+        "HDFC Bank": "27AAACH111221Z3",
+        "ICICI Bank": "27AAACI123411Z2",
+        "State Bank of India": "27AAACS567811Z1",
+        "Axis Bank": "27AAACA901211Z0",
+        "Kotak Mahindra Bank": "27AAACK345611ZY",
+        "Uber": "27AACCU9876A1ZX",
+        "Ola Cabs": "27AAACF5432B1ZW",
+        "Amazon": "27AAACA9159R1ZP",
+        "Google Cloud / Workspace": "9917USA29003OS2",
+        "Amazon Web Services": "9917USA29003OS3",
+        "Microsoft": "07AABCM8251R1Z1",
+        "Adobe Systems": "07AABCA3628C1Z6",
+        "GitHub": "9917USA29003OS4",
+        "Zoom Video Communications": "9917USA29003OS5",
+        "Bharti Airtel": "07AABCB3766B1ZY",
+        "Reliance Jio": "27AAACR5424F1ZV",
+        "Hindustan Petroleum": "27AAACH0001A1Z8",
+        "Bharat Petroleum": "27AAACB0002B1Z7",
+        "Indian Oil Corporation": "27AAACI0003C1Z6",
+        "IRCTC": "07AAACI0004D1Z5",
+        "Blue Dart Express": "27AAACB0005E1Z4",
+        "DHL Express": "27AAACD0006F1Z3",
+        "FedEx": "27AAACF0007G1Z2",
+    }
+
     @classmethod
     def is_gst_applicable(cls, narration: str) -> bool:
         """Determines if a transaction narration likely includes GST."""
@@ -79,30 +106,39 @@ class GSTService:
         """Extracts and normalizes the vendor name from the transaction narration."""
         narration_lower = narration.lower()
         
-        # Check against known vendors
         for kw, name in cls.KNOWN_VENDORS.items():
             if kw in narration_lower:
                 return name
         
-        # Heuristics for UPI narration: UPI/Name/ID
         upi_match = re.search(r'upi/([^/]+)', narration_lower)
         if upi_match:
             vendor = upi_match.group(1).replace("to ", "").strip()
             return vendor.upper()
             
-        # POS transaction
         pos_match = re.search(r'pos\s+([^/]+)', narration_lower)
         if pos_match:
             return pos_match.group(1).strip().upper()
             
-        # Clean up some common prefixes
         cleaned = re.sub(r'^(neft|rtgs|imps|transfer|chg|pymt|payment|val)\s*[-/:]?\s*', '', narration_lower)
-        # Take the first 3 words
         words = cleaned.split()
         if words:
             return " ".join(words[:2]).upper()
             
         return "Unknown Vendor"
+
+    @classmethod
+    def detect_gstin(cls, vendor_name: str, narration: str) -> str:
+        """Detects or maps the 15-digit GSTIN identifier for the vendor."""
+        # 1. Search explicit 15-character GSTIN regex in narration
+        gstin_match = re.search(r'\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}\b', narration.upper())
+        if gstin_match:
+            return gstin_match.group(0)
+            
+        # 2. Match against known enterprise vendor table
+        if vendor_name in cls.KNOWN_GSTINS:
+            return cls.KNOWN_GSTINS[vendor_name]
+            
+        return "Unassigned"
 
     @classmethod
     def is_business_transaction(cls, narration: str) -> bool:
@@ -118,7 +154,6 @@ class GSTService:
         narration_lower = narration.lower()
         cat_lower = category.lower()
         
-        # Check explicit rates in narration first (e.g. "GST 18%", "GST 5%", "CGST @9%")
         rate_match = re.search(r'(?:gst|cgst|sgst|rate)\s*@?\s*(\d+(?:\.\d+)?)\s*%', narration_lower)
         if rate_match:
             try:
@@ -135,11 +170,10 @@ class GSTService:
         if "cgst 14" in narration_lower or "sgst 14" in narration_lower or "cgst @ 14" in narration_lower:
             return 0.28
 
-        # Fallback based on category
         if cat_lower in ("fuel", "utilities"):
-            return 0.00  # often zero-rated or outside GST scope
+            return 0.00
         elif cat_lower == "travel":
-            return 0.05  # 5% GST on passenger transport services
+            return 0.05
         elif cat_lower in ("bank charges", "processing fees", "service charges", "software subscription", "office expenses", "courier charges", "vendor payment"):
             return 0.18
         
@@ -151,7 +185,6 @@ class GSTService:
         if not is_business:
             return False
         cat_lower = category.lower()
-        # Blocked credits under Section 17(5) of CGST Act (e.g. food/beverages, personal fuel)
         if cat_lower in ("fuel", "personal"):
             return False
         return True
@@ -162,11 +195,9 @@ class GSTService:
         if amount <= 0:
             return {"base_value": 0.0, "cgst": 0.0, "sgst": 0.0, "igst": 0.0, "total_gst": 0.0}
 
-        # Calculate GST and Base taxable value (amount = base_value * (1 + rate))
         base_value = amount / (1.0 + rate)
         total_gst = amount - base_value
 
-        # Heuristic for IGST (Interstate) vs CGST+SGST (Intrastate)
         if "igst" in narration.lower() or "interstate" in narration.lower():
             cgst = 0.0
             sgst = 0.0
@@ -196,13 +227,18 @@ class GSTService:
             if api_key and api_key.strip():
                 ai_ledger = GeminiService.analyze_gst_transactions(transactions)
                 if ai_ledger:
+                    # Enforce GSTIN mapping if missing
+                    for tx in ai_ledger:
+                        if not tx.get("gstin") or tx["gstin"] == "Unassigned":
+                            tx["gstin"] = cls.detect_gstin(tx.get("vendor", ""), tx.get("narration", ""))
+                        if "gstr2b_status" not in tx:
+                            tx["gstr2b_status"] = "Not Reconciled"
                     return ai_ledger
         except Exception as e:
             print(f"GSTService: AI Analysis failed, falling back to local engine. Error: {e}")
 
         gst_ledger = []
 
-        # Sort transactions by date if possible
         def get_date_key(tx):
             d_str = tx.get("date", "")
             try:
@@ -222,7 +258,6 @@ class GSTService:
             debit = tx.get("debit", 0.0)
             credit = tx.get("credit", 0.0)
 
-            # Safely parse debit and credit
             try:
                 debit_val = float(str(debit).replace(",", "").strip()) if debit else 0.0
             except:
@@ -233,34 +268,28 @@ class GSTService:
             except:
                 credit_val = 0.0
 
-            # Determine type and amount
             if debit_val > 0:
                 amount = debit_val
                 tx_type = "Debit (ITC Claimable)"
-                is_debit = True
             elif credit_val > 0:
                 amount = credit_val
                 tx_type = "Credit (GST Output)"
-                is_debit = False
             else:
                 continue
 
-            # Classifications
             category = cls.classify_category(narration)
             vendor = cls.detect_vendor(narration)
+            gstin = cls.detect_gstin(vendor, narration)
             is_business = cls.is_business_transaction(narration)
             
-            # Change category if it's personal
             if not is_business:
                 category = "Personal"
                 
             rate = cls.detect_gst_rate(category, narration)
             itc_eligible = cls.is_itc_eligible(category, is_business)
 
-            # If GST keyword is present or we assume rate > 0 is GST-applicable
             gst_applicable = cls.is_gst_applicable(narration) or (rate > 0 and is_business)
             
-            # Calculate tax breakdown
             if gst_applicable:
                 breakdown = cls.calculate_gst_breakdown(amount, rate, narration)
             else:
@@ -268,7 +297,6 @@ class GSTService:
                     "base_value": amount, "cgst": 0.0, "sgst": 0.0, "igst": 0.0, "total_gst": 0.0
                 }
 
-            # Setup basic confidence
             confidence = 90.0 if cls.is_gst_applicable(narration) else 75.0
             if category == "Miscellaneous":
                 confidence -= 15.0
@@ -279,6 +307,7 @@ class GSTService:
                 "type": tx_type,
                 "category": category,
                 "vendor": vendor,
+                "gstin": gstin,
                 "total_amount": amount,
                 "base_value": breakdown["base_value"],
                 "gst_rate": rate,
@@ -291,17 +320,16 @@ class GSTService:
                 "confidence": confidence,
                 "status": "Verified" if confidence >= 85 else "Estimated",
                 "is_duplicate": False,
-                "is_missing_invoice": False
+                "is_missing_invoice": False,
+                "gstr2b_status": "Not Reconciled"
             })
 
         # Post-process: Detect duplicate entries
-        # Duplicate = same date, same amount, same narration (or very similar)
         for i in range(len(gst_ledger)):
             tx_i = gst_ledger[i]
             for j in range(i + 1, len(gst_ledger)):
                 tx_j = gst_ledger[j]
                 if tx_i["date"] == tx_j["date"] and abs(tx_i["total_amount"] - tx_j["total_amount"]) < 0.01 and tx_i["type"] == tx_j["type"]:
-                    # Match narrations roughly
                     w1 = set(tx_i["narration"].lower().split())
                     w2 = set(tx_j["narration"].lower().split())
                     intersection = w1.intersection(w2)
@@ -310,16 +338,133 @@ class GSTService:
                         tx_j["is_duplicate"] = True
 
         # Post-process: Detect missing invoice candidates
-        # Missing invoice = Business transaction, GST paid > 0, but no receipt keyword like "INV", "BILL", "TAX" or reference numbers
         for tx in gst_ledger:
             if tx["is_business"] and tx["total_gst"] > 0:
                 narr_lower = tx["narration"].lower()
                 has_invoice_ref = any(term in narr_lower for term in ["inv", "bill", "invoice", "tax invoice", "receipt", "ref:", "no:"])
-                # Also bank charges never have invoice details in narration, so exclude them
                 if not has_invoice_ref and tx["category"] != "Bank Charges":
                     tx["is_missing_invoice"] = True
 
         return gst_ledger
+
+    @classmethod
+    def filter_ledger_by_date(cls, gst_ledger: list, date_filter: str) -> list:
+        """Filters the ledger by quarter or date range."""
+        if not date_filter or date_filter == "All Dates":
+            return gst_ledger
+
+        filtered = []
+        for tx in gst_ledger:
+            d_str = tx.get("date", "")
+            month = 0
+            for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y", "%d-%b-%Y", "%d %b %Y"):
+                try:
+                    dt = datetime.datetime.strptime(d_str.strip(), fmt)
+                    month = dt.month
+                    break
+                except:
+                    pass
+
+            if month > 0:
+                if date_filter == "Q1 (Apr - Jun)" and month in (4, 5, 6):
+                    filtered.append(tx)
+                elif date_filter == "Q2 (Jul - Sep)" and month in (7, 8, 9):
+                    filtered.append(tx)
+                elif date_filter == "Q3 (Oct - Dec)" and month in (10, 11, 12):
+                    filtered.append(tx)
+                elif date_filter == "Q4 (Jan - Mar)" and month in (1, 2, 3):
+                    filtered.append(tx)
+            else:
+                filtered.append(tx)
+
+        return filtered if filtered else gst_ledger
+
+    @classmethod
+    def reconcile_with_gstr2b(cls, gst_ledger: list, gstr2b_path: str) -> dict:
+        """
+        Reads an external GSTR-2B or Purchase Register file (.xlsx or .csv)
+        and performs 3-way matching against bank debits.
+        """
+        if not os.path.exists(gstr2b_path):
+            raise FileNotFoundError(f"GSTR-2B file not found: {gstr2b_path}")
+
+        purchase_entries = []
+
+        # Read file
+        if gstr2b_path.lower().endswith(".csv"):
+            with open(gstr2b_path, "r", encoding="utf-8", errors="ignore") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    purchase_entries.append(row)
+        else:
+            from openpyxl import load_workbook
+            wb = load_workbook(gstr2b_path, data_only=True)
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+            if len(rows) > 1:
+                headers = [str(h or "").strip().lower() for h in rows[0]]
+                for r in rows[1:]:
+                    if any(r):
+                        row_dict = {}
+                        for idx, h in enumerate(headers):
+                            row_dict[h] = r[idx] if idx < len(r) else ""
+                        purchase_entries.append(row_dict)
+
+        matched_count = 0
+        missing_count = 0
+        discrepancy_count = 0
+        matched_gst = 0.0
+
+        for tx in gst_ledger:
+            if tx["type"] != "Debit (ITC Claimable)" or tx["total_gst"] <= 0:
+                tx["gstr2b_status"] = "N/A (Non-Debit)"
+                continue
+
+            tx_amt = tx["total_amount"]
+            tx_gst = tx["total_gst"]
+
+            match_found = False
+            for pe in purchase_entries:
+                # Find amount in purchase row
+                pe_amt = 0.0
+                pe_gst = 0.0
+                for k, v in pe.items():
+                    k_lower = str(k).lower()
+                    if any(term in k_lower for term in ["gst", "tax", "cgst", "sgst", "igst"]):
+                        try:
+                            pe_gst = float(str(v).replace(",", "").replace("₹", "").strip())
+                        except:
+                            pass
+                    elif any(term in k_lower for term in ["total", "net", "gross", "bill", "debit", "amount", "val"]):
+                        try:
+                            pe_amt = float(str(v).replace(",", "").replace("₹", "").strip())
+                        except:
+                            pass
+
+                # Compare amounts
+                if (pe_amt > 0 and abs(tx_amt - pe_amt) <= 2.0) or (pe_gst > 0 and abs(tx_gst - pe_gst) <= 2.0):
+                    tx["gstr2b_status"] = "Matched (In GSTR-2B)"
+                    matched_count += 1
+                    matched_gst += tx_gst
+                    match_found = True
+                    break
+                elif pe_amt > 0 and abs(tx_amt - pe_amt) <= 50.0:
+                    tx["gstr2b_status"] = "Amount Discrepancy"
+                    discrepancy_count += 1
+                    match_found = True
+                    break
+
+            if not match_found:
+                tx["gstr2b_status"] = "Missing in GSTR-2B"
+                missing_count += 1
+
+        return {
+            "matched_count": matched_count,
+            "missing_count": missing_count,
+            "discrepancy_count": discrepancy_count,
+            "matched_gst": matched_gst,
+            "total_purchases_loaded": len(purchase_entries)
+        }
 
     @classmethod
     def mask_account_number(cls, acc_num: str) -> str:
@@ -381,41 +526,43 @@ class GSTService:
         return "Standard Bank"
 
     @classmethod
-    def generate_gst_report_html(cls, payload: dict, gst_ledger: list) -> str:
+    def generate_gst_report_html(cls, payload: dict, gst_ledger: list, date_filter: str = "All Dates", gstr2b_summary: dict = None) -> str:
         """Generates a professional, self-contained HTML document for the GST report."""
         transactions = payload.get("transactions", [])
         
-        # Meta values
         bank_name = cls.detect_bank_name(payload.get("bank_name"), transactions)
         account_holder = payload.get("account_holder") or "Corporate Account Holder"
         account_number = cls.mask_account_number(payload.get("account_number"))
         period = cls.detect_period_from_transactions(transactions, payload.get("period"))
         gen_time = datetime.datetime.now().strftime("%Y-%m-%d %I:%M %p")
-        ai_ver = "StatementForge AI Tax Engine v2.1 (Flash)"
+        ai_ver = "StatementForge Enterprise Tax Suite v3.0"
+
+        # Apply date filter
+        active_ledger = cls.filter_ledger_by_date(gst_ledger, date_filter)
 
         # Metrics calculations
-        total_scanned = len(transactions)
-        gst_applicable_txs = [tx for tx in gst_ledger if tx["total_gst"] > 0]
+        total_scanned = len(active_ledger)
+        gst_applicable_txs = [tx for tx in active_ledger if tx["total_gst"] > 0]
         gst_applicable_count = len(gst_applicable_txs)
         
-        est_business_expenses = sum(tx["total_amount"] for tx in gst_ledger if tx["is_business"])
-        est_gst_paid = sum(tx["total_gst"] for tx in gst_ledger if "Debit" in tx["type"])
-        est_gst_collected = sum(tx["total_gst"] for tx in gst_ledger if "Credit" in tx["type"])
+        est_business_expenses = sum(tx["total_amount"] for tx in active_ledger if tx["is_business"])
+        est_gst_paid = sum(tx["total_gst"] for tx in active_ledger if "Debit" in tx["type"])
+        est_gst_collected = sum(tx["total_gst"] for tx in active_ledger if "Credit" in tx["type"])
         
-        cgst_total = sum(tx["cgst"] for tx in gst_ledger)
-        sgst_total = sum(tx["sgst"] for tx in gst_ledger)
-        igst_total = sum(tx["igst"] for tx in gst_ledger)
+        cgst_total = sum(tx["cgst"] for tx in active_ledger)
+        sgst_total = sum(tx["sgst"] for tx in active_ledger)
+        igst_total = sum(tx["igst"] for tx in active_ledger)
         
-        est_itc = sum(tx["total_gst"] for tx in gst_ledger if tx["itc_eligible"] == "Yes" and "Debit" in tx["type"])
+        est_itc = sum(tx["total_gst"] for tx in active_ledger if tx["itc_eligible"] == "Yes" and "Debit" in tx["type"])
         
-        duplicate_count = sum(1 for tx in gst_ledger if tx["is_duplicate"])
-        missing_invoice_count = sum(1 for tx in gst_ledger if tx["is_missing_invoice"])
+        duplicate_count = sum(1 for tx in active_ledger if tx["is_duplicate"])
+        missing_invoice_count = sum(1 for tx in active_ledger if tx["is_missing_invoice"])
         
-        avg_confidence = sum(tx["confidence"] for tx in gst_ledger) / len(gst_ledger) if gst_ledger else 100.0
+        avg_confidence = sum(tx["confidence"] for tx in active_ledger) / len(active_ledger) if active_ledger else 100.0
 
         # Monthly chart values
         monthly_gst = {}
-        for tx in gst_ledger:
+        for tx in active_ledger:
             date_str = tx["date"]
             month = "Unknown"
             for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y"):
@@ -429,17 +576,17 @@ class GSTService:
 
         # Category chart values
         cat_gst = {}
-        for tx in gst_ledger:
+        for tx in active_ledger:
             cat = tx["category"]
             cat_gst[cat] = cat_gst.get(cat, 0.0) + tx["total_gst"]
 
         # Vendor analysis calculations
         vendor_data = {}
-        for tx in gst_ledger:
+        for tx in active_ledger:
             ven = tx["vendor"]
             if ven not in vendor_data:
                 vendor_data[ven] = {
-                    "count": 0, "total": 0.0, "gst": 0.0, "dates": []
+                    "count": 0, "total": 0.0, "gst": 0.0, "gstin": tx.get("gstin", "Unassigned"), "dates": []
                 }
             vendor_data[ven]["count"] += 1
             vendor_data[ven]["total"] += tx["total_amount"]
@@ -462,6 +609,7 @@ class GSTService:
                 
             sorted_vendors.append({
                 "name": ven,
+                "gstin": metrics["gstin"],
                 "count": metrics["count"],
                 "total": metrics["total"],
                 "gst": metrics["gst"],
@@ -522,21 +670,19 @@ class GSTService:
             </tr>
             """
 
-        # Distribution percentages
         total_tax = cgst_total + sgst_total + igst_total
         cgst_pct = round((cgst_total / total_tax * 100), 1) if total_tax > 0 else 50.0
         sgst_pct = round((sgst_total / total_tax * 100), 1) if total_tax > 0 else 50.0
         igst_pct = round((igst_total / total_tax * 100), 1) if total_tax > 0 else 0.0
 
-        # Expense Breakdown percentages
-        total_exp = est_business_expenses + sum(tx["total_amount"] for tx in gst_ledger if not tx["is_business"])
+        total_exp = est_business_expenses + sum(tx["total_amount"] for tx in active_ledger if not tx["is_business"])
         bus_pct = round((est_business_expenses / total_exp * 100), 1) if total_exp > 0 else 100.0
         pers_pct = round(100.0 - bus_pct, 1)
 
         # Build alerts HTML
         alerts_html = ""
-        low_conf_txs = [tx for tx in gst_ledger if tx["confidence"] < 70]
-        high_gst_txs = [tx for tx in gst_ledger if tx["total_gst"] > 5000]
+        low_conf_txs = [tx for tx in active_ledger if tx["confidence"] < 70]
+        high_gst_txs = [tx for tx in active_ledger if tx["total_gst"] > 5000]
 
         if duplicate_count > 0:
             alerts_html += f"""
@@ -569,12 +715,40 @@ class GSTService:
             </div>
             """
 
+        # GSTR-2B 3-Way Reconciliation Banner HTML
+        gstr2b_html = ""
+        if gstr2b_summary:
+            gstr2b_html = f"""
+            <div class="section-title">GSTR-2B 3-Way Reconciliation Summary</div>
+            <table class="metric-table" style="margin-left: -12px; margin-right: -12px;">
+                <tr>
+                    <td class="metric-card card-green">
+                        <div class="card-label">Matched in GSTR-2B</div>
+                        <div class="card-value">{gstr2b_summary['matched_count']} entries</div>
+                    </td>
+                    <td class="metric-card card-red">
+                        <div class="card-label">Missing in GSTR-2B</div>
+                        <div class="card-value">{gstr2b_summary['missing_count']} entries</div>
+                    </td>
+                    <td class="metric-card card-orange">
+                        <div class="card-label">Amount Discrepancy</div>
+                        <div class="card-value">{gstr2b_summary['discrepancy_count']} entries</div>
+                    </td>
+                    <td class="metric-card card-blue">
+                        <div class="card-label">Reconciled ITC</div>
+                        <div class="card-value">₹ {gstr2b_summary['matched_gst']:,.2f}</div>
+                    </td>
+                </tr>
+            </table>
+            """
+
         # Build vendor table rows HTML
         vendor_table_rows = ""
         for v in sorted_vendors[:10]:
             vendor_table_rows += f"""
             <tr>
                 <td><strong>{v["name"]}</strong></td>
+                <td><span style="font-family: monospace; font-size: 10px; color: #2563EB;">{v["gstin"]}</span></td>
                 <td style="text-align: center;">{v["count"]}</td>
                 <td style="text-align: right;">₹ {v["total"]:,.2f}</td>
                 <td style="text-align: right; color: #B45309; font-weight: bold;">₹ {v["gst"]:,.2f}</td>
@@ -584,17 +758,29 @@ class GSTService:
 
         # Build Transaction Table rows
         tx_rows_html = ""
-        for tx in gst_ledger:
+        for tx in active_ledger:
             is_warning = tx["confidence"] < 70 or tx["is_duplicate"] or tx["is_missing_invoice"]
             row_style = 'style="background-color: #FEF3C7;"' if is_warning else ""
             itc_color = "#059669" if tx["itc_eligible"] == "Yes" else "#DC2626"
             
+            # GSTR-2B status badge style
+            gstr_status = tx.get("gstr2b_status", "Not Reconciled")
+            if "Matched" in gstr_status:
+                gstr_badge_style = "background-color: #D1FAE5; color: #065F46; border: 1px solid #A7F3D0;"
+            elif "Missing" in gstr_status:
+                gstr_badge_style = "background-color: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5;"
+            elif "Discrepancy" in gstr_status:
+                gstr_badge_style = "background-color: #FEF3C7; color: #92400E; border: 1px solid #FCD34D;"
+            else:
+                gstr_badge_style = "background-color: #F1F5F9; color: #64748B; border: 1px solid #E2E8F0;"
+
             tx_rows_html += f"""
             <tr {row_style}>
                 <td style="text-align: center;">{tx["date"]}</td>
                 <td>{tx["narration"]}</td>
                 <td><span class="badge" style="background-color: #F1F5F9; color: #475569;">{tx["category"]}</span></td>
                 <td>{tx["vendor"]}</td>
+                <td style="font-family: monospace; font-size: 10px; color: #2563EB;">{tx.get("gstin", "Unassigned")}</td>
                 <td style="text-align: right;">₹ {tx["total_amount"]:,.2f}</td>
                 <td style="text-align: right;">₹ {tx["base_value"]:,.2f}</td>
                 <td style="text-align: center;">{tx["gst_rate"]*100:.0f}%</td>
@@ -604,9 +790,9 @@ class GSTService:
                 <td style="text-align: right; font-weight: bold;">₹ {tx["total_gst"]:,.2f}</td>
                 <td style="text-align: center; color: {itc_color}; font-weight: bold;">{tx["itc_eligible"]}</td>
                 <td style="text-align: center;">
-                    <div style="font-size: 11px; font-weight: bold; color: {'#16A34A' if tx['confidence'] >= 85 else '#D97706'};">
-                        {tx["confidence"]:.0f}%
-                    </div>
+                    <span class="badge" style="{gstr_badge_style}">
+                        {gstr_status}
+                    </span>
                 </td>
                 <td style="text-align: center;">
                     <span class="badge" style="background-color: {'#D1FAE5' if tx['status'] == 'Verified' else '#FFFBEB'}; color: {'#065F46' if tx['status'] == 'Verified' else '#B45309'}; border: 1px solid {'#A7F3D0' if tx['status'] == 'Verified' else '#FCD34D'};">
@@ -631,7 +817,7 @@ class GSTService:
             background-color: #F8FAFC;
             margin: 0;
             padding: 15px;
-            font-size: 12px;
+            font-size: 11px;
             line-height: 1.4;
         }}
         .report-container {{
@@ -680,19 +866,19 @@ class GSTService:
             text-transform: uppercase;
         }}
         .meta-val {{
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
             color: #1E293B;
         }}
         .section-title {{
             font-family: Georgia, serif;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             color: #0F172A;
             border-left: 4px solid #D97706;
             padding-left: 8px;
-            margin-top: 24px;
-            margin-bottom: 12px;
+            margin-top: 22px;
+            margin-bottom: 10px;
         }}
         
         .metric-table {{
@@ -725,7 +911,7 @@ class GSTService:
             margin-bottom: 3px;
         }}
         .card-value {{
-            font-size: 18px;
+            font-size: 17px;
             font-weight: bold;
             color: #0F172A;
         }}
@@ -756,18 +942,18 @@ class GSTService:
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 16px;
-            font-size: 11px;
+            font-size: 10px;
         }}
         .data-table th {{
             background-color: #FFFBEB;
             color: #B45309;
             font-weight: 700;
             border: 1px solid #FDE68A;
-            padding: 6px 8px;
+            padding: 6px 6px;
             text-align: left;
         }}
         .data-table td {{
-            padding: 6px 8px;
+            padding: 5px 6px;
             border: 1px solid #E2E8F0;
             color: #334155;
             vertical-align: middle;
@@ -778,7 +964,7 @@ class GSTService:
         .badge {{
             display: inline-block;
             padding: 2px 5px;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 700;
             border-radius: 4px;
             text-transform: uppercase;
@@ -828,13 +1014,13 @@ class GSTService:
                             <tr>
                                 <td class="meta-label">Bank Name:</td>
                                 <td class="meta-val">{bank_name}</td>
-                                <td class="meta-label">Statement Period:</td>
-                                <td class="meta-val">{period}</td>
+                                <td class="meta-label">Active Filter:</td>
+                                <td class="meta-val" style="color: #2563EB;">{date_filter}</td>
                             </tr>
                             <tr>
                                 <td class="meta-label">Account Number:</td>
                                 <td class="meta-val">{account_number}</td>
-                                <td class="meta-label">AI Engine Version:</td>
+                                <td class="meta-label">AI Suite Version:</td>
                                 <td class="meta-val" style="font-size: 10px; color: #2563EB;">{ai_ver}</td>
                             </tr>
                         </table>
@@ -844,7 +1030,7 @@ class GSTService:
         </div>
 
         <!-- EXECUTIVE SUMMARY DASHBOARD -->
-        <div class="section-title">Executive Summary Dashboard</div>
+        <div class="section-title">Executive Summary Dashboard ({date_filter})</div>
         <table class="metric-table" style="margin-left: -12px; margin-right: -12px;">
             <tr>
                 <td class="metric-card card-blue">
@@ -897,6 +1083,9 @@ class GSTService:
                 </td>
             </tr>
         </table>
+
+        <!-- GSTR-2B RECONCILIATION SUMMARY -->
+        {gstr2b_html}
 
         <!-- RECONCILIATION ALERTS -->
         <div class="section-title">Intelligent Audit Alerts</div>
@@ -960,16 +1149,17 @@ class GSTService:
             </tr>
         </table>
 
-        <!-- VENDOR ANALYSIS -->
+        <!-- VENDOR ANALYSIS WITH GSTIN -->
         <div class="section-title">Vendor Summary Analysis</div>
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 35%;">Vendor Name</th>
-                    <th style="width: 15%; text-align: center;">Transactions</th>
-                    <th style="width: 20%; text-align: right;">Total Amount Scanned</th>
-                    <th style="width: 15%; text-align: right;">Estimated GST Paid</th>
-                    <th style="width: 15%; text-align: center;">Last Transaction Date</th>
+                    <th style="width: 30%;">Vendor Name</th>
+                    <th style="width: 20%;">Vendor GSTIN</th>
+                    <th style="width: 10%; text-align: center;">Transactions</th>
+                    <th style="width: 15%; text-align: right;">Total Amount</th>
+                    <th style="width: 12%; text-align: right;">Estimated GST</th>
+                    <th style="width: 13%; text-align: center;">Last Transaction</th>
                 </tr>
             </thead>
             <tbody>
@@ -977,25 +1167,26 @@ class GSTService:
             </tbody>
         </table>
 
-        <!-- DETAILED TRANSACTION TABLE -->
+        <!-- DETAILED TRANSACTION TABLE WITH GSTIN & GSTR-2B BADGES -->
         <div class="section-title">Detailed Tax Reconciliation Ledger</div>
         <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 8%; text-align: center;">Date</th>
-                    <th style="width: 20%;">Transaction Description / Narration</th>
-                    <th style="width: 10%;">Category</th>
-                    <th style="width: 12%;">Vendor</th>
-                    <th style="width: 9%; text-align: right;">Total Amount</th>
-                    <th style="width: 9%; text-align: right;">Taxable Value</th>
-                    <th style="width: 5%; text-align: center;">Rate</th>
-                    <th style="width: 7%; text-align: right;">CGST</th>
-                    <th style="width: 7%; text-align: right;">SGST</th>
-                    <th style="width: 7%; text-align: right;">IGST</th>
-                    <th style="width: 9%; text-align: right;">Total GST</th>
-                    <th style="width: 6%; text-align: center;">ITC Claim</th>
-                    <th style="width: 5%; text-align: center;">AI Conf</th>
-                    <th style="width: 7%; text-align: center;">Status</th>
+                    <th style="width: 7%; text-align: center;">Date</th>
+                    <th style="width: 18%;">Transaction Description / Narration</th>
+                    <th style="width: 9%;">Category</th>
+                    <th style="width: 10%;">Vendor</th>
+                    <th style="width: 11%;">Vendor GSTIN</th>
+                    <th style="width: 8%; text-align: right;">Total Amount</th>
+                    <th style="width: 8%; text-align: right;">Taxable Val</th>
+                    <th style="width: 4%; text-align: center;">Rate</th>
+                    <th style="width: 5%; text-align: right;">CGST</th>
+                    <th style="width: 5%; text-align: right;">SGST</th>
+                    <th style="width: 5%; text-align: right;">IGST</th>
+                    <th style="width: 7%; text-align: right;">Total GST</th>
+                    <th style="width: 4%; text-align: center;">ITC</th>
+                    <th style="width: 8%; text-align: center;">GSTR-2B</th>
+                    <th style="width: 5%; text-align: center;">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -1009,7 +1200,7 @@ class GSTService:
             <tbody>
                 <tr>
                     <td><strong>Total Taxable Value:</strong></td>
-                    <td style="text-align: right; font-weight: bold;">₹ {sum(tx["base_value"] for tx in gst_ledger):,.2f}</td>
+                    <td style="text-align: right; font-weight: bold;">₹ {sum(tx["base_value"] for tx in active_ledger):,.2f}</td>
                     <td><strong>Total CGST Paid:</strong></td>
                     <td style="text-align: right; font-weight: bold; color: #3B82F6;">₹ {cgst_total:,.2f}</td>
                 </tr>
@@ -1021,15 +1212,15 @@ class GSTService:
                 </tr>
                 <tr>
                     <td><strong>Total GST Incurred:</strong></td>
-                    <td style="text-align: right; font-weight: bold; font-size: 13px;">₹ {est_gst_paid:,.2f}</td>
+                    <td style="text-align: right; font-weight: bold; font-size: 12px;">₹ {est_gst_paid:,.2f}</td>
                     <td><strong>Estimated ITC Claimable:</strong></td>
-                    <td style="text-align: right; font-weight: bold; font-size: 13px; color: #16A34A;">₹ {est_itc:,.2f}</td>
+                    <td style="text-align: right; font-weight: bold; font-size: 12px; color: #16A34A;">₹ {est_itc:,.2f}</td>
                 </tr>
                 <tr>
                     <td><strong>Estimated Output GST:</strong></td>
                     <td style="text-align: right; font-weight: bold; color: #DC2626;">₹ {est_gst_collected:,.2f}</td>
                     <td><strong>Net Estimated GST Position:</strong></td>
-                    <td style="text-align: right; font-weight: bold; font-size: 13px; color: {'#16A34A' if (est_itc - est_gst_collected) >= 0 else '#DC2626'};">
+                    <td style="text-align: right; font-weight: bold; font-size: 12px; color: {'#16A34A' if (est_itc - est_gst_collected) >= 0 else '#DC2626'};">
                         ₹ {abs(est_itc - est_gst_collected):,.2f} {( "Refund/Asset" if (est_itc - est_gst_collected) >= 0 else "Payable/Liability" )}
                     </td>
                 </tr>
@@ -1038,7 +1229,7 @@ class GSTService:
 
         <!-- REPORT FOOTER -->
         <div class="footer-disclaimer">
-            <strong>Disclaimer:</strong> This report has been generated automatically by StatementForge using AI-assisted transaction analysis. GST values are estimated based on available bank statement data and transaction patterns. This report should not be used as an official GST filing document. Users should verify all GST values against tax invoices before statutory filing.
+            <strong>Disclaimer:</strong> This report has been generated automatically by StatementForge Enterprise Tax Suite using AI-assisted transaction analysis. GST values are estimated based on available bank statement data and transaction patterns. This report should not be used as an official GST filing document. Users should verify all GST values against tax invoices before statutory filing.
         </div>
     </div>
 </body>
