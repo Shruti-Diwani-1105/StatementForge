@@ -470,6 +470,26 @@ class DuplicateFinderWidget(QWidget):
         self.btn_export_cleaned.clicked.connect(self.export_cleaned_excel)
         bot_layout.addWidget(self.btn_export_cleaned)
 
+        self.btn_send_email = QPushButton("✉ Send via Email")
+        self.btn_send_email.setFixedWidth(170)
+        self.btn_send_email.setFixedHeight(40)
+        self.btn_send_email.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_send_email.setStyleSheet("""
+            QPushButton {
+                background-color: #7C3AED;
+                color: #FFFFFF;
+                font-weight: 700;
+                font-size: 13px;
+                border-radius: 8px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #6D28D9;
+            }
+        """)
+        self.btn_send_email.clicked.connect(self.open_email_composer)
+        bot_layout.addWidget(self.btn_send_email)
+
         main_layout.addWidget(bottom_bar)
 
         # Initial load of history dropdown
@@ -1024,6 +1044,21 @@ class DuplicateFinderWidget(QWidget):
             QMessageBox.information(self, "Export Successful", f"Cleaned statement ({len(cleaned_txs)} transactions) exported to:\n{out_path}")
         except Exception as e:
             QMessageBox.critical(self, "Export Error", f"Failed to export cleaned statement:\n{e}")
+
+    def open_email_composer(self):
+        """Opens Email Composer pre-attaching active Duplicate Audit report."""
+        from ui.email_composer_dialog import EmailComposerDialog
+        
+        attachment = getattr(self, "excel_path", None)
+        bank = self.loaded_statements[0].get("bank_name", "") if hasattr(self, "loaded_statements") and self.loaded_statements else ""
+
+        dialog = EmailComposerDialog(
+            report_type="Duplicate Transaction Report",
+            default_attachment=attachment,
+            bank_name=bank,
+            parent=self
+        )
+        dialog.exec()
 
     def close_view(self):
         self.closed.emit()

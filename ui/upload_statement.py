@@ -540,7 +540,7 @@ class UploadStatementWidget(QWidget):
             "assets/icons/email.png",
             "#ECFDF5"
         )
-        self.choice_email_card.clicked.connect(lambda: self.show_coming_soon("Email Report"))
+        self.choice_email_card.clicked.connect(self.choice_email_report)
         grid_layout.addWidget(self.choice_email_card, 1, 2)
 
         # Card 8: Cancel & Upload New
@@ -877,8 +877,10 @@ class UploadStatementWidget(QWidget):
 
         style_p = "QPushButton { background-color: #2563EB; color: white; border-radius: 6px; font-weight: 600; font-size: 13px; border: none; padding: 0 16px; } QPushButton:hover { background-color: #1D4ED8; }"
         style_s = "QPushButton { background-color: #FFFFFF; color: #475569; border: 1px solid #CBD5E1; border-radius: 6px; font-weight: 600; font-size: 13px; padding: 0 16px; } QPushButton:hover { background-color: #F8FAFC; color: #0F172A; }"
-        
+        style_e = "QPushButton { background-color: #7C3AED; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; border: none; padding: 0 16px; } QPushButton:hover { background-color: #6D28D9; }"
+
         make_btn("Open Excel", style_p, self.open_generated_excel)
+        make_btn("✉ Send via Email", style_e, self.open_email_composer)
         make_btn("Open Folder", style_s, self.open_output_folder)
         make_btn("Return to Dashboard", style_s, self.return_to_dashboard)
 
@@ -1106,5 +1108,24 @@ class UploadStatementWidget(QWidget):
             status_item = QTableWidgetItem(status)
             status_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.recent_table.setItem(row_idx, 4, status_item)
+
+    def choice_email_report(self):
+        """Action handler when user selects Email Report option for a loaded statement."""
+        self.open_email_composer()
+
+    def open_email_composer(self):
+        """Opens Email Composer pre-attaching active PDF or Excel statement file."""
+        from ui.email_composer_dialog import EmailComposerDialog
+        
+        attachment = getattr(self, "excel_output_path", None) or getattr(self, "file_path", None)
+        bank = getattr(self, "detected_bank", "") or ""
+
+        dialog = EmailComposerDialog(
+            report_type="Extracted Bank Statement Report",
+            default_attachment=attachment,
+            bank_name=bank,
+            parent=self
+        )
+        dialog.exec()
 
 # Refactored / updated upload_statement module and service integration

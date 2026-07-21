@@ -60,6 +60,7 @@ class DashboardScreen(QWidget):
         self.create_generate_excel_page()
         self.create_gst_report_page()
         self.create_duplicate_finder_page()
+        self.create_email_history_page()
         
         right_layout.addWidget(self.page_stack)
         layout.addWidget(right_container)
@@ -75,7 +76,8 @@ class DashboardScreen(QWidget):
             "settings": 5,
             "generate_excel": 6,
             "gst_report": 7,
-            "duplicate_finder": 8
+            "duplicate_finder": 8,
+            "email_history": 9
         }
         if key in mapping:
             self.page_stack.setCurrentIndex(mapping[key])
@@ -91,6 +93,8 @@ class DashboardScreen(QWidget):
                 self.generate_excel_widget.load_recent_generated_sheets()
             elif key == "duplicate_finder":
                 self.duplicate_finder_widget.load_history_dropdown()
+            elif key == "email_history":
+                self.email_history_widget.load_email_history()
 
     def switch_to_upload_with_preset(self, flow):
         """Pre-sets the format selection on the upload widget before switching pages."""
@@ -418,6 +422,8 @@ class DashboardScreen(QWidget):
                 card.clicked.connect(lambda: self.switch_dashboard_page("generate_excel"))
             elif title == "Duplicate Finder":
                 card.clicked.connect(lambda: self.switch_dashboard_page("duplicate_finder"))
+            elif title == "Email Report":
+                card.clicked.connect(lambda: self.switch_dashboard_page("email_history"))
             else:
                 card.clicked.connect(lambda t=title: self.show_coming_soon(t))
                 
@@ -480,6 +486,12 @@ class DashboardScreen(QWidget):
         self.duplicate_finder_widget = DuplicateFinderWidget(self)
         self.duplicate_finder_widget.closed.connect(lambda: self.switch_dashboard_page("dashboard"))
         self.page_stack.addWidget(self.duplicate_finder_widget)
+
+    def create_email_history_page(self):
+        """Creates the Email History page."""
+        from ui.email_history_page import EmailHistoryPage
+        self.email_history_widget = EmailHistoryPage(self)
+        self.page_stack.addWidget(self.email_history_widget)
 
     def create_history_page(self):
         """History Page presenting actual processed transaction logs."""
@@ -767,6 +779,25 @@ class DashboardScreen(QWidget):
             else:
                 dl_btn.clicked.connect(lambda checked, t=r_title: self.show_coming_soon(t))
             rc_layout.addWidget(dl_btn)
+
+            # Email Action Button
+            email_card_btn = QPushButton("✉ Send Email")
+            email_card_btn.setFixedSize(110, 30)
+            email_card_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            email_card_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #F5F3FF;
+                    color: #7C3AED;
+                    font-weight: bold;
+                    font-size: 12px;
+                    border: 1px solid #DDD6FE;
+                    border-radius: 6px;
+                }
+                QPushButton:hover { background-color: #EDE9FE; }
+            """)
+            email_card_btn.clicked.connect(lambda checked, t=r_title: self.open_email_composer_for_report(t))
+            rc_layout.addWidget(email_card_btn)
+
             rl_layout.addWidget(r_card)
             
         rl_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
@@ -782,6 +813,15 @@ class DashboardScreen(QWidget):
             "GST Tax Ledger Export Mode",
             "Please upload your bank statement PDF. The app is set to automatically extract transactions and calculate the GST Tax Ledger report for this upload."
         )
+
+    def open_email_composer_for_report(self, report_title):
+        """Opens Email Composer dialog for reports page cards."""
+        from ui.email_composer_dialog import EmailComposerDialog
+        dialog = EmailComposerDialog(
+            report_type=report_title,
+            parent=self
+        )
+        dialog.exec()
 
     def create_settings_page(self):
         """Instantiates the premium MVC Settings view and controller."""

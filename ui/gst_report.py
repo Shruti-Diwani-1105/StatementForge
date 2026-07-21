@@ -197,6 +197,24 @@ class GSTReportWidget(QWidget):
         """)
         self.export_csv_btn.clicked.connect(self.export_csv)
         control_layout.addWidget(self.export_csv_btn)
+
+        # Send via Email Button (Purple/Blue accent)
+        self.send_email_btn = QPushButton("✉ Send via Email")
+        self.send_email_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.send_email_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #F5F3FF;
+                color: #7C3AED;
+                border: 1px solid #DDD6FE;
+                border-radius: 6px;
+                padding: 7px 14px;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QPushButton:hover { background-color: #EDE9FE; }
+        """)
+        self.send_email_btn.clicked.connect(self.open_email_composer)
+        control_layout.addWidget(self.send_email_btn)
         
         control_layout.addStretch()
         main_layout.addWidget(control_card)
@@ -590,6 +608,23 @@ class GSTReportWidget(QWidget):
                 subprocess.run(["open", filepath] if os.name == 'posix' else ["xdg-open", filepath])
         except Exception as e:
             QMessageBox.critical(self, "Export Failed", f"Could not save CSV ledger:\n{e}")
+
+    def open_email_composer(self):
+        """Opens the Email Composer dialog pre-attaching the GST report."""
+        from ui.email_composer_dialog import EmailComposerDialog
+        
+        attachment = getattr(self, "excel_path", None)
+        period = getattr(self, "statement_period", "") or "July 2026"
+        bank = getattr(self, "bank_name", "") or ""
+
+        dialog = EmailComposerDialog(
+            report_type="GST Reconciliation & Analysis Report",
+            default_attachment=attachment,
+            period=period,
+            bank_name=bank,
+            parent=self
+        )
+        dialog.exec()
 
     def close_report(self):
         """Clears states and returns to the dashboard screen."""

@@ -1133,62 +1133,6 @@ class SettingsWindow(QWidget):
         
         layout.addWidget(card2)
 
-    def _build_email_page(self):
-        _, layout = self.pages[6]
-        self._add_page_header(layout, "SMTP Email Settings", "Configure credentials to mail export spreadsheets and reports automatically.")
-        
-        card1 = SettingCard("SMTP Server Configurations", "SMTP credentials for connecting to mail gateways.")
-        grid = QGridLayout()
-        
-        grid.addWidget(QLabel("SMTP Server Address:"), 0, 0)
-        self.email_smtp = QLineEdit()
-        self.email_smtp_err = self._create_error_label()
-        grid.addWidget(self.email_smtp, 0, 1)
-        grid.addWidget(self.email_smtp_err, 1, 1)
-        
-        grid.addWidget(QLabel("SMTP Server Port:"), 2, 0)
-        self.email_port = QLineEdit()
-        self.email_port_err = self._create_error_label()
-        grid.addWidget(self.email_port, 2, 1)
-        grid.addWidget(self.email_port_err, 3, 1)
-        
-        grid.addWidget(QLabel("Sender Email Address:"), 4, 0)
-        self.email_sender = QLineEdit()
-        self.email_sender_err = self._create_error_label()
-        grid.addWidget(self.email_sender, 4, 1)
-        grid.addWidget(self.email_sender_err, 5, 1)
-        
-        grid.addWidget(QLabel("Sender Passcode:"), 6, 0)
-        self.email_password_field = PasswordInput("Enter SMTP Password / App Specific Key")
-        grid.addWidget(self.email_password_field, 6, 1)
-        
-        card1.add_layout(grid)
-        
-        # Button test
-        btn_test = QPushButton("Send Test Email Notification")
-        btn_test.setObjectName("SecondaryButton")
-        btn_test.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        btn_test.clicked.connect(self._trigger_email_test)
-        card1.add_widget(btn_test)
-        
-        layout.addWidget(card1)
-        
-        # Card 2: Templates
-        card2 = SettingCard("Email Dispatch Template", "Default signature and subjects sent alongside statements.")
-        grid2 = QGridLayout()
-        
-        grid2.addWidget(QLabel("Email Subject:"), 0, 0)
-        self.email_subject = QLineEdit()
-        grid2.addWidget(self.email_subject, 0, 1)
-        
-        grid2.addWidget(QLabel("Default Signature:"), 1, 0)
-        self.email_signature = QTextEdit()
-        self.email_signature.setFixedHeight(80)
-        grid2.addWidget(self.email_signature, 1, 1)
-        
-        card2.add_layout(grid2)
-        layout.addWidget(card2)
-
     def _build_appearance_page(self):
         _, layout = self.pages[2]
         self._add_page_header(layout, "Appearance Settings", "Select visual styles, colors, and layout densities.")

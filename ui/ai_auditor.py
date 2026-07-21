@@ -323,6 +323,24 @@ class AIAuditorWidget(QWidget):
         v_title.setStyleSheet("font-size: 15px; font-weight: 700; color: #1E293B;")
         viewer_title_bar.addWidget(v_title)
         viewer_title_bar.addStretch()
+
+        self.btn_send_ai_email = QPushButton("✉ Send via Email")
+        self.btn_send_ai_email.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_send_ai_email.setStyleSheet("""
+            QPushButton {
+                background-color: #F5F3FF;
+                color: #7C3AED;
+                border: 1px solid #DDD6FE;
+                border-radius: 6px;
+                padding: 5px 12px;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QPushButton:hover { background-color: #EDE9FE; }
+        """)
+        self.btn_send_ai_email.clicked.connect(self.open_email_composer)
+        viewer_title_bar.addWidget(self.btn_send_ai_email)
+
         v_layout.addLayout(viewer_title_bar)
 
         self.report_viewer = QTextBrowser()
@@ -1250,3 +1268,20 @@ class AIAuditorWidget(QWidget):
         else:
             body_color = "#F8FAFC" if theme == "dark" else "#1E293B"
             self.report_viewer.setStyleSheet(f"border: none; background-color: transparent; color: {body_color};")
+
+    def open_email_composer(self):
+        """Opens Email Composer pre-attaching active AI report."""
+        from ui.email_composer_dialog import EmailComposerDialog
+        
+        attachment = getattr(self, "excel_path", None) or getattr(self, "pdf_path", None)
+        period = getattr(self, "statement_period", "") or ""
+        bank = getattr(self, "detected_bank", "") or ""
+
+        dialog = EmailComposerDialog(
+            report_type="AI Financial Analysis Report",
+            default_attachment=attachment,
+            period=period,
+            bank_name=bank,
+            parent=self
+        )
+        dialog.exec()

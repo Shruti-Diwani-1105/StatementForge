@@ -223,6 +223,26 @@ class GenerateExcelWidget(QWidget):
         self.download_btn.clicked.connect(self.open_generated_excel)
         top_bar.addWidget(self.download_btn)
 
+        self.email_btn = QPushButton("✉ Send via Email")
+        self.email_btn.setEnabled(False)
+        self.email_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.email_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #7C3AED;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 18px;
+                font-weight: bold;
+                font-size: 13px;
+                font-family: 'Times New Roman';
+            }
+            QPushButton:hover { background-color: #6D28D9; }
+            QPushButton:disabled { background-color: #E2E8F0; color: #94A3B8; }
+        """)
+        self.email_btn.clicked.connect(self.open_email_composer)
+        top_bar.addWidget(self.email_btn)
+
         right_layout.addLayout(top_bar)
 
         # Progress / Status Card
@@ -515,6 +535,7 @@ class GenerateExcelWidget(QWidget):
             self.lbl_status.setText("Status: Conversion completed successfully!")
             self.pbar.setValue(100)
             self.download_btn.setEnabled(True)
+            self.email_btn.setEnabled(True)
             self.generate_btn.setEnabled(True)
             self.load_recent_generated_sheets()
             Toast.success(self, "✓ Excel workbook compiled successfully!")
@@ -671,3 +692,18 @@ class GenerateExcelWidget(QWidget):
                 style = label.styleSheet()
                 if "color: #F8FAFC" in style:
                     label.setStyleSheet(style.replace("color: #F8FAFC", "color: #0F172A"))
+
+    def open_email_composer(self):
+        """Opens Email Composer pre-attaching generated Excel sheet."""
+        from ui.email_composer_dialog import EmailComposerDialog
+        
+        attachment = getattr(self, "excel_output_path", None)
+        bank = getattr(self, "detected_bank", "") or ""
+
+        dialog = EmailComposerDialog(
+            report_type="Excel Export Report",
+            default_attachment=attachment,
+            bank_name=bank,
+            parent=self
+        )
+        dialog.exec()

@@ -61,6 +61,7 @@ class Sidebar(QFrame):
             ("AI Auditor", "ai_auditor", "ai"),
             ("Duplicate Finder", "duplicate_finder", "duplicate"),
             ("Statement History", "history", "history"),
+            ("Email Center", "email_history", "email"),
             ("Reports", "reports", "reports"),
             ("Settings", "settings", "settings")
         ]

@@ -8,3 +8,4 @@ opencv-python>=4.8.0
 pytesseract>=0.3.10
 google-genai>=2.12.1
 openai>=1.0.0
+keyring>=24.0.0
