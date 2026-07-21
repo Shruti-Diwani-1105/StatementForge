@@ -4,8 +4,8 @@ from PyQt6.QtWidgets import (
     QTextEdit, QPushButton, QFrame, QFileDialog, QMessageBox,
     QProgressBar, QScrollArea, QWidget, QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QCursor, QFont, QIcon, QPixmap, QColor
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QUrl
+from PyQt6.QtGui import QCursor, QFont, QIcon, QPixmap, QColor, QDesktopServices, QGuiApplication
 
 from services.email_service import EmailService
 from services.credential_manager import CredentialManager
@@ -404,6 +404,23 @@ class EmailComposerDialog(QDialog):
         self.draft_btn.clicked.connect(self.save_draft_action)
         footer_lay.addWidget(self.draft_btn)
 
+        self.webmail_btn = QPushButton("🌐 Open Webmail")
+        self.webmail_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.webmail_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #EFF6FF;
+                color: #2563EB;
+                border: 1px solid #BFDBFE;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover { background-color: #DBEAFE; }
+        """)
+        self.webmail_btn.clicked.connect(self.open_webmail_action)
+        footer_lay.addWidget(self.webmail_btn)
+
         self.send_btn = QPushButton("Send Email")
         self.send_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.send_btn.setStyleSheet("""
@@ -436,6 +453,7 @@ class EmailComposerDialog(QDialog):
 
         # Fetch password securely from keyring
         self.sender_password = CredentialManager.get_password(self.sender_email) if self.sender_email else ""
+        self.update_webmail_button_label()
 
         if self.sender_email and self.smtp_host:
             self.sender_notice.setText(f"✓ Sender Email: {self.sender_email} ({self.smtp_host}:{self.smtp_port})")
@@ -599,6 +617,7 @@ class EmailComposerDialog(QDialog):
         """Triggers Gmail-style auto-save timer after typing stops."""
         if self.is_discarded or self.is_sent:
             return
+        self.update_webmail_button_label()
         self.draft_status_lbl.setText("Saving draft...")
         self.auto_save_timer.start(1200)
 
@@ -700,3 +719,48 @@ class EmailComposerDialog(QDialog):
         )
         self.emailSentSuccess.emit({"status": "Draft", "id": self.draft_id, "recipient": recipient})
         self.accept()
+
+    def update_webmail_button_label(self):
+        """Updates the webmail button label based on configured sender or recipient domain."""
+        recipient = self.to_input.text().strip() if hasattr(self, "to_input") else ""
+        provider_name, _ = EmailService.get_webmail_compose_url(
+            sender_email=getattr(self, "sender_email", ""),
+            recipient=recipient
+        )
+        if "Google" in provider_name:
+            self.webmail_btn.setText("🌐 Open in Google Mail (Gmail)")
+        elif "Yahoo" in provider_name:
+            self.webmail_btn.setText("🌐 Open in Yahoo Mail")
+        elif "Outlook" in provider_name:
+            self.webmail_btn.setText("🌐 Open in Outlook Web")
+        else:
+            self.webmail_btn.setText("🌐 Open in Webmail / Mail App")
+
+    def open_webmail_action(self):
+        """Opens user's registered webmail provider (Google Mail, Yahoo Mail, Outlook Web, or Default Mail)."""
+        recipient = self.to_input.text().strip()
+        cc = self.cc_input.text().strip()
+        bcc = self.bcc_input.text().strip()
+        subject = self.subject_input.text().strip()
+        message = self.message_input.toPlainText()
+
+        provider_name, compose_url = EmailService.get_webmail_compose_url(
+            sender_email=getattr(self, "sender_email", ""),
+            recipient=recipient,
+            subject=subject,
+            body=message,
+            cc=cc,
+            bcc=bcc
+        )
+
+        # Copy attachment path to clipboard if attachments exist
+        if self.attachment_paths:
+            att_info = "\n".join([os.path.basename(p) for p in self.attachment_paths])
+            cb = QGuiApplication.clipboard()
+            if cb:
+                cb.setText(self.attachment_paths[0])
+            self.show_status_banner(f"✓ Opening {provider_name}. Attachment path copied to clipboard!", is_error=False)
+        else:
+            self.show_status_banner(f"✓ Opening {provider_name} composer...", is_error=False)
+
+        QDesktopServices.openUrl(QUrl(compose_url))

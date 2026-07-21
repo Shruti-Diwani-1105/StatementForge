@@ -5,6 +5,7 @@ import smtplib
 import mimetypes
 import datetime
 from email.message import EmailMessage
+import urllib.parse
 from database.email_repository import EmailRepository
 from services.credential_manager import CredentialManager
 
@@ -47,6 +48,46 @@ class EmailService:
     Core Email Service for StatementForge.
     Handles email validation, template generation, SMTP connection, and attachment processing.
     """
+
+    @staticmethod
+    def get_webmail_compose_url(sender_email: str = "", recipient: str = "", subject: str = "", body: str = "", cc: str = "", bcc: str = ""):
+        """
+        Returns (provider_name, compose_url) for Google Mail, Yahoo Mail, Outlook Web, or Default Mail.
+        Auto-detects provider based on sender_email or recipient domain.
+        """
+        domain = ""
+        email_to_check = (sender_email or recipient or "").strip().lower()
+        if "@" in email_to_check:
+            domain = email_to_check.split("@")[-1]
+
+        to_enc = urllib.parse.quote(recipient.strip())
+        su_enc = urllib.parse.quote(subject.strip())
+        body_enc = urllib.parse.quote(body.strip())
+        cc_enc = urllib.parse.quote(cc.strip())
+        bcc_enc = urllib.parse.quote(bcc.strip())
+
+        if "gmail.com" in domain or "google" in domain:
+            provider = "Google Mail (Gmail)"
+            url = f"https://mail.google.com/mail/?view=cm&fs=1&to={to_enc}&su={su_enc}&body={body_enc}"
+            if cc_enc:
+                url += f"&cc={cc_enc}"
+            if bcc_enc:
+                url += f"&bcc={bcc_enc}"
+        elif "yahoo" in domain:
+            provider = "Yahoo Mail"
+            url = f"https://compose.mail.yahoo.com/?to={to_enc}&subject={su_enc}&body={body_enc}"
+        elif any(d in domain for d in ["outlook", "hotmail", "live", "office365", "microsoft"]):
+            provider = "Outlook Web"
+            url = f"https://outlook.live.com/mail/0/deeplink/compose?to={to_enc}&subject={su_enc}&body={body_enc}"
+        else:
+            provider = "Webmail / Default Mail App"
+            url = f"mailto:{to_enc}?subject={su_enc}&body={body_enc}"
+            if cc_enc:
+                url += f"&cc={cc_enc}"
+            if bcc_enc:
+                url += f"&bcc={bcc_enc}"
+
+        return provider, url
 
     @staticmethod
     def validate_email_address(email_str: str) -> bool:
