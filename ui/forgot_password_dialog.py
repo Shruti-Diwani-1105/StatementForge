@@ -3,10 +3,10 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QFrame, QStackedWidget, QSpacerItem, QSizePolicy
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QCursor
 
-from widgets.custom_button import PrimaryButton, SecondaryButton
+from widgets.custom_button import PrimaryButton, SecondaryButton, LinkButton
 from ui.register import PremiumInputGroup, PasswordRequirementsWidget, ToastNotification
 from utils.auth_db import AuthDB
 from services.otp_service import OTPService, SendOTPWorker
@@ -14,43 +14,37 @@ from services.otp_service import OTPService, SendOTPWorker
 class ForgotPasswordDialog(QDialog):
     """
     Polished multi-step wizard dialog for resetting password.
-    Step 1: Enter email
-    Step 2: Enter verification code (mock: 123456)
-    Step 3: Enter new password (checked against standard criteria)
-    Step 4: Success confirmation
+    Step 0: Enter email
+    Step 1: Enter verification code (with Resend Code timer)
+    Step 2: Enter new password (checked against standard criteria)
+    Step 3: Success confirmation
     """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Reset Password")
         self.setFixedSize(480, 520)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #FFFFFF;
-                border: 1px solid #c4c5d7;
-                border-radius: 12px;
-            }
-            QLabel {
-                font-family: "Times New Roman", Times, Georgia, serif;
-            }
-        """)
-
-        self.email_address = ""
-        self.otp_worker = None
+        self.setStyleSheet("QDialog { background-color: #FFFFFF; }")
         
-        # Main Layout
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(32, 32, 32, 32)
-        self.main_layout.setSpacing(0)
+        self.email_address = ""
+        
+        # Resend timer setup
+        self.resend_seconds_left = 0
+        self.resend_timer = QTimer(self)
+        self.resend_timer.setInterval(1000)
+        self.resend_timer.timeout.connect(self.update_resend_countdown)
+        
+        self.init_ui()
 
-        # Wizard stacked widget
-        self.stack = QStackedWidget(self)
-        self.main_layout.addWidget(self.stack)
+    def init_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(32, 32, 32, 32)
+        main_layout.setSpacing(0)
 
-        self.init_pages()
+        # Stacked Widget for Wizard Pages
+        self.stack = QStackedWidget()
+        main_layout.addWidget(self.stack)
 
-    def init_pages(self):
-        # ------------------ PAGE 0: EMAIL INPUT ------------------
+        # ------------------ PAGE 0: ENTER EMAIL ------------------
         self.page_email = QFrame()
         layout_email = QVBoxLayout(self.page_email)
         layout_email.setContentsMargins(0, 0, 0, 0)
@@ -58,11 +52,15 @@ class ForgotPasswordDialog(QDialog):
 
         title_email = QLabel("Forgot Password")
         title_email.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Times New Roman';")
-        desc_email = QLabel("Enter your registered email address below, and we'll send you a password reset code.")
+        
+        desc_email = QLabel(
+            "Enter your registered email address below. We'll send you a 6-digit "
+            "verification code to reset your password."
+        )
         desc_email.setWordWrap(True)
         desc_email.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Times New Roman';")
-        
-        self.email_input = PremiumInputGroup("Email Address", "xyz@gmail.com", "assets/icons/email.png", is_password=False, parent=self)
+
+        self.email_input = PremiumInputGroup("Email Address", "alex@example.com", "assets/icons/email.png", is_password=False, parent=self)
         self.email_input.textChanged.connect(self.clear_email_errors)
 
         btn_layout_email = QHBoxLayout()
@@ -71,7 +69,7 @@ class ForgotPasswordDialog(QDialog):
         self.btn_email_cancel.clicked.connect(self.reject)
         self.btn_email_next = PrimaryButton("Send Code")
         self.btn_email_next.clicked.connect(self.process_email)
-        
+
         btn_layout_email.addWidget(self.btn_email_cancel)
         btn_layout_email.addWidget(self.btn_email_next)
 
@@ -86,7 +84,7 @@ class ForgotPasswordDialog(QDialog):
         self.page_code = QFrame()
         layout_code = QVBoxLayout(self.page_code)
         layout_code.setContentsMargins(0, 0, 0, 0)
-        layout_code.setSpacing(20)
+        layout_code.setSpacing(8)
 
         title_code = QLabel("Verify Identity")
         title_code.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Times New Roman';")
@@ -97,6 +95,22 @@ class ForgotPasswordDialog(QDialog):
 
         self.code_input = PremiumInputGroup("Verification Code", "Enter 6-digit code", "assets/icons/lock.png", is_password=False, parent=self)
         self.code_input.textChanged.connect(self.clear_code_errors)
+
+        # Resend Option Row - Positioned directly beneath verification input box
+        resend_layout = QHBoxLayout()
+        resend_layout.setContentsMargins(0, 0, 0, 0)
+        resend_layout.setSpacing(6)
+        resend_lbl = QLabel("Didn't receive the code?")
+        resend_lbl.setStyleSheet("font-size: 13px; color: #64748B; font-family: 'Times New Roman';")
+        
+        self.resend_btn = LinkButton("Resend Code")
+        self.resend_btn.setStyleSheet("font-weight: bold; border: none; padding: 0px; color: #0037b0; font-family: 'Times New Roman'; background: transparent; font-size: 13px;")
+        self.resend_btn.clicked.connect(self.resend_otp_code)
+        
+        resend_layout.addWidget(resend_lbl)
+        resend_layout.addWidget(self.resend_btn)
+        resend_layout.addStretch()
+
 
         btn_layout_code = QHBoxLayout()
         btn_layout_code.setSpacing(12)
@@ -111,6 +125,7 @@ class ForgotPasswordDialog(QDialog):
         layout_code.addWidget(title_code)
         layout_code.addWidget(self.desc_code)
         layout_code.addWidget(self.code_input)
+        layout_code.addLayout(resend_layout)
         layout_code.addStretch()
         layout_code.addLayout(btn_layout_code)
         self.stack.addWidget(self.page_code)
@@ -219,6 +234,7 @@ class ForgotPasswordDialog(QDialog):
         self.confirm_input.set_error(None)
 
     def go_back_to_email(self):
+        self.resend_timer.stop()
         self.stack.setCurrentIndex(0)
 
     def go_back_to_code(self):
@@ -271,9 +287,48 @@ class ForgotPasswordDialog(QDialog):
             )
             toast = ToastNotification(self, "Verification code sent")
             toast.show_toast()
+            self.start_resend_countdown(30)
             self.stack.setCurrentIndex(1)
         else:
             self.email_input.set_error(f"❌ Failed to send code: {message}")
+
+    def resend_otp_code(self):
+        """Resends OTP code to registered email with cooldown timer."""
+        if self.resend_seconds_left > 0:
+            return
+
+        self.resend_btn.setEnabled(False)
+        self.resend_btn.setText("Sending code...")
+        
+        otp = OTPService.generate_otp(self.email_address)
+        self.resend_worker = SendOTPWorker(self.email_address, otp)
+        self.resend_worker.finished.connect(self.on_resend_finished)
+        self.resend_worker.start()
+
+    def on_resend_finished(self, success: bool, message: str):
+        if success:
+            toast = ToastNotification(self, "New verification code sent!")
+            toast.show_toast()
+            self.start_resend_countdown(30)
+        else:
+            self.code_input.set_error(f"❌ Failed to resend code: {message}")
+            self.resend_btn.setEnabled(True)
+            self.resend_btn.setText("Resend Code")
+
+    def start_resend_countdown(self, seconds=30):
+        self.resend_seconds_left = seconds
+        self.resend_btn.setEnabled(False)
+        self.resend_btn.setText(f"Resend in {self.resend_seconds_left}s")
+        self.resend_timer.start()
+
+    def update_resend_countdown(self):
+        self.resend_seconds_left -= 1
+        if self.resend_seconds_left <= 0:
+            self.resend_timer.stop()
+            self.resend_btn.setEnabled(True)
+            self.resend_btn.setText("Resend Code")
+        else:
+            self.resend_btn.setText(f"Resend in {self.resend_seconds_left}s")
 
     def process_code(self):
         code = self.code_input.text().strip()
@@ -287,6 +342,7 @@ class ForgotPasswordDialog(QDialog):
             self.code_input.set_error(f"❌ {message}")
             return
 
+        self.resend_timer.stop()
         self.stack.setCurrentIndex(2)
 
     def on_pass_changed(self):

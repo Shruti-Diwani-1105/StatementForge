@@ -6,12 +6,12 @@ warnings.filterwarnings("ignore", category=UserWarning)
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+import PyQt6.QtWebEngineWidgets  # Mandatory import before QApplication initialization
 
 # Ensure project root is in the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils.asset_generator import generate_assets
-
 from utils.theme_manager import ThemeManager
 
 def load_stylesheet(app):
@@ -19,14 +19,15 @@ def load_stylesheet(app):
     ThemeManager.initialize_theme()
 
 def main():
-    # 1. Enable High DPI support for sharp text and clean assets
-    # (High DPI is default in PyQt6, but explicitly adjusting scale policies ensures consistency across OS)
+    # 1. Enable High DPI support and OpenGL Context Sharing for WebEngine
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
     
     # 2. Create the Qt application instance
     app = QApplication(sys.argv)
+
     
     # Initialize global responsive scaling and Ctrl+Scroll/Key zoom filter
     from utils.responsive_scaling import apply_responsive_patches

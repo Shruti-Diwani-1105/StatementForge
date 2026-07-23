@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge - Login</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="styles/auth.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body>
+    <div class="auth-wrapper fade-in">
+        <!-- Back Navigation Bar -->
+        <div class="top-nav">
+            <button class="btn btn-outline btn-sm" onclick="navigateTo('welcome')">
+                &larr; Back
+            </button>
+        </div>
+
+        <!-- Central Login Card -->
+        <div class="auth-card">
+            <div class="card-header">
+                <div class="logo-box">
+                    <img src="../assets/logo.png" alt="Logo" class="card-logo" onerror="this.src='../assets/icons/ai.png'">
+                </div>
+                <h2>Welcome Back</h2>
+                <p>Login to manage and parse your statements.</p>
+            </div>
+
+            <!-- Error Banner -->
+            <div id="errorBanner" class="alert alert-error" style="display: none;">
+                <span class="alert-icon">⚠️</span>
+                <span id="errorMessage">Invalid email or password</span>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleFormSubmit(event)">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" class="form-input" placeholder="Enter your email" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <div class="label-row">
+                        <label for="password">Password</label>
+                        <button type="button" class="btn-link" onclick="triggerForgotPassword()">Forgot Password?</button>
+                    </div>
+                    <div class="input-password-wrapper">
+                        <input type="password" id="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password', this)" title="Show/Hide Password">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="remember">
+                        <span class="checkmark"></span>
+                        Remember this device
+                    </label>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-block">
+                    Login to Account
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>or</span>
+            </div>
+
+            <!-- Google OAuth Button -->
+            <button type="button" class="btn btn-outline btn-block btn-google" onclick="triggerGoogleAuth()">
+                <img src="../assets/icons/google.png" alt="Google" class="google-icon" onerror="this.style.display='none'">
+                Continue with Google
+            </button>
+
+            <!-- Register Footer -->
+            <div class="card-footer">
+                <span>Don't have an account?</span>
+                <button type="button" class="btn-link" onclick="navigateTo('register')">Register Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const remember = document.getElementById('remember').checked;
+
+            hideError();
+            if (!email || !password) {
+                showError("Please fill in both email and password.");
+                return;
+            }
+
+            submitLogin(email, password, remember);
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🔒';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        function showError(message) {
+            const banner = document.getElementById('errorBanner');
+            const text = document.getElementById('errorMessage');
+            text.textContent = message;
+            banner.style.display = 'flex';
+        }
+
+        function hideError() {
+            document.getElementById('errorBanner').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

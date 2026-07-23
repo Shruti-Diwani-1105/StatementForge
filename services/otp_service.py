@@ -36,42 +36,47 @@ class SendOTPWorker(QThread):
 
         # Create message container
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = "StatementForge - Password Reset Verification Code"
+        msg["Subject"] = f"StatementForge - Verification Code: {self.otp}"
         msg["From"] = f"StatementForge Support <{sender_email}>"
         msg["To"] = self.email
 
         # Create standard text and beautiful HTML message bodies
-        text_content = f"Your StatementForge password reset verification code is: {self.otp}\nThis code is valid for 5 minutes."
+        text_content = (
+            f"Your StatementForge password reset verification code is: {self.otp}\n\n"
+            f"Please enter code {self.otp} in the application to reset your password.\n"
+            f"This code is valid for 5 minutes."
+        )
         
         html_content = f"""
         <html>
           <body style="font-family: 'Times New Roman', Times, Georgia, serif; background-color: #F8FAFC; color: #1E293B; padding: 40px 20px; margin: 0;">
             <div style="max-width: 500px; margin: 0 auto; background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
               <!-- Header -->
-              <div style="background-color: #2563EB; padding: 24px; text-align: center; color: #FFFFFF;">
+              <div style="background-color: #0037b0; padding: 24px; text-align: center; color: #FFFFFF;">
                 <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">StatementForge</h1>
               </div>
               <!-- Body -->
               <div style="padding: 32px 24px;">
-                <h2 style="margin-top: 0; font-size: 18px; font-weight: 600; color: #0F172A;">Reset Your Password</h2>
+                <h2 style="margin-top: 0; font-size: 18px; font-weight: 600; color: #0F172A;">Your Verification Code</h2>
                 <p style="font-size: 14px; line-height: 1.6; color: #64748B;">
-                  You requested a password reset for your StatementForge account. Use the verification code below to proceed:
+                  You requested a password reset for <b>{self.email}</b>. Use the 6-digit verification code below:
                 </p>
-                <div style="background-color: #F1F5F9; border-radius: 8px; padding: 16px; margin: 24px 0; text-align: center;">
-                  <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #2563EB; font-family: monospace;">{self.otp}</span>
+                <div style="background-color: #EFF6FF; border: 2px dashed #0037b0; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: center;">
+                  <span style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #0037b0; font-family: monospace;">{self.otp}</span>
                 </div>
-                <p style="font-size: 12px; color: #94A3B8; text-align: center; margin-bottom: 0;">
-                  This code is valid for <b>5 minutes</b>. If you did not request this reset, you can safely ignore this email.
+                <p style="font-size: 13px; color: #64748B; text-align: center; margin-bottom: 0;">
+                  This code is valid for <b>5 minutes</b>.
                 </p>
               </div>
               <!-- Footer -->
               <div style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 16px; text-align: center; font-size: 11px; color: #94A3B8;">
-                &copy; 2026 StatementForge. All rights reserved.
+                &copy; 2026 StatementForge Inc. All rights reserved.
               </div>
             </div>
           </body>
         </html>
         """
+
 
         part1 = MIMEText(text_content, "plain")
         part2 = MIMEText(html_content, "html")

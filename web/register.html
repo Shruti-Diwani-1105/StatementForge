@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge - Register</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="styles/auth.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body>
+    <div class="auth-wrapper fade-in">
+        <!-- Back Navigation Bar -->
+        <div class="top-nav">
+            <button class="btn btn-outline btn-sm" onclick="navigateTo('welcome')">
+                &larr; Back
+            </button>
+        </div>
+
+        <!-- Central Register Card -->
+        <div class="auth-card">
+            <div class="card-header">
+                <div class="logo-box">
+                    <img src="../assets/logo.png" alt="Logo" class="card-logo" onerror="this.src='../assets/icons/ai.png'">
+                </div>
+                <h2>Create an Account</h2>
+                <p>Join StatementForge to parse and manage financial statements.</p>
+            </div>
+
+            <!-- Error Banner -->
+            <div id="errorBanner" class="alert alert-error" style="display: none;">
+                <span class="alert-icon">⚠️</span>
+                <span id="errorMessage">Please complete all fields correctly.</span>
+            </div>
+
+            <!-- Register Form -->
+            <form id="registerForm" onsubmit="handleRegisterSubmit(event)">
+                <div class="form-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" class="form-input" placeholder="e.g. Alex Johnson" required autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" class="form-input" placeholder="e.g. alex@example.com" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-password-wrapper">
+                        <input type="password" id="password" class="form-input" placeholder="Create a strong password" required autocomplete="new-password" oninput="validatePasswordReqs(this.value)">
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password', this)" title="Show/Hide Password">
+                            👁️
+                        </button>
+                    </div>
+
+                    <!-- Password Requirements Grid -->
+                    <div class="password-reqs">
+                        <div id="reqLen" class="req-item">&check; 8+ chars</div>
+                        <div id="reqUpper" class="req-item">&check; Uppercase</div>
+                        <div id="reqLower" class="req-item">&check; Lowercase</div>
+                        <div id="reqNum" class="req-item">&check; Number</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <div class="input-password-wrapper">
+                        <input type="password" id="confirmPassword" class="form-input" placeholder="Re-enter password" required autocomplete="new-password">
+                        <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)" title="Show/Hide Password">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-block">
+                    Register Account
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>or</span>
+            </div>
+
+            <!-- Google OAuth Button -->
+            <button type="button" class="btn btn-outline btn-block btn-google" onclick="triggerGoogleAuth()">
+                <img src="../assets/icons/google.png" alt="Google" class="google-icon" onerror="this.style.display='none'">
+                Continue with Google
+            </button>
+
+            <!-- Login Footer -->
+            <div class="card-footer">
+                <span>Already have an account?</span>
+                <button type="button" class="btn-link" onclick="navigateTo('login')">Login Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function validatePasswordReqs(pwd) {
+            document.getElementById('reqLen').classList.toggle('req-valid', pwd.length >= 8);
+            document.getElementById('reqUpper').classList.toggle('req-valid', /[A-Z]/.test(pwd));
+            document.getElementById('reqLower').classList.toggle('req-valid', /[a-z]/.test(pwd));
+            document.getElementById('reqNum').classList.toggle('req-valid', /[0-9]/.test(pwd));
+        }
+
+        function handleRegisterSubmit(event) {
+            event.preventDefault();
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            hideError();
+
+            if (!fullName || !email || !password || !confirmPassword) {
+                showError("All fields are required.");
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showError("Passwords do not match.");
+                return;
+            }
+
+            if (password.length < 8) {
+                showError("Password must be at least 8 characters long.");
+                return;
+            }
+
+            submitRegister(fullName, email, password, confirmPassword);
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🔒';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        function showError(message) {
+            const banner = document.getElementById('errorBanner');
+            const text = document.getElementById('errorMessage');
+            text.textContent = message;
+            banner.style.display = 'flex';
+        }
+
+        function hideError() {
+            document.getElementById('errorBanner').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
