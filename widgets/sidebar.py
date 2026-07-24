@@ -1,11 +1,12 @@
-from PyQt6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QButtonGroup, QSpacerItem, QSizePolicy
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QPixmap, QIcon, QCursor
+import os
+from PyQt6.QtWidgets import QFrame, QVBoxLayout
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 class Sidebar(QFrame):
     """
-    Left-hand sidebar menu for application navigation. Exposes signals when items
-    are clicked to switch pages.
+    Left-hand sidebar menu for application navigation rendered with HTML + CSS.
+    Exposes signals when items are clicked to switch pages.
     """
     nav_changed = pyqtSignal(str)  # Emits the page key, e.g. "dashboard", "upload", etc.
     logout_clicked = pyqtSignal()
@@ -13,98 +14,69 @@ class Sidebar(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("SidebarFrame")
-        
-        # Setup vertical layout
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 24, 16, 24)
-        layout.setSpacing(8)
-        
-        # 1. Header (Logo + Title)
-        header_layout = QHBoxLayout()
-        header_layout.setSpacing(12)
-        
-        logo_label = QLabel()
-        logo_label.setFixedSize(32, 32)
-        logo_pixmap = QPixmap("assets/logo.png")
-        if not logo_pixmap.isNull():
-            logo_label.setPixmap(logo_pixmap.scaled(32, 32, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        header_layout.addWidget(logo_label)
-        
-        title_info = QVBoxLayout()
-        title_info.setSpacing(0)
-        
-        app_title = QLabel("StatementForge")
-        app_title.setObjectName("SidebarAppTitle")
-        app_title.setMinimumHeight(24)
-        app_title.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        
-        app_version = QLabel("v1.0")
-        app_version.setObjectName("SidebarAppVersion")
-        
-        title_info.addWidget(app_title)
-        title_info.addWidget(app_version)
-        header_layout.addLayout(title_info)
-        
-        layout.addLayout(header_layout)
-        
-        # Spacer below header
-        layout.addSpacing(24)
-        
-        # 2. Navigation Group
-        self.btn_group = QButtonGroup(self)
-        self.btn_group.setExclusive(True)
-        
-        # Define menu items (label, key, icon filename)
-        self.menu_items = [
-            ("Dashboard", "dashboard", "dashboard"),
-            ("Upload Statement", "upload", "upload"),
-            ("AI Auditor", "ai_auditor", "ai"),
-            ("Duplicate Finder", "duplicate_finder", "duplicate"),
-            ("Statement History", "history", "history"),
-            ("Email Center", "email_history", "email"),
-            ("Reports", "reports", "reports"),
-            ("Settings", "settings", "settings")
-        ]
-        
-        self.buttons = {}
-        for label, key, icon_name in self.menu_items:
-            btn = QPushButton(label)
-            btn.setObjectName("SidebarButton")
-            btn.setCheckable(True)
-            btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            
-            # Load icon
-            icon_path = f"assets/icons/{icon_name}.png"
-            btn.setIcon(QIcon(icon_path))
-            btn.setIconSize(QSize(18, 18))
-            
-            # Set default checked item to dashboard
-            if key == "dashboard":
-                btn.setChecked(True)
-                
-            # Connect clicked signal
-            btn.clicked.connect(lambda checked, k=key: self.nav_changed.emit(k))
-            
-            self.btn_group.addButton(btn)
-            layout.addWidget(btn)
-            self.buttons[key] = btn
-            
-        # Spacer to push logout to bottom
-        layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        
-        # 3. Logout Button
-        self.logout_btn = QPushButton("Logout")
-        self.logout_btn.setObjectName("LogoutButton")
-        self.logout_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.logout_btn.setIcon(QIcon("assets/icons/logout.png"))
-        self.logout_btn.setIconSize(QSize(18, 18))
-        self.logout_btn.clicked.connect(self.logout_clicked.emit)
-        
-        layout.addWidget(self.logout_btn)
-        
         self.setFixedWidth(260)
+        
+        # Transparent border & background container
+        self.setStyleSheet("QFrame#SidebarFrame { background: transparent; border: none; }")
+        
+        # Main Vertical Layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # QWebEngineView hosting HTML/CSS sidebar
+        self.web_view = QWebEngineView(self)
+        self.web_view.page().setBackgroundColor(Qt.GlobalColor.transparent)
+        layout.addWidget(self.web_view)
+        
+        # Connect IPC document.title Listener
+        self.web_view.titleChanged.connect(self._handle_title_changed)
+        
+        # Compatibility dict for any legacy code querying buttons
+        self.buttons = {}
+        self.current_key = "dashboard"
+        
+        # Load Sidebar HTML
+        self._load_html()
+
+    def _load_html(self):
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        html_path = os.path.join(base_dir, "web", "sidebar.html")
+        if os.path.exists(html_path):
+            self.web_view.setUrl(QUrl.fromLocalFile(html_path))
+            self.web_view.loadFinished.connect(self._on_load_finished)
+        else:
+            print(f"Error: Sidebar HTML file not found at {html_path}")
+
+    def _on_load_finished(self, success):
+        if success:
+            self.set_active_page(self.current_key)
+            from utils.theme_manager import ThemeManager
+            self.update_theme_styles(ThemeManager.get_theme())
+
+    def _handle_title_changed(self, title: str):
+        """Processes document.title IPC commands sent from HTML."""
+        if not title or not title.startswith("app-cmd:"):
+            return
+
+        parts = title.split(":", 2)
+        cmd = parts[1] if len(parts) > 1 else ""
+        payload = parts[2] if len(parts) > 2 else ""
+
+        if cmd == "nav":
+            key = payload.strip().lower()
+            self.current_key = key
+            self.nav_changed.emit(key)
+        elif cmd == "logout":
+            self.logout_clicked.emit()
 
     def set_active_page(self, key):
-        """Sets a specific sidebar button as checked programmatically without triggering signals again."""
-        if key in self.buttons:
-            self.buttons[key].setChecked(True)
+        """Sets a specific sidebar button as checked programmatically in HTML."""
+        self.current_key = key
+        script = f"document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active')); var el = document.getElementById('nav-{key}'); if (el) el.classList.add('active');"
+        self.web_view.page().runJavaScript(script)
+
+    def update_theme_styles(self, theme):
+        """Propagates theme changes (light/dark) to the sidebar HTML container."""
+        script = f"if ('{theme}' === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');"
+        self.web_view.page().runJavaScript(script)

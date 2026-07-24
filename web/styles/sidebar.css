@@ -1,0 +1,255 @@
+/* ==========================================================================
+   StatementForge - Sidebar Stylesheet (Fintech Glassmorphism Theme)
+   ========================================================================== */
+
+:root {
+    /* Color Palette - Light Mode */
+    --bg-sidebar: rgba(255, 255, 255, 0.85);
+    --border-color: #E2E8F0;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --text-version: #94A3B8;
+    
+    /* Interactive States */
+    --accent-blue: #0037B0;
+    --accent-blue-hover: #1D4ED8;
+    --hover-bg: #EFF6FF;
+    --active-bg: #DBEAFE;
+    --active-text: #0037B0;
+    --active-border: #2563EB;
+
+    /* Logout Special Colors */
+    --logout-text: #EF4444;
+    --logout-hover-bg: #FEF2F2;
+    --logout-hover-border: #FCA5A5;
+
+    /* Shadows & Radii */
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.03);
+    --shadow-active: 0 2px 8px rgba(0, 55, 176, 0.15);
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark Theme Variables */
+body.dark-mode {
+    --bg-sidebar: rgba(15, 23, 42, 0.90);
+    --border-color: #1E293B;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-version: #64748B;
+    --hover-bg: #1E293B;
+    --active-bg: #1E3A8A;
+    --active-text: #60A5FA;
+    --active-border: #3B82F6;
+    --logout-text: #F87171;
+    --logout-hover-bg: #311213;
+    --logout-hover-border: #991B1B;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+}
+
+/* Main Container */
+.sidebar-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-sidebar);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: 1px solid var(--border-color);
+    padding: 20px 14px;
+    justify-content: space-between;
+}
+
+/* Branding Header */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px 20px 10px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 16px;
+}
+
+.brand-logo-wrapper {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: #FFFFFF;
+    box-shadow: var(--shadow-soft);
+}
+
+.brand-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.brand-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+}
+
+.brand-version {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-version);
+}
+
+/* Navigation List */
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    margin-right: -4px;
+    padding-right: 4px;
+}
+
+/* Custom Scrollbar for Nav */
+.sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.nav-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.nav-item {
+    width: 100%;
+}
+
+/* Button Base */
+.nav-button {
+    width: 100%;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    outline: none;
+    position: relative;
+}
+
+/* Icon Styling */
+.icon-container {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nav-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    transition: var(--transition-fast);
+    opacity: 0.8;
+}
+
+.text-container {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Hover State */
+.nav-button:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.nav-button:hover .nav-icon {
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+/* Active State */
+.nav-button.active {
+    background-color: var(--hover-bg);
+    color: var(--active-text);
+    font-weight: 700;
+    border-color: var(--active-border);
+    box-shadow: var(--shadow-active);
+}
+
+.nav-button.active .nav-icon {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* Left Indicator Pill on Active */
+.nav-button.active::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    background-color: var(--accent-blue);
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+/* Footer Section */
+.sidebar-footer {
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.logout-button {
+    color: var(--logout-text);
+}
+
+.logout-button:hover {
+    background-color: var(--logout-hover-bg);
+    color: var(--logout-text);
+    border-color: var(--logout-hover-border);
+}
+
+.logout-button:hover .nav-icon {
+    transform: translateX(2px);
+}

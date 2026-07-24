@@ -26,6 +26,10 @@ function sendAppCommand(action, payload) {
     }
     // Update document title - triggers Qt titleChanged signal instantly in Python
     document.title = cmdStr;
+    // Reset title shortly after so consecutive clicks of the same command trigger titleChanged
+    setTimeout(function() {
+        document.title = "StatementForge";
+    }, 10);
 }
 
 // Helper functions for UI actions

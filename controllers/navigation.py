@@ -155,10 +155,8 @@ class NavigationController(QMainWindow):
         self.dashboard_screen.set_user_profile(user_details)
 
     def sync_theme_styles(self, theme):
-        """Propagates active theme settings to all instantiated pages."""
+        """Propagates active theme settings to all instantiated pages, sidebar, topbar, and subviews."""
         if hasattr(self, "dashboard_screen") and self.dashboard_screen is not None:
             self.dashboard_screen.update_theme_styles(theme)
-            if hasattr(self.dashboard_screen, "topbar") and self.dashboard_screen.topbar is not None:
-                self.dashboard_screen.topbar.update_theme_icon(theme)
         if hasattr(self, "profile_window") and self.profile_window is not None:
             self.profile_window.update_theme_style(theme)

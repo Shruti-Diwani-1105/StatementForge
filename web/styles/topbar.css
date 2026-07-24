@@ -1,0 +1,329 @@
+/* ==========================================================================
+   StatementForge - TopBar / Header Stylesheet (Fintech Theme)
+   ========================================================================== */
+
+:root {
+    /* Color Palette - Light Mode (Blue Theme Accent) */
+    --bg-topbar: rgba(255, 255, 255, 0.85);
+    --border-color: #E2E8F0;
+    --text-primary: #0F172A;
+    --text-muted: #64748B;
+    
+    /* Search Bar */
+    --search-bg: #F8FAFC;
+    --search-border: #CBD5E1;
+    --search-focus-border: #2563EB;
+    --search-focus-glow: rgba(37, 99, 235, 0.15);
+    
+    /* Interactive States */
+    --hover-bg: #EFF6FF;
+    --pill-hover-bg: #EFF6FF;
+    --avatar-bg: #2563EB;
+    --avatar-text: #FFFFFF;
+    
+    /* Shadows & Transitions */
+    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.04);
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-full: 9999px;
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark Theme Variables */
+body.dark-mode {
+    --bg-topbar: rgba(15, 23, 42, 0.90);
+    --border-color: #1E293B;
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
+    
+    --search-bg: #0F172A;
+    --search-border: #334155;
+    --search-focus-border: #3B82F6;
+    --search-focus-glow: rgba(59, 130, 246, 0.25);
+    
+    --hover-bg: #1E293B;
+    --pill-hover-bg: #1E293B;
+    --avatar-bg: #3B82F6;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+}
+
+/* TopBar Container */
+.topbar-container {
+    width: 100%;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    background: var(--bg-topbar);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Search Wrapper */
+.search-wrapper {
+    position: relative;
+    width: 360px;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 14px;
+    font-size: 14px;
+    color: var(--text-muted);
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.search-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 16px 0 40px;
+    background: var(--search-bg);
+    border: 1px solid var(--search-border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 13.5px;
+    font-weight: 400;
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.search-input:focus {
+    border-color: var(--search-focus-border);
+    box-shadow: 0 0 0 3px var(--search-focus-glow);
+    background: #FFFFFF;
+}
+
+body.dark-mode .search-input:focus {
+    background: #0F172A;
+}
+
+/* Right Section */
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* Theme Toggle Switch Button (Rounded Rectangle & Blue Theme Accent) */
+.theme-toggle-switch {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px; /* Rounded Rectangle Outer Shape */
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle-switch:hover {
+    transform: scale(1.03);
+}
+
+.theme-toggle-switch:active {
+    transform: scale(0.97);
+}
+
+.switch-track {
+    width: 68px;
+    height: 36px;
+    border-radius: 14px; /* Rounded Rectangle Track */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px;
+    position: relative;
+    background: #DBEAFE; /* Soft Blue Theme Track */
+    border: 1.5px solid #93C5FD;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(37, 99, 235, 0.08);
+}
+
+body.dark-mode .switch-track,
+.theme-toggle-switch.dark-active .switch-track {
+    background: #1E293B; /* Deep Navy Blue Track */
+    border-color: #3B82F6;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 8px rgba(59, 130, 246, 0.2);
+}
+
+/* White Squircle Thumb */
+.switch-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px; /* Rounded Rectangle / Squircle Thumb */
+    background: #FFFFFF;
+    position: absolute;
+    top: 3px;
+    left: 35px; /* Light Mode: On Right over Sun Icon */
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+}
+
+body.dark-mode .switch-thumb,
+.theme-toggle-switch.dark-active .switch-thumb {
+    transform: translateX(-31px); /* Dark Mode: Slides to Left over Moon Icon */
+    background: #3B82F6; /* Vibrant Blue Thumb Box in Dark Mode */
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.5);
+}
+
+/* Icon Box Containers */
+.switch-icon-box {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transition: color 0.3s ease;
+}
+
+.theme-svg {
+    width: 16px;
+    height: 16px;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+/* In Light Mode: Sun is on white thumb (Blue stroke), Moon is on soft blue track */
+.sun-svg {
+    color: #1D4ED8; /* Rich Blue Sun Icon inside White Thumb */
+}
+
+.moon-svg {
+    color: #3B82F6; /* Blue Moon Icon on Soft Blue Track */
+}
+
+/* In Dark Mode: Moon is on Blue thumb (White stroke), Sun is on Navy track (Soft Blue stroke) */
+body.dark-mode .sun-svg,
+.theme-toggle-switch.dark-active .sun-svg {
+    color: #93C5FD; /* Soft Blue Sun Icon on Navy Track */
+}
+
+body.dark-mode .moon-svg,
+.theme-toggle-switch.dark-active .moon-svg {
+    color: #FFFFFF; /* White Moon Icon inside Blue Thumb */
+}
+
+/* Icon Buttons (Notifications) */
+.icon-button {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    position: relative;
+    transition: var(--transition-fast);
+}
+
+.icon-button:hover {
+    background: var(--hover-bg);
+    transform: translateY(-1px);
+}
+
+.btn-icon-img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    opacity: 0.85;
+}
+
+.icon-button:hover .btn-icon-img {
+    opacity: 1;
+}
+
+/* Notification Badge Dot */
+.notification-badge-dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 8px;
+    height: 8px;
+    background-color: #EF4444;
+    border-radius: var(--radius-full);
+    border: 2px solid #FFFFFF;
+}
+
+body.dark-mode .notification-badge-dot {
+    border-color: #0F172A;
+}
+
+/* Profile Pill */
+.profile-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 12px 4px 5px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.profile-pill:hover {
+    background: var(--pill-hover-bg);
+    border-color: var(--border-color);
+}
+
+.avatar-circle {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--avatar-bg);
+    color: var(--avatar-text);
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-soft);
+}
+
+.username-text {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.dropdown-arrow {
+    font-size: 9px;
+    color: var(--text-muted);
+    transition: var(--transition-fast);
+}
+
+.profile-pill:hover .dropdown-arrow {
+    transform: translateY(1px);
+    color: var(--text-primary);
+}

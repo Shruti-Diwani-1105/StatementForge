@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge Sidebar</title>
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body>
+    <aside class="sidebar-container" id="sidebar-app">
+        <!-- Sidebar Header / Branding -->
+        <div class="sidebar-header">
+            <div class="brand-logo-wrapper">
+                <img src="../assets/logo.png" alt="StatementForge Logo" class="brand-logo">
+            </div>
+            <div class="brand-info">
+                <h1 class="brand-title">StatementForge</h1>
+                <span class="brand-version">v1.0</span>
+            </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <button type="button" class="nav-button active" id="nav-dashboard" onclick="sendAppCommand('nav', 'dashboard')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/dashboard.png" alt="Dashboard" class="nav-icon">
+                        </span>
+                        <span class="text-container">Dashboard</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-upload" onclick="sendAppCommand('nav', 'upload')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/upload.png" alt="Upload Statement" class="nav-icon">
+                        </span>
+                        <span class="text-container">Upload Statement</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-ai_auditor" onclick="sendAppCommand('nav', 'ai_auditor')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/ai.png" alt="AI Auditor" class="nav-icon">
+                        </span>
+                        <span class="text-container">AI Auditor</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-duplicate_finder" onclick="sendAppCommand('nav', 'duplicate_finder')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/duplicate.png" alt="Duplicate Finder" class="nav-icon">
+                        </span>
+                        <span class="text-container">Duplicate Finder</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-history" onclick="sendAppCommand('nav', 'history')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/history.png" alt="Statement History" class="nav-icon">
+                        </span>
+                        <span class="text-container">Statement History</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-email_history" onclick="sendAppCommand('nav', 'email_history')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/email.png" alt="Email Center" class="nav-icon">
+                        </span>
+                        <span class="text-container">Email Center</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-reports" onclick="sendAppCommand('nav', 'reports')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/reports.png" alt="Reports" class="nav-icon">
+                        </span>
+                        <span class="text-container">Reports</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-settings" onclick="sendAppCommand('nav', 'settings')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/settings.png" alt="Settings" class="nav-icon">
+                        </span>
+                        <span class="text-container">Settings</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Sidebar Footer / Logout -->
+        <div class="sidebar-footer">
+            <button type="button" class="nav-button logout-button" id="btn-logout" onclick="sendAppCommand('logout', '')">
+                <span class="icon-container">
+                    <img src="../assets/icons/logout.png" alt="Logout" class="nav-icon">
+                </span>
+                <span class="text-container">Logout</span>
+            </button>
+        </div>
+    </aside>
+</body>
+</html>

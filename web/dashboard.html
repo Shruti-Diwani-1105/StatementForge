@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge Dashboard Overview</title>
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body>
+    <div class="dashboard-container" id="dashboard-app">
+        <!-- 1. Welcome Greeting Header -->
+        <header class="welcome-header">
+            <h1 class="welcome-title" id="welcome-title">Welcome Back, User!</h1>
+            <p class="welcome-subtitle" id="welcome-subtitle">Here's an overview of your local financial statements parser activities.</p>
+        </header>
+
+        <!-- 2. Statistics / Metric Cards Row -->
+        <section class="metrics-row">
+            <!-- Card 1: Statements Processed -->
+            <div class="metric-card metric-blue">
+                <span class="metric-title">Statements Processed</span>
+                <span class="metric-value blue-text" id="stat-processed">0</span>
+            </div>
+
+            <!-- Card 2: Transactions Verified -->
+            <div class="metric-card metric-green">
+                <span class="metric-title">Transactions Verified</span>
+                <span class="metric-value green-text" id="stat-verified">0</span>
+            </div>
+
+            <!-- Card 3: Reports Exported -->
+            <div class="metric-card metric-orange">
+                <span class="metric-title">Reports Exported</span>
+                <span class="metric-value orange-text" id="stat-exported">0</span>
+            </div>
+        </section>
+
+        <!-- 3. Main Content Split (Modules Grid & Recent Activity) -->
+        <div class="content-split">
+            <!-- Left: System Modules Container -->
+            <section class="modules-section">
+                <h2 class="section-title">System Modules</h2>
+                <div class="modules-grid">
+                    <!-- 1. Upload Statement -->
+                    <div class="module-card" id="mod-upload" onclick="sendAppCommand('dash_module', 'upload')">
+                        <div class="module-icon-box icon-bg-blue">
+                            <img src="../assets/icons/upload.png" alt="Upload Statement" class="module-icon">
+                        </div>
+                        <div class="module-info">
+                            <h3 class="module-title">Upload Statement</h3>
+                            <p class="module-desc">Parse and extract transactions.</p>
+                        </div>
+                    </div>
+
+                    <!-- 2. Generate Excel -->
+                    <div class="module-card" id="mod-excel" onclick="sendAppCommand('dash_module', 'generate_excel')">
+                        <div class="module-icon-box icon-bg-green">
+                            <img src="../assets/icons/excel.png" alt="Generate Excel" class="module-icon">
+                        </div>
+                        <div class="module-info">
+                            <h3 class="module-title">Generate Excel</h3>
+                            <p class="module-desc">Export to clean sheets.</p>
+                        </div>
+                    </div>
+
+                    <!-- 3. AI Auditor -->
+                    <div class="module-card" id="mod-ai" onclick="sendAppCommand('dash_module', 'ai_auditor')">
+                        <div class="module-icon-box icon-bg-purple">
+                            <img src="../assets/icons/ai.png" alt="AI Auditor" class="module-icon">
+                        </div>
+                        <div class="module-info">
+                            <h3 class="module-title">AI Auditor</h3>
+                            <p class="module-desc">Generate intelligent insights.</p>
+                        </div>
+                    </div>
+
+                    <!-- 4. GST Report -->
+                    <div class="module-card" id="mod-gst" onclick="sendAppCommand('dash_module', 'gst_report')">
+                        <div class="module-icon-box icon-bg-amber">
+                            <img src="../assets/icons/gst.png" alt="GST Report" class="module-icon">
+                        </div>
+                        <div class="module-info">
+                            <h3 class="module-title">GST Report</h3>
+                            <p class="module-desc">Prepare statements for tax filings.</p>
+                        </div>
+                    </div>
+
+                    <!-- 5. Tally Export -->
+                    <div class="module-card" id="mod-tally" onclick="sendAppCommand('dash_module', 'tally')">
+                        <div class="module-icon-box icon-bg-orange">
+                            <img src="../assets/icons/tally.png" alt="Tally Export" class="module-icon">
+                        </div>
+                        <div class="module-info">
+                            <h3 class="module-title">Tally Export</h3>
+                            <p class="module-desc">Export ready for Tally integration.</p>
+                        </div>
+                    </div>
+
+                    <!-- 6. Duplicate Finder -->
+                    <div class="module-card" id="mod-duplicate" onclick="sendAppCommand('dash_module', 'duplicate_finder')">
+                        <div class="module-icon-box icon-bg-red">
+                            <img src="../assets/icons/duplicate.png" alt="Duplicate Finder" class="module-icon">
+                        </div>
+                        <div class="module-info">
+                            <h3 class="module-title">Duplicate Finder</h3>
+                            <p class="module-desc">Find double entry transactions.</p>
+                        </div>
+                    </div>
+
+                    <!-- 7. History Logs -->
+                    <div class="module-card" id="mod-history" onclick="sendAppCommand('dash_module', 'history')">
+                        <div class="module-icon-box icon-bg-blue">
+                            <img src="../assets/icons/history.png" alt="History Logs" class="module-icon">
+                        </div>
+                        <div class="module-info">
+                            <h3 class="module-title">History Logs</h3>
+                            <p class="module-desc">Browse localized SQLite history.</p>
+                        </div>
+                    </div>
+
+                    <!-- 8. Email Report -->
+                    <div class="module-card" id="mod-email" onclick="sendAppCommand('dash_module', 'email_history')">
+                        <div class="module-icon-box icon-bg-emerald">
+                            <img src="../assets/icons/email.png" alt="Email Report" class="module-icon">
+                        </div>
+                        <div class="module-info">
+                            <h3 class="module-title">Email Report</h3>
+                            <p class="module-desc">Send parsed summaries safely.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Recent Activity Container -->
+            <aside class="activity-section">
+                <div class="activity-card-container">
+                    <h2 class="section-title activity-header-title">Recent Activity</h2>
+                    <div class="activity-list" id="activity-list">
+                        <!-- Activity items rendered here -->
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+</body>
+</html>

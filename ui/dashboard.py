@@ -118,6 +118,10 @@ class DashboardScreen(QWidget):
         first_name = full_name.split()[0] if full_name.strip() else "User"
         if hasattr(self, "welcome_lbl") and self.welcome_lbl is not None:
             self.welcome_lbl.setText(f"Welcome Back, {first_name}!")
+
+        if hasattr(self, "dashboard_web_view") and self.dashboard_web_view is not None:
+            script = f"var el = document.getElementById('welcome-title'); if (el) el.textContent = 'Welcome Back, {first_name}!';"
+            self.dashboard_web_view.page().runJavaScript(script)
             
         # Load and apply user settings
         if hasattr(self, "settings_controller") and self.settings_controller is not None:
@@ -130,7 +134,7 @@ class DashboardScreen(QWidget):
         self.load_history_table()
 
     def update_dashboard_stats(self):
-        """Fetches dynamic metrics from HistoryService and updates dashboard labels."""
+        """Fetches dynamic metrics from HistoryService and updates dashboard labels and HTML stats."""
         from services.history_service import HistoryService
         from utils.user_session import UserSession
         
@@ -145,126 +149,55 @@ class DashboardScreen(QWidget):
             self.stats_verified_lbl.setText(f"{stats['verified']:,}")
         if hasattr(self, "stats_exported_lbl") and self.stats_exported_lbl is not None:
             self.stats_exported_lbl.setText(str(stats["exported"]))
+
+        if hasattr(self, "dashboard_web_view") and self.dashboard_web_view is not None:
+            script = f"""
+            var p = document.getElementById('stat-processed'); if (p) p.textContent = '{stats["processed"]}';
+            var v = document.getElementById('stat-verified'); if (v) v.textContent = '{stats["verified"]:,}';
+            var e = document.getElementById('stat-exported'); if (e) e.textContent = '{stats["exported"]}';
+            """
+            self.dashboard_web_view.page().runJavaScript(script)
             
         if hasattr(self, "update_recent_activity_ui"):
             self.update_recent_activity_ui(user_id)
 
     def update_recent_activity_ui(self, user_id):
-        """Rebuilds the Recent Activity list widgets dynamically."""
-        if not hasattr(self, "activity_layout") or self.activity_layout is None:
-            return
-
-        # Clear layout first
-        while self.activity_layout.count():
-            item = self.activity_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-            # If it's a spacer, taking it out is enough
-
-        # Re-add Title
-        act_title = QLabel("Recent Activity")
-        act_title.setObjectName("ActivityTitle")
-        act_title.setStyleSheet("font-size: 16px; font-weight: 700; margin-bottom: 8px;")
-        self.activity_layout.addWidget(act_title)
-
-        # Fetch recent items
+        """Rebuilds the Recent Activity list widgets dynamically for HTML dashboard."""
         from services.history_service import HistoryService
-        import datetime
+        import json
         
         recent = HistoryService.get_recent_activity(user_id, limit=5)
-        
-        if not recent:
-            self.activity_layout.addStretch()
-            empty_lbl = QLabel("No recent activity.")
-            empty_lbl.setObjectName("ActivityEmptyLabel")
-            empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            empty_lbl.setStyleSheet("font-size: 13px; font-weight: 500;")
-            self.activity_layout.addWidget(empty_lbl)
-            self.activity_layout.addStretch()
-        else:
-            # Helper for time ago
-            def time_ago(dt):
-                if not dt:
-                    return "some time ago"
-                if isinstance(dt, str):
-                    try:
-                        dt = datetime.datetime.fromisoformat(dt.replace("Z", "+00:00"))
-                    except Exception:
-                        return dt
-                
-                # Make naive for comparison
-                if dt.tzinfo is not None:
-                    dt = dt.replace(tzinfo=None)
-                now = datetime.datetime.utcnow()
-                diff = now - dt
-                seconds = diff.total_seconds()
-                if seconds < 60:
-                    return "Just now"
-                minutes = seconds / 60
-                if minutes < 60:
-                    return f"{int(minutes)}m ago"
-                hours = minutes / 60
-                if hours < 24:
-                    return f"{int(hours)}h ago"
-                days = hours / 24
-                if days < 7:
-                    return f"{int(days)}d ago"
-                return dt.strftime("%b %d")
 
+        if hasattr(self, "dashboard_web_view") and self.dashboard_web_view is not None:
+            formatted_recent = []
             for item in recent:
-                item_widget = QFrame()
-                item_widget.setObjectName("ActivityItem")
-                item_widget.setStyleSheet("""
-                    QFrame#ActivityItem {
-                        background-color: #F8FAFC;
-                        border: 1px solid #E2E8F0;
-                        border-radius: 8px;
-                    }
-                    QFrame#ActivityItem:hover {
-                        background-color: #EFF6FF;
-                        border-color: #DBEAFE;
-                    }
-                """)
-                item_lay = QHBoxLayout(item_widget)
-                item_lay.setContentsMargins(10, 8, 10, 8)
-                item_lay.setSpacing(10)
-
-                # Bullet check
-                bullet = QLabel("✓")
-                bullet.setFixedSize(20, 20)
-                bullet.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                bullet.setStyleSheet("""
-                    background-color: #ECFDF5;
-                    color: #10B981;
-                    font-size: 11px;
-                    font-weight: bold;
-                    border-radius: 10px;
-                    border: 1px solid #D1FAE5;
-                """)
-                item_lay.addWidget(bullet)
-
-                # Texts
-                text_lay = QVBoxLayout()
-                text_lay.setSpacing(2)
-                
-                # File Name
-                fn_lbl = QLabel(item["file_name"])
-                fn_lbl.setStyleSheet("font-size: 13px; font-weight: 600; color: #1E293B;")
-                
-                # Subtitle: Bank + Time
-                ago_str = time_ago(item["upload_date"])
-                sub_lbl = QLabel(f"{item['bank_name']} • {ago_str}")
-                sub_lbl.setStyleSheet("font-size: 11px; color: #64748B;")
-                
-                text_lay.addWidget(fn_lbl)
-                text_lay.addWidget(sub_lbl)
-                item_lay.addLayout(text_lay, stretch=1)
-                
-                self.activity_layout.addWidget(item_widget)
-
-            # Add expanding spacer at the end to push elements up
-            self.activity_layout.addStretch()
+                upload_dt = item.get("upload_date", "")
+                if hasattr(upload_dt, "isoformat"):
+                    upload_dt = upload_dt.isoformat()
+                formatted_recent.append({
+                    "file_name": item.get("file_name", "Statement.pdf"),
+                    "bank_name": item.get("bank_name", "Unknown Bank"),
+                    "upload_date": str(upload_dt)
+                })
+            json_str = json.dumps(formatted_recent)
+            script = f"""
+            var listEl = document.getElementById('activity-list');
+            if (listEl) {{
+                listEl.innerHTML = '';
+                var items = {json_str};
+                if (!items || items.length === 0) {{
+                    listEl.innerHTML = '<p style="color:#64748B;font-size:13px;">No recent statement activity recorded.</p>';
+                }} else {{
+                    items.forEach(function(item) {{
+                        var div = document.createElement('div');
+                        div.className = 'activity-item';
+                        div.innerHTML = '<span class="activity-bullet">✓</span><div class="activity-info"><span class="activity-filename">' + (item.file_name || 'Statement.pdf') + '</span><span class="activity-sub">' + (item.bank_name || 'Unknown Bank') + '</span></div>';
+                        listEl.appendChild(div);
+                    }});
+                }}
+            }}
+            """
+            self.dashboard_web_view.page().runJavaScript(script)
 
     def show_coming_soon(self, module_name):
         """Displays a professional message box for unimplemented features."""
@@ -284,176 +217,75 @@ class DashboardScreen(QWidget):
     # --- Page Creation Methods ---
 
     def create_main_dashboard_page(self):
-        """Dashboard overview showing metrics, module card shortcuts, and recent activity."""
+        """Dashboard overview showing metrics, module card shortcuts, and recent activity via HTML+CSS."""
+        from PyQt6.QtWebEngineWidgets import QWebEngineView
+        from PyQt6.QtCore import QUrl, Qt
+        
+        self.dashboard_web_view = QWebEngineView(self)
+        self.dashboard_web_view.page().setBackgroundColor(Qt.GlobalColor.transparent)
+        
+        # Connect IPC Listener
+        self.dashboard_web_view.titleChanged.connect(self.handle_dashboard_title_changed)
+        
+        # Load HTML
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        html_path = os.path.join(base_dir, "web", "dashboard.html")
+        if os.path.exists(html_path):
+            self.dashboard_web_view.setUrl(QUrl.fromLocalFile(html_path))
+            self.dashboard_web_view.loadFinished.connect(self._on_dashboard_html_loaded)
+        else:
+            print(f"Error: Dashboard HTML file not found at {html_path}")
+
+        # Dummy fallback objects for 100% backward compatibility
         self.cards = []
-        
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setStyleSheet("background-color: transparent; border: none;")
-        
-        scroll_content = QWidget()
-        scroll_content.setStyleSheet("background-color: transparent;")
-        page_layout = QVBoxLayout(scroll_content)
-        page_layout.setContentsMargins(32, 24, 32, 32)
-        page_layout.setSpacing(28)
-        
-        # Header Greeting
-        header_layout = QVBoxLayout()
-        header_layout.setSpacing(4)
-        self.welcome_lbl = QLabel("Welcome Back, John!")
-        self.welcome_lbl.setObjectName("WelcomeTitle")
-        self.welcome_lbl.setStyleSheet("font-size: 26px; font-weight: bold; font-family: 'Times New Roman'; color: #0F172A; letter-spacing: -0.5px;")
-        
-        self.sub_lbl = QLabel("Here's an overview of your local financial statements parser activities.")
-        self.sub_lbl.setObjectName("WelcomeSubtitle")
-        self.sub_lbl.setStyleSheet("font-size: 13px; font-family: 'Times New Roman'; color: #64748B;")
-        
-        header_layout.addWidget(self.welcome_lbl)
-        header_layout.addWidget(self.sub_lbl)
-        page_layout.addLayout(header_layout)
-        
-        # 1. Statistics / Metric Cards Row
-        metrics_layout = QHBoxLayout()
-        metrics_layout.setSpacing(24)
-        
-        # Statements Processed
-        self.card1 = QFrame()
-        self.card1.setObjectName("MetricCardBlue")
-        self.card1.setStyleSheet("QFrame#MetricCardBlue { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #0037b0; border-radius: 12px; }")
-        card1_layout = QVBoxLayout(self.card1)
-        card1_layout.setContentsMargins(20, 20, 20, 20)
-        card1_layout.setSpacing(8)
-        t_lbl1 = QLabel("Statements Processed")
-        t_lbl1.setObjectName("MetricTitle")
-        t_lbl1.setStyleSheet("font-size: 13px; font-weight: 600; font-family: 'Times New Roman'; color: #475569;")
+        self.welcome_lbl = QLabel("Welcome Back, User!")
+        self.sub_lbl = QLabel("")
         self.stats_processed_lbl = QLabel("0")
-        self.stats_processed_lbl.setStyleSheet("font-size: 28px; font-weight: bold; color: #0037b0; font-family: 'Times New Roman';")
-        card1_layout.addWidget(t_lbl1)
-        card1_layout.addWidget(self.stats_processed_lbl)
-        metrics_layout.addWidget(self.card1)
-        
-        # Transactions Verified
-        self.card2 = QFrame()
-        self.card2.setObjectName("MetricCardGreen")
-        self.card2.setStyleSheet("QFrame#MetricCardGreen { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #16A34A; border-radius: 12px; }")
-        card2_layout = QVBoxLayout(self.card2)
-        card2_layout.setContentsMargins(20, 20, 20, 20)
-        card2_layout.setSpacing(8)
-        t_lbl2 = QLabel("Transactions Verified")
-        t_lbl2.setObjectName("MetricTitle")
-        t_lbl2.setStyleSheet("font-size: 13px; font-weight: 600; font-family: 'Times New Roman'; color: #475569;")
         self.stats_verified_lbl = QLabel("0")
-        self.stats_verified_lbl.setStyleSheet("font-size: 28px; font-weight: bold; color: #16A34A; font-family: 'Times New Roman';")
-        card2_layout.addWidget(t_lbl2)
-        card2_layout.addWidget(self.stats_verified_lbl)
-        metrics_layout.addWidget(self.card2)
-        
-        # Reports Exported
-        self.card3 = QFrame()
-        self.card3.setObjectName("MetricCardOrange")
-        self.card3.setStyleSheet("QFrame#MetricCardOrange { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #EA580C; border-radius: 12px; }")
-        card3_layout = QVBoxLayout(self.card3)
-        card3_layout.setContentsMargins(20, 20, 20, 20)
-        card3_layout.setSpacing(8)
-        t_lbl3 = QLabel("Reports Exported")
-        t_lbl3.setObjectName("MetricTitle")
-        t_lbl3.setStyleSheet("font-size: 13px; font-weight: 600; font-family: 'Times New Roman'; color: #475569;")
         self.stats_exported_lbl = QLabel("0")
-        self.stats_exported_lbl.setStyleSheet("font-size: 28px; font-weight: bold; color: #EA580C; font-family: 'Times New Roman';")
-        card3_layout.addWidget(t_lbl3)
-        card3_layout.addWidget(self.stats_exported_lbl)
-        metrics_layout.addWidget(self.card3)
-        
-        page_layout.addLayout(metrics_layout)
-        
-        # Initial population of recent activities
-        self.update_dashboard_stats()
-        
-        # 2. Main content split (Module Grid on left, Recent Activity on right)
-        content_split = QHBoxLayout()
-        content_split.setSpacing(24)
-        
-        # Left: Modules Grid Container
-        modules_container = QWidget()
-        modules_layout = QVBoxLayout(modules_container)
-        modules_layout.setContentsMargins(0, 0, 0, 0)
-        modules_layout.setSpacing(12)
-        
-        self.section_title = QLabel("System Modules")
-        self.section_title.setObjectName("SectionTitle")
-        self.section_title.setStyleSheet("font-size: 16px; font-weight: bold; font-family: 'Times New Roman'; color: #0F172A;")
-        modules_layout.addWidget(self.section_title)
-        
-        grid_widget = QWidget()
-        grid_layout = QGridLayout(grid_widget)
-        grid_layout.setSpacing(16)
-        grid_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Module card definitions: (Title, Icon, Description, Backdrop Color)
-        modules = [
-            ("Upload Statement", "upload", "Parse and extract transactions.", "#EFF6FF"),
-            ("Generate Excel", "excel", "Export to clean sheets.", "#F0FDF4"),
-            ("AI Auditor", "ai", "Generate intelligent insights.", "#F5F3FF"),
-            ("GST Report", "gst", "Prepare statements for tax filings.", "#FFFBEB"),
-            ("Tally Export", "tally", "Export ready for Tally integration.", "#FFF7ED"),
-            ("Duplicate Finder", "duplicate", "Find double entry transactions.", "#FEF2F2"),
-            ("History Logs", "history", "Browse localized SQLite history.", "#EFF6FF"),
-            ("Email Report", "email", "Send parsed summaries safely.", "#ECFDF5")
-        ]
-        
-        cols = 3
-        for idx, (title, icon, desc, icon_bg) in enumerate(modules):
-            row = idx // cols
-            col = idx % cols
-            card = CustomCard(title, desc, f"assets/icons/{icon}.png", icon_bg)
-            self.cards.append(card)
-            
-            # Map dashboard cards to their respective pages, fallback to coming soon
-            if title == "Upload Statement":
-                card.clicked.connect(lambda: self.switch_to_upload_with_preset("excel"))
-            elif title == "GST Report":
-                card.clicked.connect(lambda: self.switch_to_upload_with_preset("gst"))
-            elif title == "History Logs":
-                card.clicked.connect(lambda: self.switch_dashboard_page("history"))
-            elif title == "AI Auditor":
-                card.clicked.connect(lambda: self.switch_dashboard_page("ai_auditor"))
-            elif title == "Generate Excel":
-                card.clicked.connect(lambda: self.switch_dashboard_page("generate_excel"))
-            elif title == "Duplicate Finder":
-                card.clicked.connect(lambda: self.switch_dashboard_page("duplicate_finder"))
-            elif title == "Email Report":
-                card.clicked.connect(lambda: self.switch_dashboard_page("email_history"))
-            else:
-                card.clicked.connect(lambda t=title: self.show_coming_soon(t))
-                
-            grid_layout.addWidget(card, row, col)
-            
-        modules_layout.addWidget(grid_widget)
-        content_split.addWidget(modules_container, stretch=3)
-        
-        # Right: Recent Activity Container
         self.activity_card = QFrame()
-        self.activity_card.setObjectName("ActivityCard")
-        self.activity_card.setStyleSheet("""
-            QFrame#ActivityCard {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 12px;
-            }
-        """)
         self.activity_layout = QVBoxLayout(self.activity_card)
-        self.activity_layout.setContentsMargins(20, 20, 20, 20)
-        self.activity_layout.setSpacing(12)
-        self.activity_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        
-        # Initial population of recent activities will happen during stats update
-        
-        content_split.addWidget(self.activity_card, stretch=1)
-        page_layout.addLayout(content_split)
-        
-        scroll_area.setWidget(scroll_content)
-        self.page_stack.addWidget(scroll_area)
+        self.card1 = QFrame()
+        self.card2 = QFrame()
+        self.card3 = QFrame()
+
+        self.page_stack.addWidget(self.dashboard_web_view)
+
+    def _on_dashboard_html_loaded(self, success):
+        """Called when web/dashboard.html finishes loading inside QWebEngineView."""
+        if success:
+            from utils.user_session import UserSession
+            user = UserSession.get_current_user()
+            if user:
+                first_name = user.get("name", "User").split()[0] if user.get("name", "").strip() else "User"
+                self.dashboard_web_view.page().runJavaScript(f"var el = document.getElementById('welcome-title'); if (el) el.textContent = 'Welcome Back, {first_name}!';")
+            self.update_dashboard_stats()
+            from utils.theme_manager import ThemeManager
+            theme = ThemeManager.get_theme()
+            script = f"if ('{theme}' === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');"
+            self.dashboard_web_view.page().runJavaScript(script)
+
+    def handle_dashboard_title_changed(self, title: str):
+        """Processes document.title IPC commands sent from JavaScript inside Dashboard HTML."""
+        if not title or not title.startswith("app-cmd:"):
+            return
+
+        parts = title.split(":", 2)
+        cmd = parts[1] if len(parts) > 1 else ""
+        payload = parts[2] if len(parts) > 2 else ""
+
+        if cmd == "dash_module":
+            key = payload.strip().lower()
+            if key == "upload":
+                self.switch_to_upload_with_preset("excel")
+            elif key in ["gst", "gst_report"]:
+                self.switch_dashboard_page("gst_report")
+            elif key in ["generate_excel", "ai_auditor", "duplicate_finder", "history", "email_history"]:
+                self.switch_dashboard_page(key)
+            elif key == "tally":
+                self.show_coming_soon("Tally Export")
+            else:
+                self.show_coming_soon(payload)
 
     def create_upload_page(self):
         """Creates the interactive PDF Upload Statement module."""
@@ -834,6 +666,16 @@ class DashboardScreen(QWidget):
 
     def update_theme_styles(self, theme):
         """Updates internal card components to match active theme stylesheet parameters."""
+        if hasattr(self, "sidebar") and self.sidebar is not None:
+            self.sidebar.update_theme_styles(theme)
+
+        if hasattr(self, "topbar") and self.topbar is not None:
+            self.topbar.update_theme_icon(theme)
+
+        if hasattr(self, "dashboard_web_view") and self.dashboard_web_view is not None:
+            script = f"if ('{theme}' === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');"
+            self.dashboard_web_view.page().runJavaScript(script)
+
         for card in self.cards:
             card.update_theme_style(theme)
             
