@@ -31,7 +31,8 @@ The application is designed to reduce manual data entry, improve accuracy, and s
 
 | Category | Technology |
 |----------|------------|
-| Language | Python 3.12+ |
+| Language | Python 3.12+, JS |
+| UI | HTML & CSS |
 | GUI | PyQt6 |
 | Styling | Qt Style Sheets (QSS) |
 | OCR | Tesseract OCR |
