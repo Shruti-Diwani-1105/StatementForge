@@ -128,12 +128,14 @@ class OCRParser:
     @classmethod
     def render_pdf_page_to_pil(cls, pdf_path, page_num):
         """Renders page_num (0-indexed) of pdf_path as a PIL Image."""
-        doc = pdfium.PdfDocument(pdf_path)
-        if page_num < 0 or page_num >= len(doc):
-            raise IndexError("Page index out of range")
-        page = doc[page_num]
-        bitmap = page.render(scale=2.5)
-        return bitmap.to_pil()
+        from parser.utils import PDF_LOCK
+        with PDF_LOCK:
+            doc = pdfium.PdfDocument(pdf_path)
+            if page_num < 0 or page_num >= len(doc):
+                raise IndexError("Page index out of range")
+            page = doc[page_num]
+            bitmap = page.render(scale=2.5)
+            return bitmap.to_pil()
 
     @classmethod
     def extract_text_blocks(cls, pdf_path, page_num, logger=None):
@@ -189,9 +191,13 @@ class OCRParser:
         if HAS_TESSERACT:
             if logger:
                 logger.log(f"OCR: Running Tesseract fallback for page {page_num + 1}...")
+                
+            raw_blocks = []
+            preprocessed_blocks = []
+            
+            # Try raw image first (works much better for clean scanned PDFs without salt-and-pepper noise/skew)
             try:
-                data = pytesseract.image_to_data(preprocessed, output_type=pytesseract.Output.DICT)
-                blocks = []
+                data = pytesseract.image_to_data(pil_img, output_type=pytesseract.Output.DICT)
                 n_boxes = len(data['text'])
                 for i in range(n_boxes):
                     text = data['text'][i].strip()
@@ -200,11 +206,30 @@ class OCRParser:
                         y = data['top'][i]
                         w = data['width'][i]
                         h = data['height'][i]
-                        blocks.append({"text": text, "x0": float(x), "y0": float(y), "x1": float(x+w), "y1": float(y+h)})
-                return blocks
+                        raw_blocks.append({"text": text, "x0": float(x), "y0": float(y), "x1": float(x+w), "y1": float(y+h)})
+            except Exception:
+                pass
+
+            # Try OpenCV preprocessed image
+            try:
+                data = pytesseract.image_to_data(preprocessed, output_type=pytesseract.Output.DICT)
+                n_boxes = len(data['text'])
+                for i in range(n_boxes):
+                    text = data['text'][i].strip()
+                    if text:
+                        x = data['left'][i]
+                        y = data['top'][i]
+                        w = data['width'][i]
+                        h = data['height'][i]
+                        preprocessed_blocks.append({"text": text, "x0": float(x), "y0": float(y), "x1": float(x+w), "y1": float(y+h)})
             except Exception as e:
-                if logger:
-                    logger.log(f"Tesseract failure: {e}")
+                if logger and not raw_blocks:
+                    logger.log(f"Tesseract preprocessed failure: {e}")
+            
+            if len(raw_blocks) >= len(preprocessed_blocks) and raw_blocks:
+                return raw_blocks
+            elif preprocessed_blocks:
+                return preprocessed_blocks
                 
         raise RuntimeError("No OCR Engine available or all OCR engines failed.")
 

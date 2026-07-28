@@ -1,5 +1,8 @@
 import re
 import datetime
+import threading
+
+PDF_LOCK = threading.Lock()
 
 class ParserUtils:
     """Shared utility functions for date parsing, number cleaning, and format standardizations."""
@@ -17,22 +20,87 @@ class ParserUtils:
         """Checks if a string fits standard bank statement date patterns."""
         if not val:
             return False
-        clean_val = str(val).replace('\n', '').replace('\r', '').strip()
+        # Remove parenthesized parts (like value dates: (01-May-2026))
+        clean_val = re.sub(r"\(.*?\)", "", str(val))
+        clean_val = clean_val.replace('\n', ' ').replace('\r', ' ').strip()
         clean_val = re.sub(r"\s+", " ", clean_val)
+        # Normalize spaces around common separators (e.g. "27/07 /2025" -> "27/07/2025")
+        clean_val = re.sub(r"\s*([/\-\.])\s*", r"\1", clean_val)
+        # Truncate year to 4 digits if followed by extra digits (e.g. 20252 -> 2025)
+        clean_val = re.sub(r"([/\-\.\s]\d{4})\d+$", r"\1", clean_val)
+        # Fix invalid month 98 to 08 in standard date formats
+        clean_val = re.sub(r"(\d{1,2}[/\-\.])98([/\-\.]\d{4})", r"\g<1>08\g<2>", clean_val)
         for pattern in cls.DATE_PATTERNS:
             if re.match(pattern, clean_val):
                 return True
         return False
 
     @classmethod
+    def _normalize_ocr_number(cls, val_str: str) -> str:
+        if not val_str:
+            return ""
+        
+        # Pre-process: replace space + s/S followed by digit with .5
+        val_str = re.sub(r"\s+[sS](?=\d)", ".5", val_str)
+        
+        # If the string contains multiple distinct numbers (separated by dots/spaces), take the last one
+        matches = re.findall(r'(\d[\d\.,\s]*(?:cr|dr)?)', val_str, re.IGNORECASE)
+        if len(matches) > 1:
+            val_str = matches[-1].strip()
+        
+        # Remove common OCR noise characters
+        val_str = re.sub(r"[\|\\\/_\~\*\[\]\(\)\s]", "", val_str).strip()
+        val_str = val_str.strip("., ")
+        
+        test_lower = val_str.lower()
+        for suffix in ['cr', 'dr', 'inr', 'usd', 'eur', 'gbp', 'debit', 'credit']:
+            if test_lower.endswith(suffix):
+                val_str = val_str[:-len(suffix)].strip("., ")
+                test_lower = val_str.lower()
+            if test_lower.startswith(suffix):
+                val_str = val_str[len(suffix):].strip("., ")
+                test_lower = val_str.lower()
+                
+        # Fix OCR confusions
+        val_str = val_str.replace('o', '0').replace('O', '0')
+        val_str = val_str.replace('i', '1').replace('I', '1').replace('l', '1')
+        val_str = val_str.replace('z', '2').replace('Z', '2')
+        val_str = re.sub(r"(?<=\d|[.,])[sS](?=\d|$)", "5", val_str)
+        
+        # Handle multiple/misplaced dots and commas
+        match = re.search(r"([.,])\d{2}$", val_str)
+        if match:
+            prefix = val_str[:-3]
+            prefix_clean = prefix.replace(".", "").replace(",", "")
+            val_str = prefix_clean + "." + val_str[-2:]
+        else:
+            val_str = val_str.replace(",", "")
+            
+        return val_str
+
+    @classmethod
     def clean_amount(cls, val) -> str:
         """Standardizes debit/credit amounts. Returns empty string if zero/blank, else float string."""
         if val is None:
             return ""
+        
         val_str = str(val).replace('\n', '').replace('\r', '').strip()
+        val_str = cls._normalize_ocr_number(val_str)
+        
         if val_str == "" or val_str.lower() in ["none", "null", "-", "cr", "dr", "0", "0.0", "0.00"]:
             return ""
         
+        # Verify the string does not contain alphabetic narration characters
+        test_str = val_str.lower()
+        for suffix in ['cr', 'dr', 'inr', 'usd', 'eur', 'gbp']:
+            if test_str.endswith(suffix):
+                test_str = test_str[:-len(suffix)].strip()
+            if test_str.startswith(suffix):
+                test_str = test_str[len(suffix):].strip()
+        test_str = re.sub(r"[\d\.\,\-\+\s\₹\$\£\€]", "", test_str)
+        if test_str:  # Contains alphabetic characters (like part of narration)
+            return ""
+            
         # Remove currency symbols and commas
         clean_str = re.sub(r"[^\d\.\-]", "", val_str)
         if not clean_str or clean_str == "-":
@@ -50,14 +118,34 @@ class ParserUtils:
         """Standardizes running balance fields. Returns clean float string or original if invalid."""
         if val is None:
             return ""
+        
         val_str = str(val).replace('\n', '').replace('\r', '').strip()
+        val_str = cls._normalize_ocr_number(val_str)
+        
         if val_str == "" or val_str.lower() in ["none", "null", "-"]:
             return ""
+        
+        is_debit = False
+        val_lower = val_str.lower()
+        if "dr" in val_lower or "debit" in val_lower:
+            is_debit = True
+            
+        # Verify the string does not contain alphabetic narration characters
+        test_str = val_str.lower()
+        for suffix in ['cr', 'dr', 'inr', 'usd', 'eur', 'gbp', 'debit', 'credit']:
+            test_str = test_str.replace(suffix, "").strip()
+        test_str = re.sub(r"[\d\.\,\-\+\s\₹\$\£\€]", "", test_str)
+        if test_str:  # Contains alphabetic characters (like part of narration)
+            return ""
+            
         clean_str = re.sub(r"[^\d\.\-]", "", val_str)
         if not clean_str:
             return ""
         try:
-            return f"{float(clean_str):.2f}"
+            val_float = float(clean_str)
+            if is_debit and val_float > 0:
+                val_float = -val_float
+            return f"{val_float:.2f}"
         except ValueError:
             return val_str
 

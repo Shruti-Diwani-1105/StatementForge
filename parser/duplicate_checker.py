@@ -1,5 +1,12 @@
+import re
+
 class DuplicateChecker:
     """Filters duplicate parsed records while preserving genuine repeated transactions (varying balances)."""
+
+    META_REGEX = re.compile(
+        r"\b(brought\s+forward|carried\s+forward|b/f|c/f|opening\s+balance|closing\s+balance)\b",
+        re.IGNORECASE
+    )
 
     @classmethod
     def remove_duplicates(cls, transactions: list) -> list:
@@ -24,16 +31,20 @@ class DuplicateChecker:
             balance = str(balance).strip() if balance is not None else ""
             ref_no = tx.get("ref_no", "").strip()
 
-            tx_key = (date, narration, debit, credit, balance, ref_no)
+            row_idx = tx.get("_grid_row_idx", "")
+            tx_key = (date, narration, debit, credit, balance, ref_no, row_idx)
 
-            narr_lower = narration.lower()
-            if any(term in narr_lower for term in ["brought forward", "carried forward", "b/f", "c/f", "opening balance", "closing balance"]):
-                continue
+            if cls.META_REGEX.search(narration):
+                if not debit and not credit:
+                    continue
 
             if tx_key in seen_keys:
                 continue
 
             seen_keys.add(tx_key)
+            if "_grid_row_idx" in tx:
+                del tx["_grid_row_idx"]
             deduplicated.append(tx)
 
         return deduplicated
+

@@ -399,63 +399,143 @@ class GSTService:
         else:
             from openpyxl import load_workbook
             wb = load_workbook(gstr2b_path, data_only=True)
-            ws = wb.active
-            rows = list(ws.iter_rows(values_only=True))
-            if len(rows) > 1:
-                headers = [str(h or "").strip().lower() for h in rows[0]]
-                for r in rows[1:]:
-                    if any(r):
-                        row_dict = {}
-                        for idx, h in enumerate(headers):
-                            row_dict[h] = r[idx] if idx < len(r) else ""
-                        purchase_entries.append(row_dict)
+            for sheet in wb.sheetnames:
+                ws = wb[sheet]
+                rows = list(ws.iter_rows(values_only=True))
+                if len(rows) > 1:
+                    headers = [str(h or "").strip().lower() for h in rows[0]]
+                    for r in rows[1:]:
+                        if any(r):
+                            row_dict = {}
+                            for idx, h in enumerate(headers):
+                                row_dict[h] = r[idx] if idx < len(r) else ""
+                            purchase_entries.append(row_dict)
 
+        # Reconcile logic
         matched_count = 0
         missing_count = 0
         discrepancy_count = 0
         matched_gst = 0.0
 
+        # Track duplicate invoices in purchase_entries
+        pe_invoice_counts = {}
+        for pe in purchase_entries:
+            pe_inv = ""
+            for k, v in pe.items():
+                k_lower = str(k).lower()
+                if any(term in k_lower for term in ["inv", "invoice", "bill", "number", "no"]):
+                    if v and str(v).strip():
+                        pe_inv = str(v).strip().upper()
+                        break
+            if pe_inv:
+                pe_invoice_counts[pe_inv] = pe_invoice_counts.get(pe_inv, 0) + 1
+
         for tx in gst_ledger:
-            if tx["type"] != "Debit (ITC Claimable)" or tx["total_gst"] <= 0:
-                tx["gstr2b_status"] = "N/A (Non-Debit)"
+            # Check if this transaction has a duplicate invoice number
+            tx_inv = str(tx.get("invoice_num") or "").strip().upper()
+            if tx_inv and pe_invoice_counts.get(tx_inv, 0) > 1:
+                tx["gstr2b_status"] = "Duplicate"
+                discrepancy_count += 1
                 continue
 
-            tx_amt = tx["total_amount"]
-            tx_gst = tx["total_gst"]
-
-            match_found = False
-            for pe in purchase_entries:
-                # Find amount in purchase row
+            tx_amt = tx.get("total_amount") or 0.0
+            tx_gst = tx.get("total_gst") or 0.0
+            tx_date = str(tx.get("date") or "").strip()
+            tx_gstin = str(tx.get("gstin") or "").strip().upper()
+            
+            match_pe = None
+            
+            # 1. Search by invoice number first
+            if tx_inv:
+                for pe in purchase_entries:
+                    pe_inv = ""
+                    for k, v in pe.items():
+                        if any(term in str(k).lower() for term in ["inv", "invoice", "bill", "number", "no"]):
+                            pe_inv = str(v or "").strip().upper()
+                            break
+                    if pe_inv == tx_inv:
+                        match_pe = pe
+                        break
+                        
+            # 2. Fallback to amount + GSTIN/Vendor match
+            if not match_pe:
+                for pe in purchase_entries:
+                    pe_amt = 0.0
+                    pe_gstin = ""
+                    for k, v in pe.items():
+                        k_lower = str(k).lower()
+                        if any(term in k_lower for term in ["total", "net", "gross", "bill", "debit", "amount", "val"]):
+                            try: pe_amt = float(str(v).replace(",", "").replace("₹", "").strip())
+                            except: pass
+                        elif "gstin" in k_lower or "gst" in k_lower:
+                            if len(str(v or "")) == 15:
+                                pe_gstin = str(v).strip().upper()
+                                
+                    if pe_amt > 0 and abs(tx_amt - pe_amt) <= 2.0:
+                        if pe_gstin and tx_gstin and pe_gstin == tx_gstin:
+                            match_pe = pe
+                            break
+                        elif not tx_gstin or tx_gstin == "UNASSIGNED":
+                            match_pe = pe
+                            break
+                            
+            if match_pe:
                 pe_amt = 0.0
                 pe_gst = 0.0
-                for k, v in pe.items():
+                pe_date = ""
+                pe_gstin = ""
+                pe_cgst = 0.0
+                pe_sgst = 0.0
+                pe_igst = 0.0
+                pe_cess = 0.0
+                
+                for k, v in match_pe.items():
                     k_lower = str(k).lower()
-                    if any(term in k_lower for term in ["gst", "tax", "cgst", "sgst", "igst"]):
-                        try:
-                            pe_gst = float(str(v).replace(",", "").replace("₹", "").strip())
-                        except:
-                            pass
-                    elif any(term in k_lower for term in ["total", "net", "gross", "bill", "debit", "amount", "val"]):
-                        try:
-                            pe_amt = float(str(v).replace(",", "").replace("₹", "").strip())
-                        except:
-                            pass
-
-                # Compare amounts
-                if (pe_amt > 0 and abs(tx_amt - pe_amt) <= 2.0) or (pe_gst > 0 and abs(tx_gst - pe_gst) <= 2.0):
-                    tx["gstr2b_status"] = "Matched (In GSTR-2B)"
+                    if any(term in k_lower for term in ["total", "net", "gross", "bill", "debit", "amount", "val"]):
+                        try: pe_amt = float(str(v).replace(",", "").replace("₹", "").strip())
+                        except: pass
+                    elif "cgst" in k_lower:
+                        try: pe_cgst = float(str(v).replace(",", "").replace("₹", "").strip())
+                        except: pass
+                    elif "sgst" in k_lower:
+                        try: pe_sgst = float(str(v).replace(",", "").replace("₹", "").strip())
+                        except: pass
+                    elif "igst" in k_lower:
+                        try: pe_igst = float(str(v).replace(",", "").replace("₹", "").strip())
+                        except: pass
+                    elif "cess" in k_lower:
+                        try: pe_cess = float(str(v).replace(",", "").replace("₹", "").strip())
+                        except: pass
+                    elif any(term in k_lower for term in ["gst", "tax"]):
+                        try: pe_gst = float(str(v).replace(",", "").replace("₹", "").strip())
+                        except: pass
+                    elif "date" in k_lower:
+                        pe_date = str(v or "").strip()
+                    elif "gstin" in k_lower:
+                        pe_gstin = str(v or "").strip().upper()
+                        
+                if pe_gst == 0.0:
+                    pe_gst = pe_cgst + pe_sgst + pe_igst + pe_cess
+                    
+                # Perform the checks
+                if pe_gstin and tx_gstin and tx_gstin != "UNASSIGNED" and pe_gstin != tx_gstin:
+                    tx["gstr2b_status"] = "Mismatch (GSTIN)"
+                    discrepancy_count += 1
+                elif pe_gst > 0 and abs(tx_gst - pe_gst) > 2.0:
+                    tx["gstr2b_status"] = "Mismatch (Tax)"
+                    discrepancy_count += 1
+                elif pe_amt > 0 and abs(tx_amt - pe_amt) > 2.0:
+                    tx["gstr2b_status"] = "Mismatch (Value)"
+                    discrepancy_count += 1
+                elif pe_date and tx_date and pe_date != tx_date:
+                    tx["gstr2b_status"] = "Mismatch (Date)"
+                    discrepancy_count += 1
+                else:
+                    tx["gstr2b_status"] = "Exact Match"
                     matched_count += 1
                     matched_gst += tx_gst
-                    match_found = True
-                    break
-                elif pe_amt > 0 and abs(tx_amt - pe_amt) <= 50.0:
-                    tx["gstr2b_status"] = "Amount Discrepancy"
-                    discrepancy_count += 1
-                    match_found = True
-                    break
-
-            if not match_found:
-                tx["gstr2b_status"] = "Missing in GSTR-2B"
+            else:
+                tx["gstr2b_status"] = "Missing"
                 missing_count += 1
 
         return {

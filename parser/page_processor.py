@@ -1,6 +1,6 @@
 from parser.table_extractor import TableExtractor
 from parser.transaction_parser import TransactionParser
-from parser.utils import ParserUtils
+from parser.utils import ParserUtils, PDF_LOCK
 
 class PageProcessor:
     """Manages parsing operations for a single PDF page."""
@@ -21,36 +21,48 @@ class PageProcessor:
 
         # 1. Try Digital Parse Waterfall
         if is_digital:
-            # Try Strategy A: Default layout (border lines)
-            try:
-                grid_table = TableExtractor.extract_table_digitally_default(pdf_path, page_num, logger)
-                if grid_table and len(grid_table) >= 2:
-                    grid_table = ParserUtils.split_merged_columns(grid_table)
-                    temp_mapping = used_mapping or TransactionParser.detect_columns(grid_table)
-                    transactions = TransactionParser.parse_rows(grid_table, temp_mapping)
-                    if transactions:
-                        used_mapping = temp_mapping
-                        method_used = "Digital Parser (Default)"
-            except Exception as e:
-                if logger:
-                    logger.log(f"Page {page_num + 1} digital default strategy error: {e}")
-
-            # Try Strategy B: Text-alignment fallback layout (if Strategy A yielded 0 transactions)
-            if not transactions:
+            with PDF_LOCK:
+                has_explicit_dividers = False
                 try:
-                    grid_table = TableExtractor.extract_table_digitally_text_fallback(pdf_path, page_num, logger)
-                    if grid_table and len(grid_table) >= 2:
-                        grid_table = ParserUtils.split_merged_columns(grid_table)
-                        temp_mapping = used_mapping or TransactionParser.detect_columns(grid_table)
-                        transactions = TransactionParser.parse_rows(grid_table, temp_mapping)
-                        if transactions:
-                            used_mapping = temp_mapping
-                            method_used = "Digital Parser (Text Fallback)"
-                except Exception as e:
-                    if logger:
-                        logger.log(f"Page {page_num + 1} digital text strategy fallback error: {e}")
+                    from parser.digital_parser import DigitalParser
+                    from parser.bank_detector import BankDetector
+                    import pdfplumber
+                    with pdfplumber.open(pdf_path) as pdf:
+                        page = pdf.pages[page_num]
+                        bank_name = BankDetector.detect_bank(page.extract_text() or "", pdf_path)
+                        dividers = DigitalParser.get_explicit_lines(pdf, pdf_path, bank_name, page.width)
+                        if dividers:
+                            has_explicit_dividers = True
+                except Exception:
+                    pass
+
+                strategies = []
+                if has_explicit_dividers:
+                    strategies = [("B", "Digital Parser (Text Fallback)"), ("A", "Digital Parser (Default)")]
+                else:
+                    strategies = [("A", "Digital Parser (Default)"), ("B", "Digital Parser (Text Fallback)")]
+
+                for strategy_type, strategy_name in strategies:
+                    if not transactions:
+                        try:
+                            if strategy_type == "A":
+                                grid_table = TableExtractor.extract_table_digitally_default(pdf_path, page_num, logger)
+                            else:
+                                grid_table = TableExtractor.extract_table_digitally_text_fallback(pdf_path, page_num, logger)
+                                
+                            if grid_table and len(grid_table) >= 2:
+                                grid_table = ParserUtils.split_merged_columns(grid_table)
+                                temp_mapping = used_mapping or TransactionParser.detect_columns(grid_table)
+                                transactions = TransactionParser.parse_rows(grid_table, temp_mapping)
+                                if transactions:
+                                    used_mapping = temp_mapping
+                                    method_used = strategy_name
+                        except Exception as e:
+                            if logger:
+                                logger.log(f"Page {page_num + 1} {strategy_name} strategy error: {e}")
 
         # 2. Try OCR Fallback (if scanned and digital failed/yielded 0)
+        ocr_failed = False
         if not transactions and not is_digital:
             method_used = "OCR Parser"
             try:
@@ -60,11 +72,12 @@ class PageProcessor:
                         used_mapping = TransactionParser.detect_columns(grid_table)
                     transactions = TransactionParser.parse_rows(grid_table, used_mapping)
             except Exception as e:
+                ocr_failed = True
                 if logger:
                     logger.log(f"Page {page_num + 1} OCR extraction error: {e}")
 
         # 3. Try AI Vision Last-resort Fallback (if both digital and local OCR failed/yielded 0)
-        if not transactions:
+        if not transactions and not is_digital and ocr_failed:
             method_used = "AI Vision Fallback"
             try:
                 if logger:

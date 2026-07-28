@@ -93,6 +93,40 @@ class PDFStatementParser:
             "BKID": "Bank of India"
         }
 
+        # Check filename first (instant & highly reliable fallback)
+        import os
+        file_name_lower = os.path.basename(pdf_path).lower()
+        filename_mapping = {
+            "state bank of india": "State Bank of India",
+            "sbi": "State Bank of India",
+            "hdfc": "HDFC Bank",
+            "icici": "ICICI Bank",
+            "axis": "Axis Bank",
+            "bank of baroda": "Bank of Baroda",
+            "bob": "Bank of Baroda",
+            "kotak": "Kotak Mahindra Bank",
+            "canara": "Canara Bank",
+            "union bank": "Union Bank of India",
+            "punjab national": "Punjab National Bank",
+            "pnb": "Punjab National Bank",
+            "panjab": "Punjab National Bank",
+            "idfc": "IDFC First Bank",
+            "indusind": "IndusInd Bank",
+            "yes bank": "Yes Bank",
+            "yesb": "Yes Bank",
+            "federal": "Federal Bank",
+            "bandhan": "Bandhan Bank",
+            "bank of india": "Bank of India",
+            "boi": "Bank of India",
+            "cbi": "Central Bank of India",
+            "indian bank": "Indian Bank"
+        }
+        for kw, bank_name in filename_mapping.items():
+            if kw in file_name_lower:
+                return bank_name
+        if re.search(r"\bau\b", file_name_lower):
+            return "AU Small Finance Bank"
+
         pages_text = []
 
         # 1. Extract digital text from all pages and match signatures
@@ -103,7 +137,7 @@ class PDFStatementParser:
                     text = doc[idx].get_text()
                     if text:
                         # Match bank using BankDetector
-                        bank = BankDetector.detect_bank(text)
+                        bank = BankDetector.detect_bank(text, pdf_path)
                         if bank != "Unknown Bank":
                             return bank
                         pages_text.append(text)
@@ -118,7 +152,7 @@ class PDFStatementParser:
                         text = pdf.pages[idx].extract_text()
                         if text:
                             # Match bank using BankDetector
-                            bank = BankDetector.detect_bank(text)
+                            bank = BankDetector.detect_bank(text, pdf_path)
                             if bank != "Unknown Bank":
                                 return bank
                             pages_text.append(text)
@@ -141,7 +175,7 @@ class PDFStatementParser:
                             if prefix in ifsc_prefixes:
                                 return ifsc_prefixes[prefix]
                         
-                        bank = BankDetector.detect_bank(text)
+                        bank = BankDetector.detect_bank(text, pdf_path)
                         if bank != "Unknown Bank":
                             return bank
                         pages_text.append(text)
@@ -187,7 +221,7 @@ class PDFStatementParser:
         if pdf_path:
             metadata["bank_name"] = cls.detect_bank_from_pdf(pdf_path)
         else:
-            metadata["bank_name"] = BankDetector.detect_bank(text)
+            metadata["bank_name"] = BankDetector.detect_bank(text, pdf_path)
 
         holder_patterns = [
             r"(?:Account Holder|Customer Name|Name|Primary Holder)\s*:\s*([A-Za-z \t\.]+)",
@@ -248,12 +282,16 @@ class PDFStatementParser:
             r"period(?:\s+of)?(?:\s+account)?:\s*(.*?)(?:\n|$)",
             r"period\s+(\d{2}-\w{3}-\d{4}\s+to\s+\d{2}-\w{3}-\d{4})",
             r"period\s+([\d/]+\s+to\s+[\d/]+)",
-            r"statement of account for\s*(.*?)(?:\n|$)"
+            r"statement of account for\s*(.*?)(?:\n|$)",
+            r"(?:From|from)\s+([\d\-/\.\w]+)\s+(?:To|to)\s+([\d\-/\.\w]+)"
         ]
         for pattern in period_patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                metadata["period"] = match.group(1).strip()
+                if "from" in pattern and len(match.groups()) >= 2:
+                    metadata["period"] = f"{match.group(1).strip()} to {match.group(2).strip()}"
+                else:
+                    metadata["period"] = match.group(1).strip()
                 break
 
         if "USD" in text or "$" in text:
@@ -294,42 +332,17 @@ class PDFStatementParser:
         if first_page_text and len(first_page_text.strip()) > 100:
             is_scanned = False
 
-        for idx in range(page_count):
-            if progress_callback:
-                try:
-                    import inspect
-                    sig = inspect.signature(progress_callback)
-                    if len(sig.parameters) >= 3:
-                        progress_callback(idx + 1, page_count, len(transactions))
-                    else:
-                        progress_callback(idx + 1, page_count)
-                except Exception:
-                    progress_callback(idx + 1, page_count)
-            
-            is_page_digital = TableExtractor.has_selectable_text(pdf_path, idx)
-            
+        # Define thread-safe page processing target for parallel phase
+        def process_single_page(idx, shared_mapping):
             try:
-                page_txs, page_mapping, method_used = PageProcessor.process_page(pdf_path, idx, column_mapping, logger)
-                
-                # Log success using requested layout format
-                logger.log_page_success(idx + 1, is_page_digital, len(page_txs), method_used)
-                
-                if page_txs:
-                    transactions.extend(page_txs)
-                    if not column_mapping:
-                        column_mapping = page_mapping
-
-                # Pacing delay to avoid exceeding standard 15 RPM free tier limits on vision calls
-                if method_used == "AI Vision Fallback" and idx < page_count - 1:
-                    time.sleep(3.5)
+                page_txs, page_mapping, method_used = PageProcessor.process_page(pdf_path, idx, shared_mapping, None)
+                return idx, True, page_txs, page_mapping, method_used, None
             except Exception as e:
                 # Retry strategy
-                if logger:
-                    logger.log(f"Page {idx + 1} processing failed: {e}. Retrying with AI Vision fallback...")
                 try:
-                    # Render page as PIL image and run AI Vision fallback directly
                     from parser.ocr_parser import OCRParser
                     from services.gemini_service import GeminiService
+                    from parser.utils import ParserUtils
                     pil_image = OCRParser.render_pdf_page_to_pil(pdf_path, idx)
                     ai_data = GeminiService.parse_page_image(pil_image)
                     if ai_data and "transactions" in ai_data:
@@ -341,8 +354,6 @@ class PDFStatementParser:
                             debit_val = tx.get("Debit") or tx.get("debit") or ""
                             credit_val = tx.get("Credit") or tx.get("credit") or ""
                             bal_val = tx.get("Balance") or tx.get("balance") or ""
-                            
-                            from parser.utils import ParserUtils
                             page_txs.append({
                                 "date": str(date_val),
                                 "narration": str(narr_val),
@@ -350,17 +361,115 @@ class PDFStatementParser:
                                 "credit": ParserUtils.clean_amount(credit_val),
                                 "balance": ParserUtils.clean_balance(bal_val)
                             })
+                        return idx, True, page_txs, None, "AI Vision Fallback", None
+                except Exception as retry_err:
+                    return idx, False, [], None, None, f"{e} (AI Vision retry failed: {retry_err})"
+                return idx, False, [], None, None, str(e)
+
+        results = [None] * page_count
+        first_tx_page_idx = -1
+
+        # Sequential Phase: Process pages sequentially until we get a column mapping
+        for idx in range(page_count):
+            if progress_callback:
+                try:
+                    import inspect
+                    sig = inspect.signature(progress_callback)
+                    if len(sig.parameters) >= 3:
+                        progress_callback(idx + 1, page_count, len(transactions))
+                    else:
+                        progress_callback(idx + 1, page_count)
+                except Exception:
+                    progress_callback(idx + 1, page_count)
+
+            is_page_digital = TableExtractor.has_selectable_text(pdf_path, idx)
+            try:
+                page_txs, page_mapping, method_used = PageProcessor.process_page(pdf_path, idx, None, logger)
+                results[idx] = (True, page_txs, page_mapping, method_used, None)
+                logger.log_page_success(idx + 1, is_page_digital, len(page_txs), method_used)
+                
+                if page_txs:
+                    transactions.extend(page_txs)
+                    column_mapping = page_mapping
+                    first_tx_page_idx = idx
+                    break
+            except Exception as e:
+                # Retry strategy for sequential phase if it fails
+                try:
+                    from parser.ocr_parser import OCRParser
+                    from services.gemini_service import GeminiService
+                    from parser.utils import ParserUtils
+                    pil_image = OCRParser.render_pdf_page_to_pil(pdf_path, idx)
+                    ai_data = GeminiService.parse_page_image(pil_image)
+                    if ai_data and "transactions" in ai_data:
+                        raw_txs = ai_data["transactions"]
+                        page_txs = []
+                        for tx in raw_txs:
+                            date_val = tx.get("Date") or tx.get("date") or ""
+                            narr_val = tx.get("Narration") or tx.get("narration") or tx.get("Description") or tx.get("description") or ""
+                            debit_val = tx.get("Debit") or tx.get("debit") or ""
+                            credit_val = tx.get("Credit") or tx.get("credit") or ""
+                            bal_val = tx.get("Balance") or tx.get("balance") or ""
+                            page_txs.append({
+                                "date": str(date_val),
+                                "narration": str(narr_val),
+                                "debit": ParserUtils.clean_amount(debit_val),
+                                "credit": ParserUtils.clean_amount(credit_val),
+                                "balance": ParserUtils.clean_balance(bal_val)
+                            })
+                        results[idx] = (True, page_txs, None, "AI Vision Fallback", None)
+                        logger.log_page_success(idx + 1, is_page_digital, len(page_txs), "AI Vision Fallback")
                         if page_txs:
                             transactions.extend(page_txs)
-                            if logger:
-                                logger.log(f"Page {idx + 1} successfully recovered and parsed via AI Vision retry fallback.")
-                            continue
+                            first_tx_page_idx = idx
+                            break
                 except Exception as retry_err:
-                    if logger:
-                        logger.log(f"Page {idx + 1} retry failed: {retry_err}")
+                    results[idx] = (False, [], None, None, f"{e} (AI Vision retry failed: {retry_err})")
+                    failed_pages.append(idx + 1)
+                    logger.log_page_failure(idx + 1, f"{e} (AI Vision retry failed: {retry_err})")
+
+        # Parallel Phase: Process remaining pages concurrently using the detected column mapping
+        remaining_pages = range(first_tx_page_idx + 1, page_count)
+        if remaining_pages:
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            max_workers = min(8, os.cpu_count() or 4)
+            completed_count = first_tx_page_idx + 1
+            
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_to_page = {
+                    executor.submit(process_single_page, i, column_mapping): i 
+                    for i in remaining_pages
+                }
                 
-                failed_pages.append(idx + 1)
-                logger.log_page_failure(idx + 1, str(e))
+                for future in as_completed(future_to_page):
+                    idx, success, page_txs, page_mapping, method_used, error_msg = future.result()
+                    results[idx] = (success, page_txs, page_mapping, method_used, error_msg)
+                    completed_count += 1
+                    
+                    if progress_callback:
+                        try:
+                            curr_tx_count = len(transactions) + sum(len(results[r][1]) for r in remaining_pages if results[r] is not None)
+                            import inspect
+                            sig = inspect.signature(progress_callback)
+                            if len(sig.parameters) >= 3:
+                                progress_callback(completed_count, page_count, curr_tx_count)
+                            else:
+                                progress_callback(completed_count, page_count)
+                        except Exception:
+                            progress_callback(completed_count, page_count)
+
+            # Assemble and log in sequential order
+            for idx in remaining_pages:
+                success, page_txs, page_mapping, method_used, error_msg = results[idx]
+                is_page_digital = TableExtractor.has_selectable_text(pdf_path, idx)
+                
+                if success:
+                    logger.log_page_success(idx + 1, is_page_digital, len(page_txs), method_used)
+                    if page_txs:
+                        transactions.extend(page_txs)
+                else:
+                    failed_pages.append(idx + 1)
+                    logger.log_page_failure(idx + 1, error_msg)
 
 
         # Post-processing deduplication

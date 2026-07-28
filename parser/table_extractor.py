@@ -1,33 +1,36 @@
 from parser.digital_parser import DigitalParser, HAS_PDFPLUMBER, HAS_CAMELOT, HAS_TABULA, HAS_FITZ
 from parser.ocr_parser import OCRParser
 
+from parser.utils import PDF_LOCK
+
 class TableExtractor:
     """Aligns unstructured bounding boxes of text/words into a structured 2D grid."""
 
     @classmethod
     def has_selectable_text(cls, pdf_path: str, page_num: int) -> bool:
         """Checks if page has selectable text using fitz or pdfplumber."""
-        if HAS_FITZ:
-            try:
-                import fitz
-                doc = fitz.open(pdf_path)
-                page = doc[page_num]
-                text = page.get_text()
-                if text and len(text.strip()) > 50:
-                    return True
-            except Exception:
-                pass
-        if HAS_PDFPLUMBER:
-            try:
-                import pdfplumber
-                with pdfplumber.open(pdf_path) as pdf:
-                    page = pdf.pages[page_num]
-                    text = page.extract_text()
+        with PDF_LOCK:
+            if HAS_FITZ:
+                try:
+                    import fitz
+                    doc = fitz.open(pdf_path)
+                    page = doc[page_num]
+                    text = page.get_text()
                     if text and len(text.strip()) > 50:
                         return True
-            except Exception:
-                pass
-        return False
+                except Exception:
+                    pass
+            if HAS_PDFPLUMBER:
+                try:
+                    import pdfplumber
+                    with pdfplumber.open(pdf_path) as pdf:
+                        page = pdf.pages[page_num]
+                        text = page.extract_text()
+                        if text and len(text.strip()) > 50:
+                            return True
+                except Exception:
+                    pass
+            return False
 
     @classmethod
     def extract_table_digitally_default(cls, pdf_path: str, page_num: int, logger=None) -> list:
@@ -59,11 +62,12 @@ class TableExtractor:
     def extract_table_digitally(cls, pdf_path: str, page_num: int, logger=None) -> list:
         """Extracts 2D grid table digitally using default or text fallback strategy."""
         table = cls.extract_table_digitally_default(pdf_path, page_num, logger)
-        if not table:
-            table = cls.extract_table_digitally_text_fallback(pdf_path, page_num, logger)
-            if table:
-                return table
-        else:
+        # Enforce that a valid bank statement table should have at least 4 columns (date, narration, amount, balance)
+        if table and len(table[0]) >= 4:
+            return table
+            
+        table = cls.extract_table_digitally_text_fallback(pdf_path, page_num, logger)
+        if table:
             return table
 
         if HAS_CAMELOT:
@@ -96,11 +100,62 @@ class TableExtractor:
         return []
 
     @classmethod
+    def _extract_table_by_dividers(cls, blocks: list, dividers: list) -> list:
+        # Group words into vertical lines
+        lines = {}
+        for w in blocks:
+            found = False
+            for line_top in lines:
+                if abs(w["y0"] - line_top) < 15: # y-coordinate tolerance for OCR lines
+                    lines[line_top].append(w)
+                    found = True
+                    break
+            if not found:
+                lines[w["y0"]] = [w]
+                
+        sorted_tops = sorted(lines.keys())
+        grid = []
+        num_cols = len(dividers) + 1
+        
+        for top in sorted_tops:
+            line_words = lines[top]
+            row_cells = [[] for _ in range(num_cols)]
+            
+            for w in line_words:
+                pos = (w["x0"] + w["x1"]) / 2
+                col_idx = 0
+                for i, div in enumerate(dividers):
+                    if pos > div:
+                        col_idx = i + 1
+                    else:
+                        break
+                row_cells[col_idx].append(w)
+                
+            row_text = []
+            for cell in row_cells:
+                cell_sorted = sorted(cell, key=lambda x: x["x0"])
+                txt = " ".join(w["text"] for w in cell_sorted)
+                row_text.append(txt)
+            grid.append(row_text)
+            
+        return grid
+
+    @classmethod
     def extract_table_via_ocr(cls, pdf_path: str, page_num: int, logger=None) -> list:
         """Extracts 2D grid table via OCR image parsing and bounding box clustering."""
         try:
             blocks = OCRParser.extract_text_blocks(pdf_path, page_num, logger)
             if blocks:
+                # Detect bank name from text blocks
+                from parser.bank_detector import BankDetector
+                raw_text = " ".join(b["text"] for b in blocks)
+                bank_name = BankDetector.detect_bank(raw_text, pdf_path)
+                
+                if bank_name == "Punjab National Bank":
+                    # PNB custom dividers for OCR image coordinates (scale=2.5)
+                    dividers = [250, 400, 1040, 1140, 1250]
+                    return cls._extract_table_by_dividers(blocks, dividers)
+                    
                 return cls._cluster_text_into_grid(blocks)
         except Exception as e:
             if logger:

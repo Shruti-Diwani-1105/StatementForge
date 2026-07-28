@@ -615,7 +615,7 @@
             if (contentArea) contentArea.scrollTop = 0;
         }
 
-        function selectThemeMode(mode) {
+        function selectThemeMode(mode, isProgrammatic) {
             document.querySelectorAll('.theme-option-card').forEach(card => card.classList.remove('active'));
             const clickedCard = document.getElementById('theme-' + mode.toLowerCase());
             if (clickedCard) clickedCard.classList.add('active');
@@ -626,16 +626,16 @@
                 document.body.classList.remove('dark-mode');
             }
 
-            if (typeof sendAppCommand === 'function') {
+            if (!isProgrammatic && typeof sendAppCommand === 'function') {
                 sendAppCommand('settings_field_change', { field: 'app_theme', value: mode });
             }
         }
 
-        function selectAccentColor(colorHex, el) {
+        function selectAccentColor(colorHex, el, isProgrammatic) {
             document.querySelectorAll('.color-card').forEach(card => card.classList.remove('active'));
             if (el) el.classList.add('active');
 
-            if (typeof sendAppCommand === 'function') {
+            if (!isProgrammatic && typeof sendAppCommand === 'function') {
                 sendAppCommand('settings_field_change', { field: 'app_accent_color', value: colorHex });
             }
         }

@@ -180,7 +180,8 @@ class EmailRepository:
         try:
             client = MongoDBService.get_client()
             if client:
-                db = client["statementforge"]
+                db_name = os.getenv("MONGODB_DB_NAME", "statementforge")
+                db = client[db_name]
                 return db["email_history"]
         except Exception:
             pass

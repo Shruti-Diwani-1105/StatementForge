@@ -203,9 +203,9 @@ body.dark-mode .custom-select {
 /* Integrated Summary Metrics Grid (Colorful Gradient Cards) */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 10px;
-    align-items: center;
+    align-items: stretch;
 }
 
 .metric-box {
@@ -719,5 +719,5 @@ body.dark-mode .chat-input-field {
 @media (max-width: 1024px) {
     .auditor-app-container { flex-direction: column; }
     .auditor-sidebar-right { width: 100%; }
-    .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+    .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

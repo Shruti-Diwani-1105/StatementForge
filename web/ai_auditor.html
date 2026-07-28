@@ -276,16 +276,38 @@
         }
 
         function setMetrics(bank, period, credits, debits, savings, score, isPositive) {
-            document.getElementById('lblBank').innerText = bank || '-';
-            document.getElementById('lblPeriod').innerText = period || '-';
-            document.getElementById('lblCredits').innerText = credits || '-';
-            document.getElementById('lblDebits').innerText = debits || '-';
+            const els = [
+                { id: 'lblBank', val: bank },
+                { id: 'lblPeriod', val: period },
+                { id: 'lblCredits', val: credits },
+                { id: 'lblDebits', val: debits },
+                { id: 'lblSavings', val: savings },
+                { id: 'lblScore', val: score }
+            ];
             
             const savEl = document.getElementById('lblSavings');
-            savEl.innerText = savings || '-';
-            savEl.className = 'metric-value ' + (isPositive ? 'text-green' : 'text-red');
+            if (savEl) {
+                savEl.className = 'metric-value ' + (isPositive ? 'text-green' : 'text-red');
+            }
             
-            document.getElementById('lblScore').innerText = score || '-';
+            els.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (el) {
+                    el.innerText = item.val || '-';
+                    const len = (item.val || '').length;
+                    if (len > 22) {
+                        el.style.fontSize = '9px';
+                    } else if (len > 18) {
+                        el.style.fontSize = '10px';
+                    } else if (len > 14) {
+                        el.style.fontSize = '11px';
+                    } else if (len > 11) {
+                        el.style.fontSize = '13px';
+                    } else {
+                        el.style.fontSize = '15px';
+                    }
+                }
+            });
         }
 
         function setReportHtml(html) {

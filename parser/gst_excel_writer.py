@@ -158,8 +158,8 @@ class GSTExcelWriter:
         ws_led.page_setup.fitToHeight = 0
         
         headers = [
-            "Date", "Narration", "Type", "Category", "Vendor Name", "Vendor GSTIN", "Total Amount", 
-            "Taxable Value", "GST Rate", "CGST", "SGST", "IGST", 
+            "Invoice Number", "Date", "Narration", "Type", "Category", "Vendor Name", "Vendor GSTIN", "Total Amount", 
+            "Taxable Value", "GST Rate", "CGST", "SGST", "IGST", "CESS",
             "Total GST", "ITC Eligible", "GSTR-2B Status", "AI Confidence", "Status"
         ]
         
@@ -182,6 +182,7 @@ class GSTExcelWriter:
                 conf_val = conf_val / 100.0
                 
             row_data = [
+                tx.get("invoice_num", ""),
                 tx.get("date", ""),
                 tx.get("narration", ""),
                 tx.get("type", "Debit (ITC Claimable)"),
@@ -194,6 +195,7 @@ class GSTExcelWriter:
                 tx.get("cgst", 0.0),
                 tx.get("sgst", 0.0),
                 tx.get("igst", 0.0),
+                tx.get("cess", 0.0),
                 tx.get("total_gst", 0.0),
                 tx.get("itc_eligible", "No"),
                 tx.get("gstr2b_status", "Not Reconciled"),
@@ -215,20 +217,20 @@ class GSTExcelWriter:
                     cell.fill = zebra_fill
                 
                 # Column alignments and formats
-                if c_idx in (7, 8, 10, 11, 12, 13): # Amounts
+                if c_idx in (8, 9, 11, 12, 13, 14, 15): # Amounts
                     cell.number_format = currency_format
                     cell.alignment = Alignment(horizontal="right", vertical="center")
-                elif c_idx in (9, 16): # Rates / Percentages
+                elif c_idx in (10, 18): # Rates / Percentages
                     cell.number_format = percent_format
                     cell.alignment = Alignment(horizontal="right", vertical="center")
-                elif c_idx in (1, 3, 6, 14, 15, 17): # Center details
+                elif c_idx in (1, 2, 4, 7, 16, 17, 19): # Center details
                     cell.alignment = Alignment(horizontal="center", vertical="center")
                 else:
                     cell.alignment = Alignment(vertical="center")
 
         # Freeze headers & enable auto-filtering
         ws_led.freeze_panes = "A2"
-        ws_led.auto_filter.ref = f"A1:Q{len(gst_ledger) + 1}"
+        ws_led.auto_filter.ref = f"A1:S{len(gst_ledger) + 1}"
 
         # Adjust columns dynamically
         for col in ws_led.columns:
@@ -238,9 +240,9 @@ class GSTExcelWriter:
             for cell in col:
                 val_str = str(cell.value or "")
                 if cell.value is not None:
-                    if c_idx in (7, 8, 10, 11, 12, 13) and isinstance(cell.value, (int, float)):
+                    if c_idx in (8, 9, 11, 12, 13, 14, 15) and isinstance(cell.value, (int, float)):
                         val_str = f"₹ {cell.value:,.2f}"
-                    elif c_idx in (9, 16) and isinstance(cell.value, (int, float)):
+                    elif c_idx in (10, 18) and isinstance(cell.value, (int, float)):
                         val_str = f"{cell.value * 100:.1f}%"
                 max_len = max(max_len, len(val_str))
             ws_led.column_dimensions[col_letter].width = max(max_len + 3, 10)

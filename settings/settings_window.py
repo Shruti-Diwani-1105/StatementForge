@@ -86,7 +86,7 @@ class FieldProxy(QObject):
     def set_selected_color(self, color):
         self._val = color
         color_str = json.dumps(str(color))
-        js = f"(function(){{ if (typeof selectAccentColor === 'function') selectAccentColor({color_str}); }})();"
+        js = f"(function(){{ if (typeof selectAccentColor === 'function') selectAccentColor({color_str}, null, true); }})();"
         self.parent_window.html_wrapper.eval_js(js)
 
     def clear(self):
@@ -268,7 +268,7 @@ class SettingsWindow(QWidget):
         js = (
             f"(function(){{ "
             f"if ('{theme_str}' === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode'); "
-            f"if (typeof selectThemeMode === 'function') selectThemeMode('{theme_str.capitalize()}'); "
+            f"if (typeof selectThemeMode === 'function') selectThemeMode('{theme_str.capitalize()}', true); "
             f"}})();"
         )
         self.html_wrapper.eval_js(js)
@@ -277,7 +277,10 @@ class SettingsWindow(QWidget):
         """Dispatches commands sent from JavaScript UI via document.title IPC."""
         if not title or not title.startswith("app-cmd:"):
             return
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(0, lambda: self._process_web_command(title))
 
+    def _process_web_command(self, title: str):
         parts = title.split(":", 2)
         cmd = parts[1] if len(parts) > 1 else ""
         raw_payload = parts[2] if len(parts) > 2 else ""

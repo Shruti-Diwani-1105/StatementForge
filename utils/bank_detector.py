@@ -6,6 +6,11 @@ class BankDetector:
     
     # List of supported banks with detection keywords
     BANKS_METADATA = [
+        {"name": "Bhuj Mercantile Co Op Bank", "keywords": ["bhuj mercantile", "bmcb"]},
+        {"name": "Bhuj Commercial Co-op Bank", "keywords": ["bhuj commercial", "bccb"]},
+        {"name": "Baroda Gujarat Gramin Bank", "keywords": ["baroda gujarat gramin", "bggb"]},
+        {"name": "Junagadh Commercial Cooperative Bank", "keywords": ["junagadh commercial", "junagadh bank"]},
+        {"name": "Mandvi Cooperative Bank", "keywords": ["mandvi mercantile", "mandvi cooperative", "mandvi bank"]},
         {"name": "SBI", "keywords": ["state bank of india", "sbi"]},
         {"name": "HDFC", "keywords": ["hdfc bank", "hdfc"]},
         {"name": "ICICI", "keywords": ["icici bank", "icici"]},

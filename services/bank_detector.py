@@ -20,7 +20,12 @@ class BankDetector:
         "Yes Bank": ["yes bank", "yesbank", "yesb"],
         "IDFC First Bank": ["idfc first", "idfc bank", "idfc", "idfb"],
         "Bandhan Bank": ["bandhan bank", "bandhan", "bdbl"],
-        "Bank of India": ["bank of india", "boi statement", "boi", "bkid"]
+        "Bank of India": ["bank of india", "boi statement", "boi", "bkid"],
+        "Bhuj Mercantile Co Op Bank": ["bhuj mercantile", "mercantile co-operative", "bmcb", "bhuj mercantile co op bank"],
+        "Bhuj Commercial Co-op Bank": ["bhuj commercial", "bhuj commercial co-op", "bccb"],
+        "Baroda Gujarat Gramin Bank": ["baroda gujarat gramin", "gujarat gramin", "bggb"],
+        "Junagadh Commercial Cooperative Bank": ["junagadh commercial", "junagadh bank", "jccb"],
+        "Mandvi Cooperative Bank": ["mandvi mercantile", "mandvi cooperative", "mandvi co-operative", "mandvi bank", "mcbl", "mndv"]
     }
 
     @classmethod
@@ -31,8 +36,8 @@ class BankDetector:
         
         text_lower = text.lower()
         
-        # 1. Search for the own IFSC code first (highly specific)
-        own_ifsc_match = re.search(r"ifsc(?:\s+code)?\s*[:\-\s]?\s*\b([a-z]{4})0\d{6}\b", text_lower)
+        # 1. Search for the own IFSC code first (highly specific, allowing alphanumeric branch code)
+        own_ifsc_match = re.search(r"ifsc(?:\s+code)?\s*[:\-\s]?\s*\b([a-z]{4})0([a-z0-9]{6})\b", text_lower)
         
         mapping = {
             "HDFC": "HDFC Bank",
@@ -55,6 +60,20 @@ class BankDetector:
         
         if own_ifsc_match:
             prefix = own_ifsc_match.group(1).upper()
+            branch = own_ifsc_match.group(2).upper()
+            
+            # Sub-branch/Sponsored bank overrides
+            if "BMCB" in branch:
+                return "Bhuj Mercantile Co Op Bank"
+            elif "BCCB" in branch:
+                return "Bhuj Commercial Co-op Bank"
+            elif "JCCB" in branch:
+                return "Junagadh Commercial Cooperative Bank"
+            elif "MMCB" in branch:
+                return "Mandvi Cooperative Bank"
+            elif "BGGB" in branch:
+                return "Baroda Gujarat Gramin Bank"
+                
             if prefix in mapping:
                 return mapping[prefix]
 
@@ -92,18 +111,36 @@ class BankDetector:
         # 3. Last-resort fallback: check for any IFSC code prefix anywhere on the page
         # (Only applied if no strong signature match is found to avoid false positives from third-party IFSCs in transaction narratives)
         if max_score < 30:
-            ifsc_pattern = r"\b(HDFC|SBIN|ICIC|UTIB|BARB|KKBK|CNRB|PUNB|UBIN|FDRL|INDB|YESB|IDFB|BDBL|BKID|AUBL)[A-Z0-9]{4,8}\b"
+            ifsc_pattern = r"\b(HDFC|SBIN|ICIC|UTIB|BARB|KKBK|CNRB|PUNB|UBIN|FDRL|INDB|YESB|IDFB|BDBL|BKID|AUBL)([A-Z0-9]+)\b"
             match = re.search(ifsc_pattern, text.upper())
             if match:
                 prefix = match.group(1)
-                if prefix in mapping:
+                suffix = match.group(2)
+                
+                # Sub-branch/Sponsored bank overrides
+                overridden = None
+                if "BMCB" in suffix:
+                    overridden = "Bhuj Mercantile Co Op Bank"
+                elif "BCCB" in suffix:
+                    overridden = "Bhuj Commercial Co-op Bank"
+                elif "JCCB" in suffix:
+                    overridden = "Junagadh Commercial Cooperative Bank"
+                elif "MMCB" in suffix:
+                    overridden = "Mandvi Cooperative Bank"
+                elif "BGGB" in suffix:
+                    overridden = "Baroda Gujarat Gramin Bank"
+                    
+                if overridden:
+                    scores[overridden] += 80
+                elif prefix in mapping:
                     scores[mapping[prefix]] += 80
-                    # Recalculate best bank
-                    max_score = 0
-                    for bank, score in scores.items():
-                        if score > max_score:
-                            max_score = score
-                            best_bank = bank
+                    
+                # Recalculate best bank
+                max_score = 0
+                for bank, score in scores.items():
+                    if score > max_score:
+                        max_score = score
+                        best_bank = bank
                 
         if max_score >= 10:
             return best_bank

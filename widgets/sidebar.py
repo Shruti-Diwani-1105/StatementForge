@@ -58,7 +58,10 @@ class Sidebar(QFrame):
         """Processes document.title IPC commands sent from HTML."""
         if not title or not title.startswith("app-cmd:"):
             return
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(0, lambda: self._process_title_changed(title))
 
+    def _process_title_changed(self, title: str):
         parts = title.split(":", 2)
         cmd = parts[1] if len(parts) > 1 else ""
         payload = parts[2] if len(parts) > 2 else ""

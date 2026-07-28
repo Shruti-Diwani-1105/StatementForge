@@ -28,6 +28,15 @@ class AuthDB:
     _mongo_available = False
 
     @classmethod
+    def reset_connection(cls):
+        """Resets the cached MongoDB client and database collection references."""
+        cls._mongo_client = None
+        cls._db = None
+        cls._collection = None
+        cls._mongo_available = False
+        print("AuthDB: Connection references reset.")
+
+    @classmethod
     def get_mongo_collection(cls):
         """Initializes and returns MongoDB collection, or None if unavailable."""
         if cls._mongo_client is not None:
@@ -49,10 +58,11 @@ class AuthDB:
             cls._mongo_client = MongoClient(uri, serverSelectionTimeoutMS=2000)
             # Run a ping check to verify connectability
             cls._mongo_client.admin.command('ping')
-            cls._db = cls._mongo_client["statementforge"]
+            db_name = os.getenv("MONGODB_DB_NAME", "statementforge")
+            cls._db = cls._mongo_client[db_name]
             cls._collection = cls._db["users"]
             cls._mongo_available = True
-            print("AuthDB: Successfully connected to MongoDB Atlas!")
+            print(f"AuthDB: Successfully connected to MongoDB Atlas! (Database: {db_name})")
             return cls._collection
         except Exception as e:
             print(f"AuthDB: Failed to connect to MongoDB Atlas ({e}). Using in-memory fallback.")

@@ -104,10 +104,58 @@ class ValidationService:
             return result
 
         # Check 5: Running balance mathematical consistency
-        if len(transactions) > 1:
-            for i in range(1, len(transactions)):
-                prev = transactions[i - 1]
-                curr = transactions[i]
+        has_running_balance = False
+        non_empty_balances = [str(tx.get("balance")).strip() for tx in transactions if tx.get("balance")]
+        if len(set(non_empty_balances)) > 1:
+            has_running_balance = True
+
+        if len(transactions) > 1 and has_running_balance:
+            # Detect chronological direction
+            is_reverse = False
+            try:
+                from datetime import datetime
+                def parse_dt(d_str):
+                    if not d_str:
+                        return None
+                    clean_d = re.sub(r"\s+", " ", str(d_str).strip())
+                    clean_d = clean_d.title()
+                    for fmt in [
+                        "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%d/%m/%y", "%d-%m-%y",
+                        "%B%d, %Y", "%b%d, %Y", "%B %d, %Y", "%b %d, %Y",
+                        "%d-%b-%Y", "%d-%B-%Y", "%d/%b/%Y", "%d/%B/%Y",
+                        "%d-%b-%y", "%d-%B-%y", "%d/%b/%y", "%d/%B/%y",
+                        "%B %d %Y", "%b %d %Y"
+                    ]:
+                        try:
+                            return datetime.strptime(clean_d, fmt)
+                        except ValueError:
+                            continue
+                    return None
+                
+                first_dt = None
+                for tx in transactions:
+                    dt = parse_dt(tx.get("date", ""))
+                    if dt:
+                        first_dt = dt
+                        break
+                last_dt = None
+                for tx in reversed(transactions):
+                    dt = parse_dt(tx.get("date", ""))
+                    if dt:
+                        last_dt = dt
+                        break
+                if first_dt and last_dt and first_dt > last_dt:
+                    is_reverse = True
+            except Exception:
+                pass
+
+            tx_check = transactions
+            if is_reverse:
+                tx_check = list(reversed(transactions))
+
+            for i in range(1, len(tx_check)):
+                prev = tx_check[i - 1]
+                curr = tx_check[i]
                 
                 try:
                     prev_bal = float(prev.get("balance") or 0)
@@ -120,7 +168,8 @@ class ValidationService:
                         actual_bal = round(curr_bal, 2)
                         
                         if abs(actual_bal - expected_bal) > 0.05:
-                            result["failed_math_indices"].append(i)
+                            original_idx = len(transactions) - 1 - i if is_reverse else i
+                            result["failed_math_indices"].append(original_idx)
                 except Exception:
                     pass
 
