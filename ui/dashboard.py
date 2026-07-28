@@ -100,10 +100,8 @@ class DashboardScreen(QWidget):
         """Pre-sets the format selection on the upload widget before switching pages."""
         if hasattr(self, "upload_widget"):
             self.upload_widget.target_flow_preset = flow
-            if flow == "gst":
-                self.upload_widget.format_combo.setCurrentIndex(1)
-            else:
-                self.upload_widget.format_combo.setCurrentIndex(0)
+            if hasattr(self.upload_widget, "format_combo"):
+                self.upload_widget.format_combo.setCurrentIndex(1 if flow == "gst" else 0)
         self.switch_dashboard_page("upload")
 
     def set_user_profile(self, user_details):

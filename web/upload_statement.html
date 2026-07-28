@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge - Upload Bank Statement</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="styles/upload_statement.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body>
+    <div class="app-layout fade-in" id="upload-app">
+
+        <!-- ========================================== -->
+        <!-- VIEW 0: FLAGSHIP ENTERPRISE UPLOAD DASHBOARD -->
+        <!-- ========================================== -->
+        <main class="page-view active" id="view-upload">
+
+            <!-- 1. Header Hero Section -->
+            <header class="dashboard-header">
+                <h1 class="header-title">Upload Bank Statement</h1>
+                <p class="header-subtitle">Securely ingest, validate, and convert PDF bank statements into structured financial data.</p>
+            </header>
+
+            <!-- 2. Hero Glassmorphism Upload Card -->
+            <section class="upload-hero-container">
+                <div class="ambient-glow"></div>
+                
+                <div class="upload-hero-card" id="dropZone" onclick="triggerFileSelect()">
+                    <input type="file" id="fileInput" accept=".pdf" style="display: none;" onchange="handleFileSelected(event)">
+                    
+                    <div class="upload-card-inner">
+                        <!-- Floating Animated Icon Illustration -->
+                        <div class="hero-illustration">
+                            <div class="orbit-ring"></div>
+                            <div class="icon-circle-glass">
+                                <svg class="cloud-hero-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+                                    <path d="M12 13v6m-3-3 3-3 3 3"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div class="hero-text-content">
+                            <h2 class="drop-prompt">Drag &amp; Drop PDF Statement Here</h2>
+                            <p class="drop-help">or choose a document from your computer</p>
+                        </div>
+
+                        <!-- Flagship Browse Button -->
+                        <button type="button" class="btn btn-flagship browse-btn" onclick="event.stopPropagation(); triggerFileSelect();">
+                            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+                                <path d="M12 10v6m-3-3 3 3 3-3"/>
+                            </svg>
+                            Browse Local File
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Enterprise Feature Grid Cards -->
+            <section class="features-grid">
+                <div class="feature-card">
+                    <div class="feat-icon-box blue-gradient">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="feat-details">
+                        <h4>PDF Format Only</h4>
+                        <p>Digital &amp; scanned PDF statement support</p>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feat-icon-box purple-gradient">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="feat-details">
+                        <h4>AI Bank Detector</h4>
+                        <p>Auto identifies Indian banking layouts</p>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feat-icon-box amber-gradient">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+                    </div>
+                    <div class="feat-details">
+                        <h4>OCR Vision Engine</h4>
+                        <p>Extracts dense tables with zero loss</p>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feat-icon-box emerald-gradient">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <div class="feat-details">
+                        <h4>Multi-Page Ingest</h4>
+                        <p>Processes annual multi-page statements</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. Detection Config Banner -->
+            <section class="config-card">
+                <div class="config-left">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="autoConvertCb" checked>
+                        <span class="checkmark"></span>
+                        <span class="checkbox-text">Automatically detect bank &amp; convert to Excel on upload</span>
+                    </label>
+                </div>
+            </section>
+
+            <!-- 5. Recent Processing Activity Analytics Card -->
+            <section class="recent-analytics-card">
+                <div class="recent-card-header">
+                    <div class="header-title-group">
+                        <h2 class="card-title">Recent Processing Activity</h2>
+                        <span class="live-indicator"><span class="live-dot"></span> Live Activity Log</span>
+                    </div>
+                    <span class="activity-count" id="activityCount">0 Entries</span>
+                </div>
+
+                <div class="table-container">
+                    <table class="recent-table">
+                        <thead>
+                            <tr>
+                                <th>Detected Bank</th>
+                                <th>File Name</th>
+                                <th>Transactions</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentActivityBody">
+                            <tr class="empty-state-row" id="emptyRow">
+                                <td colspan="5">
+                                    <div class="empty-state">
+                                        <div class="empty-icon-wrapper">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                        </div>
+                                        <h3 class="empty-title">No recent statement activity</h3>
+                                        <p class="empty-subtitle">Drag and drop your bank statement PDF above to automatically parse transactions.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: FEATURE CHOICE SELECTION GRID -->
+        <!-- ========================================== -->
+        <section class="page-view" id="view-choice">
+            <div class="choice-banner">
+                <div class="banner-icon">📂</div>
+                <div class="banner-details">
+                    <h3 class="banner-title" id="choiceFileName">Statement Loaded</h3>
+                    <p class="banner-info" id="choiceFileInfo">Bank: Detecting... | Pages: Pending layout analysis</p>
+                </div>
+            </div>
+
+            <p class="grid-subtitle">Select an action module to process this statement:</p>
+
+            <div class="cards-grid">
+                <div class="module-card card-excel" onclick="selectActionModule('excel')">
+                    <div class="card-icon-box bg-green">
+                        <img src="../assets/icons/excel.png" alt="Generate Excel" class="card-icon">
+                    </div>
+                    <div class="card-content">
+                        <h4>Generate Excel</h4>
+                        <p>Parse PDF tables directly into structured spreadsheets.</p>
+                    </div>
+                </div>
+
+                <div class="module-card card-ai" onclick="selectActionModule('ai_report')">
+                    <div class="card-icon-box bg-purple">
+                        <img src="../assets/icons/ai.png" alt="AI Report" class="card-icon">
+                    </div>
+                    <div class="card-content">
+                        <h4>AI Report</h4>
+                        <p>Generate wealth reports and audit transactions via AI.</p>
+                    </div>
+                </div>
+
+                <div class="module-card card-gst" onclick="selectActionModule('gst')">
+                    <div class="card-icon-box bg-amber">
+                        <img src="../assets/icons/gst.png" alt="GST Report" class="card-icon">
+                    </div>
+                    <div class="card-content">
+                        <h4>GST Report</h4>
+                        <p>Prepare statements for tax filings.</p>
+                    </div>
+                </div>
+
+                <div class="module-card card-tally" onclick="showComingSoon('Tally Export')">
+                    <div class="card-icon-box bg-orange">
+                        <img src="../assets/icons/tally.png" alt="Tally Export" class="card-icon">
+                    </div>
+                    <div class="card-content">
+                        <h4>Tally Export</h4>
+                        <p>Export ready for Tally integration.</p>
+                    </div>
+                </div>
+
+                <div class="module-card card-duplicate" onclick="showComingSoon('Duplicate Finder')">
+                    <div class="card-icon-box bg-red">
+                        <img src="../assets/icons/duplicate.png" alt="Duplicate Finder" class="card-icon">
+                    </div>
+                    <div class="card-content">
+                        <h4>Duplicate Finder</h4>
+                        <p>Find double entry transactions.</p>
+                    </div>
+                </div>
+
+                <div class="module-card card-history" onclick="selectActionModule('history')">
+                    <div class="card-icon-box bg-blue">
+                        <img src="../assets/icons/history.png" alt="Statement History" class="card-icon">
+                    </div>
+                    <div class="card-content">
+                        <h4>Statement History</h4>
+                        <p>View activity logs and past parsed statements.</p>
+                    </div>
+                </div>
+
+                <div class="module-card card-email" onclick="selectActionModule('email')">
+                    <div class="card-icon-box bg-emerald">
+                        <img src="../assets/icons/email.png" alt="Email Report" class="card-icon">
+                    </div>
+                    <div class="card-content">
+                        <h4>Email Report</h4>
+                        <p>Send parsed summaries safely.</p>
+                    </div>
+                </div>
+
+                <div class="module-card card-cancel" onclick="resetToUpload()">
+                    <div class="card-icon-box bg-slate">
+                        <img src="../assets/icons/logout.png" alt="Cancel" class="card-icon">
+                    </div>
+                    <div class="card-content">
+                        <h4>Cancel &amp; Upload New</h4>
+                        <p>Discard this statement and select a different file.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: PROCESSING PROGRESS SCREEN -->
+        <!-- ========================================== -->
+        <section class="page-view" id="view-processing">
+            <div class="processing-card">
+                <div class="spinner-box">
+                    <div class="pulse-spinner"></div>
+                </div>
+
+                <h2 class="proc-title" id="procTitle">Extracting &amp; Analyzing PDF Statement</h2>
+
+                <div class="details-box">
+                    <div class="detail-row">
+                        <span class="detail-label">Detected Bank:</span>
+                        <span class="detail-value" id="procBankName">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Total Pages:</span>
+                        <span class="detail-value" id="procPageCount">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Current Status:</span>
+                        <span class="detail-value highlight" id="procStatusText">Initializing parse engines...</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Transactions Extracted:</span>
+                        <span class="detail-value" id="procTxCount">0 records</span>
+                    </div>
+                </div>
+
+                <div class="progress-track">
+                    <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                </div>
+
+                <button type="button" class="btn btn-cancel" onclick="cancelProcessing()">Cancel Processing</button>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- MODAL: COMING SOON NOTIFICATION -->
+        <!-- ========================================== -->
+        <div class="modal-overlay" id="comingSoonModal" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-icon">ℹ️</div>
+                <h3 class="modal-title" id="csTitle">Feature Coming Soon</h3>
+                <p class="modal-text">This feature is scheduled for development in the upcoming sprint.</p>
+                <button type="button" class="btn btn-flagship" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- UI Controller JS -->
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        if (dropZone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    processFile(files[0]);
+                }
+            });
+        }
+
+        function triggerFileSelect() {
+            if (fileInput) fileInput.click();
+        }
+
+        function handleFileSelected(event) {
+            const files = event.target.files;
+            if (files && files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+
+        function processFile(file) {
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert("Only PDF bank statements are supported.");
+                return;
+            }
+
+            const autoDetect = document.getElementById('autoConvertCb').checked;
+            
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('upload_file_selected', {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    autoDetect: autoDetect
+                });
+            }
+
+            document.getElementById('choiceFileName').innerText = "📂 " + file.name;
+            document.getElementById('choiceFileInfo').innerText = "Bank: Auto-detecting... | Pages: Pending layout analysis";
+
+            if (autoDetect) {
+                startProcessingUI(file.name);
+            } else {
+                switchView('view-choice');
+            }
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById(viewId);
+            if (target) target.classList.add('active');
+        }
+
+        function resetToUpload() {
+            if (fileInput) fileInput.value = '';
+            switchView('view-upload');
+        }
+
+        function startProcessingUI(fileName) {
+            switchView('view-processing');
+            document.getElementById('procBankName').innerText = "Analyzing...";
+            document.getElementById('procPageCount').innerText = "Reading layout...";
+            document.getElementById('procStatusText').innerText = "Initializing parse engines...";
+            document.getElementById('procTxCount').innerText = "0 records";
+            document.getElementById('progressBar').style.width = "10%";
+        }
+
+        function cancelProcessing() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('upload_cancel', {});
+            }
+            resetToUpload();
+        }
+
+        function selectActionModule(moduleKey) {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('upload_module_click', { module: moduleKey });
+            } else {
+                showComingSoon(moduleKey);
+            }
+        }
+
+        function showComingSoon(moduleName) {
+            document.getElementById('csTitle').innerText = moduleName + " - Feature Coming Soon!";
+            document.getElementById('comingSoonModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('comingSoonModal').style.display = 'none';
+        }
+
+        let activityTotalCount = 0;
+
+        function addRecentActivity(bank, fileName, count, timeStr, status) {
+            const empty = document.getElementById('emptyRow');
+            if (empty) empty.style.display = 'none';
+
+            activityTotalCount++;
+            document.getElementById('activityCount').innerText = activityTotalCount + (activityTotalCount === 1 ? ' Entry' : ' Entries');
+
+            const tbody = document.getElementById('recentActivityBody');
+            const tr = document.createElement('tr');
+
+            const statusClass = status.toLowerCase() === 'completed' ? 'status-completed' : (status.toLowerCase() === 'failed' ? 'status-failed' : 'status-processing');
+
+            tr.innerHTML = `
+                <td><strong class="bank-name">${bank}</strong></td>
+                <td class="file-name">${fileName}</td>
+                <td>${count} txs</td>
+                <td class="time-col">${timeStr}</td>
+                <td><span class="status-badge ${statusClass}">${status}</span></td>
+            `;
+            tbody.prepend(tr);
+        }
+    </script>
+</body>
+</html>
