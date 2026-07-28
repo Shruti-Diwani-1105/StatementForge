@@ -125,6 +125,24 @@ class SettingsController(QObject):
         
         user = UserSession.get_current_user()
         if user:
+            # Sync latest user fields from MongoDB Atlas if available
+            try:
+                from utils.auth_db import AuthDB
+                collection = AuthDB.get_mongo_collection()
+                if collection is not None and user.get("email"):
+                    db_user = collection.find_one({"email": user["email"].strip().lower()})
+                    if db_user:
+                        user["name"] = db_user.get("full_name") or db_user.get("name") or user.get("name", "")
+                        user["username"] = db_user.get("username") or user.get("username", "")
+                        user["phone"] = db_user.get("phone") or user.get("phone", "")
+                        user["role"] = db_user.get("role") or user.get("role", "User")
+                        user["status"] = db_user.get("status") or user.get("status", "Active")
+                        if db_user.get("created_at"):
+                            user["created_at"] = db_user.get("created_at")
+                        UserSession.start_session(user)
+            except Exception as e:
+                print(f"SettingsController: MongoDB user sync error: {e}")
+
             # Load settings database/json cache
             data = SettingsService.load_settings(user)
             self.model.load_from_dict(data)
