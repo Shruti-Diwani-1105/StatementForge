@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge - Settings Suite</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="styles/settings.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body>
+    <div class="settings-app-container fade-in">
+
+        <!-- 1. TOP PILL NAVIGATION TAB BAR -->
+        <nav class="settings-nav-pillbar">
+            <button type="button" class="nav-pill active" id="pill-general" onclick="switchSettingsTab('general')">
+                <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                General
+            </button>
+            <button type="button" class="nav-pill" id="pill-account" onclick="switchSettingsTab('account')">
+                <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Account
+            </button>
+            <button type="button" class="nav-pill" id="pill-appearance" onclick="switchSettingsTab('appearance')">
+                <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                Appearance
+            </button>
+            <button type="button" class="nav-pill" id="pill-notifications" onclick="switchSettingsTab('notifications')">
+                <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                Notifications
+            </button>
+            <button type="button" class="nav-pill" id="pill-about" onclick="switchSettingsTab('about')">
+                <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                About
+            </button>
+        </nav>
+
+        <!-- 2. STACKED TAB PANELS CONTAINER -->
+        <main class="settings-content-area">
+
+            <!-- TAB 1: GENERAL SETTINGS -->
+            <section class="tab-panel active" id="panel-general">
+                <header class="panel-header">
+                    <h2 class="panel-title">General Preferences</h2>
+                    <p class="panel-subtitle">Configure application identity, system storage paths, and localization preferences.</p>
+                </header>
+
+                <div class="settings-card identity-card">
+                    <div class="card-header-icon">
+                        <div class="app-avatar-box">
+                            <span class="app-icon-symbol">⚡</span>
+                        </div>
+                        <div class="identity-meta">
+                            <div class="title-badge-row">
+                                <h3 class="card-section-title">Application Identity</h3>
+                                <span class="badge badge-enterprise">v2.4 Enterprise</span>
+                            </div>
+                            <p class="card-section-subtitle">StatementForge Automated Bank Statement Ingestion &amp; Financial Auditor Engine</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="genAppName">Application Title</label>
+                            <input type="text" id="genAppName" class="form-control" value="StatementForge AI Engine" oninput="notifyFieldChange('app_name', this.value)">
+                            <span class="form-hint">Displayed in topbar, notifications, and exported reports.</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="genWorkspace">Workspace Domain</label>
+                            <input type="text" id="genWorkspace" class="form-control" value="Enterprise Ledger Workspace" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card storage-card">
+                    <div class="card-title-row">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        <div>
+                            <h3 class="card-section-title">Storage &amp; Localization</h3>
+                            <p class="card-section-subtitle">Manage statement export destination directories and language formats.</p>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="genSaveLocation">Default Export Directory</label>
+                        <div class="input-btn-group">
+                            <input type="text" id="genSaveLocation" class="form-control" value="C:\Users\Documents\StatementForge" oninput="notifyFieldChange('save_location', this.value)">
+                            <button type="button" class="btn btn-secondary" onclick="triggerBrowseFolder()">Browse...</button>
+                        </div>
+                        <span class="form-hint error-hint" id="genSaveLocationErr"></span>
+                    </div>
+
+                    <div class="form-grid-2col">
+                        <div class="form-group">
+                            <label class="form-label" for="genLang">Interface Language</label>
+                            <select id="genLang" class="form-control custom-select" onchange="notifyFieldChange('language', this.value)">
+                                <option value="English (US)">English (US)</option>
+                                <option value="English (UK)">English (UK)</option>
+                                <option value="Spanish">Spanish</option>
+                                <option value="German">German</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group toggle-group-card">
+                            <div class="toggle-text-info">
+                                <label class="form-label">Auto-Save Configurations</label>
+                                <span class="form-hint">Automatically persist workspace settings updates.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="genAutoSave" checked onchange="notifyFieldChange('auto_save', this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- TAB 2: ACCOUNT PAGE -->
+            <section class="tab-panel" id="panel-account">
+                <header class="panel-header">
+                    <h2 class="panel-title">Account Profile</h2>
+                    <p class="panel-subtitle">Manage personal profile information, system credentials, and security settings.</p>
+                </header>
+
+                <div class="settings-card profile-hero-card">
+                    <div class="profile-hero-inner">
+                        <div class="avatar-gradient-ring">
+                            <div class="profile-avatar-circle" id="accAvatarCircle">SD</div>
+                        </div>
+                        <div class="profile-hero-meta">
+                            <div class="hero-name-row">
+                                <h3 class="profile-user-name" id="accNameDisplay">Shruti Diwani</h3>
+                                <span class="badge badge-active">● Active</span>
+                                <span class="badge badge-role" id="accRoleLbl">Admin / Auditor</span>
+                            </div>
+                            <p class="profile-user-email" id="accEmailDisplay">shruti@statementforge.com</p>
+                            <div class="profile-pill-tags">
+                                <span class="tag-pill">📅 Member since: 2026-01-15</span>
+                                <span class="tag-pill">🔒 Security Tier 1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3 class="card-section-title">Personal Information</h3>
+                    <div class="form-grid-2col mt-14">
+                        <div class="form-group">
+                            <label class="form-label" for="accUsername">Username</label>
+                            <input type="text" id="accUsername" class="form-control" value="shruti_diwani" oninput="notifyFieldChange('account_username', this.value)">
+                            <span class="form-hint error-hint" id="accUsernameErr"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="accName">Full Name</label>
+                            <input type="text" id="accName" class="form-control" value="Shruti Diwani" oninput="notifyFieldChange('account_name', this.value); updateAvatarInitials(this.value)">
+                            <span class="form-hint error-hint" id="accNameErr"></span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="accEmail">Email Address</label>
+                            <input type="email" id="accEmail" class="form-control" value="shruti@statementforge.com" oninput="notifyFieldChange('account_email', this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="accPhone">Phone Number</label>
+                            <input type="tel" id="accPhone" class="form-control" value="+91 98765 43210" oninput="notifyFieldChange('account_phone', this.value)">
+                            <span class="form-hint error-hint" id="accPhoneErr"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3 class="card-section-title">Security &amp; Password</h3>
+                    <p class="card-section-subtitle">Update your account authentication credentials.</p>
+                    <div class="form-grid-2col mt-14">
+                        <div class="form-group">
+                            <label class="form-label" for="accOldPwd">Current Password</label>
+                            <input type="password" id="accOldPwd" class="form-control" placeholder="••••••••">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="accNewPwd">New Password</label>
+                            <input type="password" id="accNewPwd" class="form-control" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <div class="card-actions-row">
+                        <button type="button" class="btn btn-secondary" onclick="triggerChangePassword()">Update Password</button>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- TAB 3: APPEARANCE PAGE -->
+            <section class="tab-panel" id="panel-appearance">
+                <header class="panel-header">
+                    <h2 class="panel-title">Appearance &amp; Themes</h2>
+                    <p class="panel-subtitle">Customize application color themes, typography scales, and density layouts.</p>
+                </header>
+
+                <!-- Visual Theme Cards Selector -->
+                <div class="settings-card">
+                    <h3 class="card-section-title">Interface Mode</h3>
+                    <p class="card-section-subtitle">Choose your preferred visual theme experience.</p>
+                    
+                    <div class="theme-cards-grid mt-14">
+                        <div class="theme-option-card active" id="theme-light" onclick="selectThemeMode('Light')">
+                            <div class="theme-preview-box preview-light">
+                                <div class="prev-bar"></div>
+                                <div class="prev-body">
+                                    <div class="prev-line"></div>
+                                    <div class="prev-box"></div>
+                                </div>
+                            </div>
+                            <div class="theme-card-meta">
+                                <span class="theme-card-name">☀️ Light Theme</span>
+                                <span class="theme-card-desc">Clean high-contrast daylight mode</span>
+                            </div>
+                        </div>
+
+                        <div class="theme-option-card" id="theme-dark" onclick="selectThemeMode('Dark')">
+                            <div class="theme-preview-box preview-dark">
+                                <div class="prev-bar"></div>
+                                <div class="prev-body">
+                                    <div class="prev-line"></div>
+                                    <div class="prev-box"></div>
+                                </div>
+                            </div>
+                            <div class="theme-card-meta">
+                                <span class="theme-card-name">🌙 Dark Theme</span>
+                                <span class="theme-card-desc">Sleek dark mode for low-light environments</span>
+                            </div>
+                        </div>
+
+                        <div class="theme-option-card" id="theme-system" onclick="selectThemeMode('System')">
+                            <div class="theme-preview-box preview-system">
+                                <div class="prev-bar"></div>
+                                <div class="prev-body">
+                                    <div class="prev-line"></div>
+                                    <div class="prev-box"></div>
+                                </div>
+                            </div>
+                            <div class="theme-card-meta">
+                                <span class="theme-card-name">💻 System Default</span>
+                                <span class="theme-card-desc">Match operating system preference</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accent Theme Color Palette -->
+                <div class="settings-card">
+                    <h3 class="card-section-title">Accent Theme Colors</h3>
+                    <p class="card-section-subtitle">Select primary accent highlights for buttons, tabs, and focus states.</p>
+
+                    <div class="color-cards-grid mt-14">
+                        <div class="color-card active" onclick="selectAccentColor('#2563EB', this)">
+                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);"></div>
+                            <span class="color-name">Royal Blue</span>
+                        </div>
+                        <div class="color-card" onclick="selectAccentColor('#4F46E5', this)">
+                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #4F46E5 0%, #3730A3 100%);"></div>
+                            <span class="color-name">Indigo</span>
+                        </div>
+                        <div class="color-card" onclick="selectAccentColor('#8B5CF6', this)">
+                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);"></div>
+                            <span class="color-name">Purple</span>
+                        </div>
+                        <div class="color-card" onclick="selectAccentColor('#10B981', this)">
+                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #10B981 0%, #047857 100%);"></div>
+                            <span class="color-name">Emerald</span>
+                        </div>
+                        <div class="color-card" onclick="selectAccentColor('#F59E0B', this)">
+                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);"></div>
+                            <span class="color-name">Amber</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- TAB 4: NOTIFICATIONS PAGE -->
+            <section class="tab-panel" id="panel-notifications">
+                <header class="panel-header">
+                    <h2 class="panel-title">Notification Alerts</h2>
+                    <p class="panel-subtitle">Configure real-time toast alerts, processing updates, and report dispatches.</p>
+                </header>
+
+                <div class="notifications-grid">
+                    <div class="settings-card notify-card">
+                        <div class="notify-icon-box blue-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <div class="notify-meta">
+                            <h4 class="notify-title">Statement Processing</h4>
+                            <p class="notify-desc">Receive notifications when bank statement OCR &amp; transaction parsing completes.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ntCompleted" checked onchange="notifyFieldChange('nt_statement_completed', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="settings-card notify-card">
+                        <div class="notify-icon-box green-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </div>
+                        <div class="notify-meta">
+                            <h4 class="notify-title">Export Complete Alert</h4>
+                            <p class="notify-desc">Alerts when Excel ledgers or PDF reports finish exporting to disk.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ntExport" checked onchange="notifyFieldChange('nt_export_completed', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="settings-card notify-card">
+                        <div class="notify-icon-box red-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <div class="notify-meta">
+                            <h4 class="notify-title">Processing Errors</h4>
+                            <p class="notify-desc">Instant alerts when statement ingestion or OCR validation fails.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ntErrors" checked onchange="notifyFieldChange('nt_errors', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="settings-card notify-card">
+                        <div class="notify-icon-box purple-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </div>
+                        <div class="notify-meta">
+                            <h4 class="notify-title">Email Reports Digest</h4>
+                            <p class="notify-desc">Notifications for automated email dispatch confirmations to recipients.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ntEmail" checked onchange="notifyFieldChange('nt_email_sent', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="settings-card notify-card">
+                        <div class="notify-icon-box amber-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        </div>
+                        <div class="notify-meta">
+                            <h4 class="notify-title">AI Insights &amp; Anomalies</h4>
+                            <p class="notify-desc">Alerts when Gemini AI finishes executive financial summary analysis.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ntAi" checked onchange="notifyFieldChange('nt_ai_finished', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="settings-card notify-card">
+                        <div class="notify-icon-box indigo-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        </div>
+                        <div class="notify-meta">
+                            <h4 class="notify-title">Software &amp; Rule Updates</h4>
+                            <p class="notify-desc">Notifications when new StatementForge software updates are released.</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ntUpdates" checked onchange="notifyFieldChange('nt_updates_available', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- TAB 5: ABOUT PAGE -->
+            <section class="tab-panel" id="panel-about">
+                <header class="panel-header">
+                    <h2 class="panel-title">About StatementForge</h2>
+                    <p class="panel-subtitle">Application specifications, architectural components, and system credits.</p>
+                </header>
+
+                <div class="settings-card about-hero-card">
+                    <div class="about-hero-header">
+                        <div class="about-logo-icon">⚡</div>
+                        <div class="about-hero-details">
+                            <h3 class="about-app-name">StatementForge AI Platform</h3>
+                            <div class="about-badges">
+                                <span class="badge badge-enterprise">v2.4 Enterprise Edition</span>
+                                <span class="badge badge-build">Build 2026.07.28</span>
+                                <span class="badge badge-active">● Systems Normal</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="about-description">
+                        StatementForge is an enterprise-grade financial statement parser, GST auditor, and AI Business Advisor suite designed to ingest multi-page digital and scanned PDF statements with 99.8% extraction accuracy.
+                    </p>
+                </div>
+
+                <div class="settings-card">
+                    <h3 class="card-section-title">Core Technology Stack</h3>
+                    <p class="card-section-subtitle">Powered by modern high-performance libraries and AI frameworks.</p>
+                    
+                    <div class="tech-chips-grid mt-14">
+                        <div class="tech-chip"><span class="chip-dot blue-dot"></span> Python 3.11</div>
+                        <div class="tech-chip"><span class="chip-dot purple-dot"></span> PyQt6 GUI Framework</div>
+                        <div class="tech-chip"><span class="chip-dot green-dot"></span> MongoDB Atlas Engine</div>
+                        <div class="tech-chip"><span class="chip-dot amber-dot"></span> Gemini AI Vision</div>
+                        <div class="tech-chip"><span class="chip-dot red-dot"></span> OpenCV Vision Engine</div>
+                        <div class="tech-chip"><span class="chip-dot indigo-dot"></span> Tesseract OCR Core</div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <div class="about-footer-row">
+                        <div>
+                            <span class="about-license-title">Licensed to Enterprise Org</span>
+                            <span class="form-hint">Copyright © 2026 StatementForge Inc. All rights reserved.</span>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="triggerCheckUpdates()">Check for Updates</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+
+        <!-- 3. STICKY FOOTER ACTION BAR -->
+        <footer class="settings-sticky-footer">
+            <div class="footer-status-info">
+                <span class="status-dot-indicator" id="footerDot"></span>
+                <span class="footer-status-text" id="footerStatusText">All settings synced with cloud database.</span>
+            </div>
+            <div class="footer-actions-group">
+                <button type="button" class="btn btn-ghost" onclick="triggerCancel()">Cancel</button>
+                <button type="button" class="btn btn-secondary" onclick="triggerRestoreDefaults()">Restore Defaults</button>
+                <button type="button" class="btn btn-primary" id="btnSave" onclick="triggerSaveSettings()">Save Changes</button>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- UI IPC Controller JS -->
+    <script>
+        function switchSettingsTab(tabKey) {
+            document.querySelectorAll('.nav-pill').forEach(pill => pill.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+
+            const pill = document.getElementById('pill-' + tabKey);
+            const panel = document.getElementById('panel-' + tabKey);
+            if (pill) pill.classList.add('active');
+            if (panel) panel.classList.add('active');
+        }
+
+        function selectThemeMode(mode) {
+            document.querySelectorAll('.theme-option-card').forEach(card => card.classList.remove('active'));
+            const clickedCard = document.getElementById('theme-' + mode.toLowerCase());
+            if (clickedCard) clickedCard.classList.add('active');
+
+            if (mode.toLowerCase() === 'dark') {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_field_change', { field: 'app_theme', value: mode });
+            }
+        }
+
+        function selectAccentColor(colorHex, el) {
+            document.querySelectorAll('.color-card').forEach(card => card.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_field_change', { field: 'app_accent_color', value: colorHex });
+            }
+        }
+
+        function updateAvatarInitials(name) {
+            const circle = document.getElementById('accAvatarCircle');
+            const display = document.getElementById('accNameDisplay');
+            if (display) display.innerText = name || 'User';
+            if (!circle || !name) return;
+
+            const parts = name.trim().split(' ');
+            let initials = 'U';
+            if (parts.length >= 2) {
+                initials = (parts[0][0] + parts[1][0]).toUpperCase();
+            } else if (parts[0].length > 0) {
+                initials = parts[0][0].toUpperCase();
+            }
+            circle.innerText = initials;
+        }
+
+        function notifyFieldChange(fieldName, value) {
+            setDirtyState(true);
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_field_change', { field: fieldName, value: value });
+            }
+        }
+
+        function triggerBrowseFolder() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_browse_folder', {});
+            }
+        }
+
+        function triggerChangePassword() {
+            const oldP = document.getElementById('accOldPwd').value;
+            const newP = document.getElementById('accNewPwd').value;
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_change_password', { old_password: oldP, new_password: newP });
+            }
+        }
+
+        function triggerCheckUpdates() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_check_updates', {});
+            }
+        }
+
+        function triggerSaveSettings() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_save', {});
+            }
+        }
+
+        function triggerRestoreDefaults() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_restore_defaults', {});
+            }
+        }
+
+        function triggerCancel() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_cancel', {});
+            }
+        }
+
+        function setDirtyState(dirty) {
+            const btn = document.getElementById('btnSave');
+            const statusDot = document.getElementById('footerDot');
+            const statusText = document.getElementById('footerStatusText');
+
+            if (btn) btn.classList.toggle('btn-glow', dirty);
+            if (statusDot) statusDot.className = 'status-dot-indicator ' + (dirty ? 'dot-dirty' : 'dot-clean');
+            if (statusText) statusText.innerText = dirty ? 'Unsaved changes pending...' : 'All settings synced with cloud database.';
+        }
+    </script>
+</body>
+</html>
