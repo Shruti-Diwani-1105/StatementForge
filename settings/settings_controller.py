@@ -18,6 +18,7 @@ class SettingsController(QObject):
     def __init__(self, view, parent=None):
         super().__init__(parent)
         self.view = view
+        self.view.controller = self
         self.model = SettingsModel()
         
         # Guard flag to ignore widget change events while populating controls

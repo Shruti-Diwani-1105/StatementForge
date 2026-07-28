@@ -180,8 +180,10 @@ class SettingsWindow(QWidget):
         self.html_wrapper.web_view.loadFinished.connect(self._on_html_loaded)
 
     def _on_html_loaded(self, ok):
-        if ok and hasattr(self, "controller") and self.controller:
-            self.controller.load_user_settings()
+        if ok:
+            if hasattr(self, "controller") and self.controller:
+                self.controller.load_user_settings()
+            self.sync_user_profile_directly()
             from utils.theme_manager import ThemeManager
             self.update_theme_style(ThemeManager.get_theme())
 
@@ -189,8 +191,76 @@ class SettingsWindow(QWidget):
         super().showEvent(event)
         if hasattr(self, "controller") and self.controller:
             self.controller.load_user_settings()
-            from utils.theme_manager import ThemeManager
-            self.update_theme_style(ThemeManager.get_theme())
+        self.sync_user_profile_directly()
+        from utils.theme_manager import ThemeManager
+        self.update_theme_style(ThemeManager.get_theme())
+
+    def sync_user_profile_directly(self):
+        """Directly injects active user session details into HTML DOM elements for guaranteed consistency."""
+        from utils.user_session import UserSession
+        user = UserSession.get_current_user()
+        if not user:
+            return
+
+        name = user.get("name") or user.get("full_name") or "User"
+        email = user.get("email") or ""
+        username = user.get("username") or (email.split("@")[0] if email else "")
+        phone = user.get("phone") or ""
+        role = user.get("role") or "User"
+        created_at = user.get("created_at") or ""
+        if hasattr(created_at, "isoformat"):
+            created_at = created_at.isoformat()
+        elif not isinstance(created_at, str):
+            created_at = str(created_at)
+
+        created_str = str(created_at)[:10] if len(str(created_at)) >= 10 else str(created_at)
+
+        parts = name.strip().split(" ")
+        initials = "U"
+        if len(parts) >= 2 and parts[0] and parts[1]:
+            initials = (parts[0][0] + parts[1][0]).upper()
+        elif len(parts) >= 1 and parts[0]:
+            initials = parts[0][0].upper()
+
+        name_js = json.dumps(str(name))
+        email_js = json.dumps(str(email))
+        username_js = json.dumps(str(username))
+        phone_js = json.dumps(str(phone))
+        role_js = json.dumps(str(role))
+        date_js = json.dumps(f"📅 Member since: {created_str}" if created_str else "📅 Member since: Active")
+        initials_js = json.dumps(str(initials))
+
+        js = f"""
+        (function() {{
+            var accNameDisp = document.getElementById('accNameDisplay');
+            if (accNameDisp) accNameDisp.innerText = {name_js};
+            
+            var accEmailDisp = document.getElementById('accEmailDisplay');
+            if (accEmailDisp) accEmailDisp.innerText = {email_js};
+            
+            var accAvatar = document.getElementById('accAvatarCircle');
+            if (accAvatar) accAvatar.innerText = {initials_js};
+            
+            var accRole = document.getElementById('accRoleLbl');
+            if (accRole) accRole.innerText = {role_js};
+            
+            var accDate = document.getElementById('accDateLbl');
+            if (accDate) accDate.innerText = {date_js};
+            
+            var accNameInp = document.getElementById('accName');
+            if (accNameInp) accNameInp.value = {name_js};
+            
+            var accEmailInp = document.getElementById('accEmail');
+            if (accEmailInp) accEmailInp.value = {email_js};
+            
+            var accUserInp = document.getElementById('accUsername');
+            if (accUserInp) accUserInp.value = {username_js};
+            
+            var accPhoneInp = document.getElementById('accPhone');
+            if (accPhoneInp) accPhoneInp.value = {phone_js};
+        }})();
+        """
+        self.html_wrapper.eval_js(js)
 
     def update_theme_style(self, theme: str = "light"):
         """Updates HTML UI theme styling ('light' or 'dark') and syncs active theme card selection."""

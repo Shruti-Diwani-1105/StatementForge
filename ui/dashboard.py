@@ -95,6 +95,11 @@ class DashboardScreen(QWidget):
                 self.duplicate_finder_widget.load_history_dropdown()
             elif key == "email_history":
                 self.email_history_widget.load_email_history()
+            elif key == "settings":
+                if hasattr(self, "settings_window") and self.settings_window:
+                    self.settings_window.sync_user_profile_directly()
+                if hasattr(self, "settings_controller") and self.settings_controller:
+                    self.settings_controller.load_user_settings()
 
     def switch_to_upload_with_preset(self, flow):
         """Pre-sets the format selection on the upload widget before switching pages."""
