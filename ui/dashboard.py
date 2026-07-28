@@ -663,15 +663,20 @@ class DashboardScreen(QWidget):
         self.page_stack.addWidget(self.settings_window)
 
     def update_theme_styles(self, theme):
-        """Updates internal card components to match active theme stylesheet parameters."""
+        """Updates internal card components and QSS stylesheets to match active theme parameters."""
+        theme_clean = theme.lower().strip() if isinstance(theme, str) else "light"
+        
+        from utils.theme_manager import ThemeManager
+        ThemeManager.apply_theme(theme_clean)
+
         if hasattr(self, "sidebar") and self.sidebar is not None:
-            self.sidebar.update_theme_styles(theme)
+            self.sidebar.update_theme_styles(theme_clean)
 
         if hasattr(self, "topbar") and self.topbar is not None:
-            self.topbar.update_theme_icon(theme)
+            self.topbar.update_theme_icon(theme_clean)
 
         if hasattr(self, "dashboard_web_view") and self.dashboard_web_view is not None:
-            script = f"if ('{theme}' === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');"
+            script = f"if ('{theme_clean}' === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');"
             self.dashboard_web_view.page().runJavaScript(script)
 
         for card in self.cards:

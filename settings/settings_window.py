@@ -85,6 +85,9 @@ class FieldProxy(QObject):
 
     def set_selected_color(self, color):
         self._val = color
+        color_str = json.dumps(str(color))
+        js = f"(function(){{ if (typeof selectAccentColor === 'function') selectAccentColor({color_str}); }})();"
+        self.parent_window.html_wrapper.eval_js(js)
 
     def clear(self):
         self._val = ""
@@ -172,16 +175,33 @@ class SettingsWindow(QWidget):
         self.html_wrapper = HtmlScreenWrapper("web/settings.html", self)
         layout.addWidget(self.html_wrapper)
 
-        # Connect WebBridge IPC commands
+        # Connect WebBridge IPC commands and load finished signal
         self.html_wrapper.web_view.titleChanged.connect(self.handle_web_commands)
+        self.html_wrapper.web_view.loadFinished.connect(self._on_html_loaded)
+
+    def _on_html_loaded(self, ok):
+        if ok and hasattr(self, "controller") and self.controller:
+            self.controller.load_user_settings()
+            from utils.theme_manager import ThemeManager
+            self.update_theme_style(ThemeManager.get_theme())
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if hasattr(self, "controller") and self.controller:
+            self.controller.load_user_settings()
+            from utils.theme_manager import ThemeManager
+            self.update_theme_style(ThemeManager.get_theme())
 
     def update_theme_style(self, theme: str = "light"):
-        """Updates HTML UI theme styling ('light' or 'dark')."""
+        """Updates HTML UI theme styling ('light' or 'dark') and syncs active theme card selection."""
         theme_str = theme.lower().strip() if isinstance(theme, str) else "light"
-        if theme_str == "dark":
-            self.html_wrapper.eval_js("document.body.classList.add('dark-mode');")
-        else:
-            self.html_wrapper.eval_js("document.body.classList.remove('dark-mode');")
+        js = (
+            f"(function(){{ "
+            f"if ('{theme_str}' === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode'); "
+            f"if (typeof selectThemeMode === 'function') selectThemeMode('{theme_str.capitalize()}'); "
+            f"}})();"
+        )
+        self.html_wrapper.eval_js(js)
 
     def handle_web_commands(self, title: str):
         """Dispatches commands sent from JavaScript UI via document.title IPC."""
@@ -220,7 +240,7 @@ class SettingsWindow(QWidget):
             self.cancel_clicked.emit()
 
     def handle_field_update(self, field, val):
-        """Updates internal model proxy fields when edited in HTML UI."""
+        """Updates internal model proxy fields when edited in HTML UI and triggers live theme sync."""
         mapping = {
             "app_name": self.gen_app_name,
             "save_location": self.gen_save_location,
@@ -248,6 +268,21 @@ class SettingsWindow(QWidget):
             proxy._val = val
             if hasattr(self, "controller") and self.controller:
                 self.controller.update_model_field(field, val)
+
+        if field == "app_theme":
+            theme_val = str(val).lower()
+            from utils.theme_manager import ThemeManager
+            ThemeManager.apply_theme(theme_val)
+            from settings.appearance_service import AppearanceService
+            accent_color = self.color_selector.text() or "blue"
+            AppearanceService.apply_appearance(theme_val, accent_color)
+            
+            # Propagate live theme change to parent dashboard application-wide
+            win = self.window()
+            if win and hasattr(win, "sync_theme_styles"):
+                win.sync_theme_styles(theme_val)
+            elif hasattr(self, "parent_dashboard") and hasattr(self.parent_dashboard, "update_theme_styles"):
+                self.parent_dashboard.update_theme_styles(theme_val)
 
     def browse_save_folder(self):
         """Opens native directory picker for selecting save location."""
