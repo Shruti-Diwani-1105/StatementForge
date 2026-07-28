@@ -117,7 +117,7 @@
             </section>
 
 
-            <!-- TAB 2: ACCOUNT PAGE -->
+            <!-- TAB 2: ACCOUNT PAGE (DYNAMIC AUTHENTICATED USER DATA) -->
             <section class="tab-panel" id="panel-account">
                 <header class="panel-header">
                     <h2 class="panel-title">Account Profile</h2>
@@ -127,17 +127,17 @@
                 <div class="settings-card profile-hero-card">
                     <div class="profile-hero-inner">
                         <div class="avatar-gradient-ring">
-                            <div class="profile-avatar-circle" id="accAvatarCircle">SD</div>
+                            <div class="profile-avatar-circle" id="accAvatarCircle">--</div>
                         </div>
                         <div class="profile-hero-meta">
                             <div class="hero-name-row">
-                                <h3 class="profile-user-name" id="accNameDisplay">Shruti Diwani</h3>
-                                <span class="badge badge-active">● Active</span>
-                                <span class="badge badge-role" id="accRoleLbl">Admin / Auditor</span>
+                                <h3 class="profile-user-name" id="accNameDisplay">User</h3>
+                                <span class="badge badge-active">● Active Account</span>
+                                <span class="badge badge-role" id="accRoleLbl">User</span>
                             </div>
-                            <p class="profile-user-email" id="accEmailDisplay">shruti@statementforge.com</p>
+                            <p class="profile-user-email" id="accEmailDisplay">user@statementforge.com</p>
                             <div class="profile-pill-tags">
-                                <span class="tag-pill">📅 Member since: 2026-01-15</span>
+                                <span class="tag-pill" id="accDateLbl">📅 Member since: Active</span>
                                 <span class="tag-pill">🔒 Security Tier 1</span>
                             </div>
                         </div>
@@ -149,21 +149,21 @@
                     <div class="form-grid-2col mt-14">
                         <div class="form-group">
                             <label class="form-label" for="accUsername">Username</label>
-                            <input type="text" id="accUsername" class="form-control" value="shruti_diwani" oninput="notifyFieldChange('account_username', this.value)">
+                            <input type="text" id="accUsername" class="form-control" value="" placeholder="Username" oninput="notifyFieldChange('account_username', this.value)">
                             <span class="form-hint error-hint" id="accUsernameErr"></span>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="accName">Full Name</label>
-                            <input type="text" id="accName" class="form-control" value="Shruti Diwani" oninput="notifyFieldChange('account_name', this.value); updateAvatarInitials(this.value)">
+                            <input type="text" id="accName" class="form-control" value="" placeholder="Full Name" oninput="notifyFieldChange('account_name', this.value); updateAvatarInitials(this.value)">
                             <span class="form-hint error-hint" id="accNameErr"></span>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="accEmail">Email Address</label>
-                            <input type="email" id="accEmail" class="form-control" value="shruti@statementforge.com" oninput="notifyFieldChange('account_email', this.value)">
+                            <input type="email" id="accEmail" class="form-control" value="" placeholder="user@domain.com" oninput="notifyFieldChange('account_email', this.value)">
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="accPhone">Phone Number</label>
-                            <input type="tel" id="accPhone" class="form-control" value="+91 98765 43210" oninput="notifyFieldChange('account_phone', this.value)">
+                            <input type="tel" id="accPhone" class="form-control" value="" placeholder="+1 (000) 000-0000" oninput="notifyFieldChange('account_phone', this.value)">
                             <span class="form-hint error-hint" id="accPhoneErr"></span>
                         </div>
                     </div>
@@ -485,7 +485,7 @@
         function updateAvatarInitials(name) {
             const circle = document.getElementById('accAvatarCircle');
             const display = document.getElementById('accNameDisplay');
-            if (display) display.innerText = name || 'User';
+            if (display && name) display.innerText = name;
             if (!circle || !name) return;
 
             const parts = name.trim().split(' ');

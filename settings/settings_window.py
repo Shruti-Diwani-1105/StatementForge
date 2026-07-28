@@ -36,7 +36,23 @@ class FieldProxy(QObject):
 
     def setText(self, val):
         self._val = str(val)
-        js = f"const el = document.getElementById('{self.field_id}'); if (el) el.value = {json.dumps(str(val))};"
+        val_str = json.dumps(str(val))
+        js = (
+            f"(function(){{ "
+            f"var el = document.getElementById('{self.field_id}'); "
+            f"if (el) {{ "
+            f"  if (el.tagName === 'INPUT' || el.tagName === 'SELECT') el.value = {val_str}; "
+            f"  else el.innerText = {val_str}; "
+            f"}} "
+            f"if ('{self.field_id}' === 'accName') {{ "
+            f"  var disp = document.getElementById('accNameDisplay'); if (disp) disp.innerText = {val_str}; "
+            f"  if (typeof updateAvatarInitials === 'function') updateAvatarInitials({val_str}); "
+            f"}} "
+            f"if ('{self.field_id}' === 'accEmail') {{ "
+            f"  var edisp = document.getElementById('accEmailDisplay'); if (edisp) edisp.innerText = {val_str}; "
+            f"}} "
+            f"}})();"
+        )
         self.parent_window.html_wrapper.eval_js(js)
 
     def currentText(self):
@@ -44,7 +60,8 @@ class FieldProxy(QObject):
 
     def setCurrentText(self, val):
         self._val = str(val)
-        js = f"const el = document.getElementById('{self.field_id}'); if (el) el.value = {json.dumps(str(val))};"
+        val_str = json.dumps(str(val))
+        js = f"(function(){{ var el = document.getElementById('{self.field_id}'); if (el) el.value = {val_str}; }})();"
         self.parent_window.html_wrapper.eval_js(js)
 
     def isChecked(self):
@@ -52,12 +69,18 @@ class FieldProxy(QObject):
 
     def setChecked(self, val):
         self._val = bool(val)
-        js = f"const el = document.getElementById('{self.field_id}'); if (el) el.checked = {'true' if val else 'false'};"
+        js = f"(function(){{ var el = document.getElementById('{self.field_id}'); if (el) el.checked = {'true' if val else 'false'}; }})();"
         self.parent_window.html_wrapper.eval_js(js)
 
     def set_name(self, name):
         self._val = name
-        js = f"if (typeof updateAvatarInitials === 'function') updateAvatarInitials({json.dumps(str(name))});"
+        name_str = json.dumps(str(name))
+        js = (
+            f"(function(){{ "
+            f"  if (typeof updateAvatarInitials === 'function') updateAvatarInitials({name_str}); "
+            f"  var disp = document.getElementById('accNameDisplay'); if (disp) disp.innerText = {name_str}; "
+            f"}})();"
+        )
         self.parent_window.html_wrapper.eval_js(js)
 
     def set_selected_color(self, color):
@@ -65,7 +88,7 @@ class FieldProxy(QObject):
 
     def clear(self):
         self._val = ""
-        js = f"const el = document.getElementById('{self.field_id}'); if (el) el.value = '';"
+        js = f"(function(){{ var el = document.getElementById('{self.field_id}'); if (el) el.value = ''; }})();"
         self.parent_window.html_wrapper.eval_js(js)
 
 
@@ -237,5 +260,5 @@ class SettingsWindow(QWidget):
 
     def set_buttons_dirty(self, dirty: bool):
         """Updates dirty save state indicator in HTML sticky footer."""
-        js = f"if (typeof setDirtyState === 'function') setDirtyState({'true' if dirty else 'false'});"
+        js = f"(function(){{ if (typeof setDirtyState === 'function') setDirtyState({'true' if dirty else 'false'}); }})();"
         self.html_wrapper.eval_js(js)
