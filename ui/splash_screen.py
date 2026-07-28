@@ -1,23 +1,41 @@
+import os
 import math
 import random
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGraphicsOpacityEffect
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGraphicsOpacityEffect, QApplication
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPropertyAnimation, QEasingCurve, QRectF
 from PyQt6.QtGui import QPixmap, QColor, QPainter, QLinearGradient, QRadialGradient, QPainterPath, QPen, QImage, QBrush
+
+_cached_logo_pixmap = None
 
 class PremiumLogoCard(QWidget):
     """
     A premium glassmorphism card that renders the logo.
     Filters out the blue background programmatically and adds fade-in,
     overshoot scaling, breathing glow, and subtle floating animations.
+    Uses cached PNG asset to eliminate per-launch pixel filtering.
     """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedSize(140, 140)
         
-        # Load and process the logo to remove blue background
-        self.logo_pixmap = QPixmap("assets/logo.png")
-        if not self.logo_pixmap.isNull():
-            self.logo_pixmap = self.remove_blue_background(self.logo_pixmap)
+        global _cached_logo_pixmap
+        if _cached_logo_pixmap is not None:
+            self.logo_pixmap = _cached_logo_pixmap
+        else:
+            cached_path = os.path.join("assets", "logo_transparent_cache.png")
+            if os.path.exists(cached_path):
+                self.logo_pixmap = QPixmap(cached_path)
+            else:
+                raw_logo = QPixmap("assets/logo.png")
+                if not raw_logo.isNull():
+                    self.logo_pixmap = self.remove_blue_background(raw_logo)
+                    try:
+                        self.logo_pixmap.save(cached_path, "PNG")
+                    except Exception:
+                        pass
+                else:
+                    self.logo_pixmap = raw_logo
+            _cached_logo_pixmap = self.logo_pixmap
             
         # Animation parameters
         self.anim_time = 0
@@ -217,15 +235,11 @@ class SplashScreen(QWidget):
             })
             
         self.anim_tick = 0
+        self.progress_value = 0
+        self.main_window_ref = None
         
         # Initialize UI elements
         self.init_ui()
-        
-        # Loading Simulation
-        self.progress_value = 0
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_progress)
-        self.timer.start(30) # ~3 seconds total
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -288,7 +302,7 @@ class SplashScreen(QWidget):
         
         main_layout.addSpacing(4)
         
-        # 6. Smooth Rotational Loading Status Info
+        # 6. Loading Status Text
         self.loading_label = QLabel("Initializing AI Engine...")
         self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.loading_label.setStyleSheet("""
@@ -299,12 +313,6 @@ class SplashScreen(QWidget):
             background: transparent;
             border: none;
         """)
-        
-        # Opacity effect specifically for text fading on message change
-        self.loading_opacity_effect = QGraphicsOpacityEffect(self.loading_label)
-        self.loading_label.setGraphicsEffect(self.loading_opacity_effect)
-        self.loading_opacity_effect.setOpacity(1.0)
-        
         main_layout.addWidget(self.loading_label)
 
     def center_on_screen(self):
@@ -316,11 +324,14 @@ class SplashScreen(QWidget):
             y = (screen_geo.height() - self.height()) // 2
             self.move(x, y)
 
-    def update_progress(self):
-        self.progress_value += 1
+    def set_progress(self, val, text=None):
+        """Sets real loading progress and status message."""
+        self.progress_value = max(0, min(100, val))
         self.progress_bar.setValue(self.progress_value)
+        if text:
+            self.loading_label.setText(text)
         
-        # Particle positions and background ticker updates
+        # Advance particle animation tick
         self.anim_tick += 1
         for part in self.particles:
             part["x"] += part["vx"]
@@ -330,48 +341,14 @@ class SplashScreen(QWidget):
             if part["y"] < 0: part["y"] = 420
             if part["y"] > 420: part["y"] = 0
             
-        # Rotate loading texts dynamically based on progress milestones
-        if self.progress_value == 1:
-            self.set_loading_text("Initializing AI Engine...")
-        elif self.progress_value == 18:
-            self.set_loading_text("Loading OCR Models...")
-        elif self.progress_value == 38:
-            self.set_loading_text("Detecting Bank Format...")
-        elif self.progress_value == 58:
-            self.set_loading_text("Preparing Financial Intelligence...")
-        elif self.progress_value == 78:
-            self.set_loading_text("Optimizing Performance...")
-        elif self.progress_value == 92:
-            self.set_loading_text("Launching Dashboard...")
-        elif self.progress_value == 100:
-            self.set_loading_text("Ready")
-            
-        self.update() # Force repaint of background linear/radial grids
-        
-        if self.progress_value >= 100:
-            self.timer.stop()
-            self.fade_out_and_finish()
+        self.update()
+        QApplication.processEvents()
 
     def set_loading_text(self, text):
-        """Fades the loading label out, updates the text string, and fades back in."""
         if self.loading_label.text() == text:
             return
-            
-        self.text_fade = QPropertyAnimation(self.loading_opacity_effect, b"opacity")
-        self.text_fade.setDuration(120)
-        self.text_fade.setStartValue(1.0)
-        self.text_fade.setEndValue(0.0)
-        
-        def on_fade_out():
-            self.loading_label.setText(text)
-            self.text_fade_in = QPropertyAnimation(self.loading_opacity_effect, b"opacity")
-            self.text_fade_in.setDuration(120)
-            self.text_fade_in.setStartValue(0.0)
-            self.text_fade_in.setEndValue(1.0)
-            self.text_fade_in.start()
-            
-        self.text_fade.finished.connect(on_fade_out)
-        self.text_fade.start()
+        self.loading_label.setText(text)
+        QApplication.processEvents()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -462,9 +439,13 @@ class SplashScreen(QWidget):
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(rect_path)
 
+    def finish_and_show(self, main_window):
+        self.main_window_ref = main_window
+        self.fade_out_and_finish()
+
     def fade_out_and_finish(self):
         self.anim = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.anim.setDuration(500)
+        self.anim.setDuration(250)
         self.anim.setStartValue(1.0)
         self.anim.setEndValue(0.0)
         self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -472,5 +453,7 @@ class SplashScreen(QWidget):
         self.anim.start()
 
     def on_animation_finished(self):
+        if hasattr(self, 'main_window_ref') and self.main_window_ref:
+            self.main_window_ref.show()
         self.close()
         self.loadingFinished.emit()

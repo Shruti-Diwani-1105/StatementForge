@@ -124,6 +124,10 @@ class NavigationController(QMainWindow):
         # Clear User Session
         UserSession.clear_session()
         
+        # Reset UI screen states and purge cached user data
+        if hasattr(self, "dashboard_screen") and self.dashboard_screen is not None:
+            self.dashboard_screen.reset_screen_data()
+        
         # Clear fields and redirect
         self.login_screen.clear_fields()
         self.register_screen.clear_fields()

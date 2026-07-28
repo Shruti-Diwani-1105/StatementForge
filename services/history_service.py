@@ -134,15 +134,15 @@ class HistoryService:
 
     @classmethod
     def get_stats(cls, user_id=None):
-        """Returns aggregates only for Completed parse entries."""
+        """Returns aggregates only for Completed parse entries for the specific user_id."""
+        if not user_id:
+            return {"processed": 0, "verified": 0, "exported": 0}
+        user_id_str = str(user_id)
         cls._load_local_fallback()
         col = MongoDBService.get_collection()
         if col is not None:
             try:
-                query = {"status": "Completed"}
-                if user_id:
-                    query["user_id"] = user_id
-                
+                query = {"status": "Completed", "user_id": user_id_str}
                 processed = col.count_documents(query)
                 
                 pipeline = [
@@ -161,9 +161,7 @@ class HistoryService:
                 print(f"HistoryService: MongoDB stats fetch failed: {e}. Using local fallback stats.")
 
         # Local fallback metrics
-        filtered = [log for log in cls._local_fallback_logs if log.get("status") == "Completed"]
-        if user_id:
-            filtered = [log for log in filtered if log.get("user_id") == user_id]
+        filtered = [log for log in cls._local_fallback_logs if log.get("status") == "Completed" and str(log.get("user_id")) == user_id_str]
 
         processed = len(filtered)
         verified = sum(log.get("total_transactions", 0) for log in filtered)
@@ -176,12 +174,15 @@ class HistoryService:
 
     @classmethod
     def get_recent_activity(cls, user_id=None, limit=5):
-        """Fetches recent statement activity list for the dashboard."""
+        """Fetches recent statement activity list for the dashboard, strictly scoped to user_id."""
+        if not user_id:
+            return []
+        user_id_str = str(user_id)
         cls._load_local_fallback()
         col = MongoDBService.get_collection()
         if col is not None:
             try:
-                query = {"user_id": user_id} if user_id else {}
+                query = {"user_id": user_id_str}
                 records = list(col.find(query).sort("upload_date", -1).limit(limit))
                 mapped = []
                 for doc in records:
@@ -196,9 +197,7 @@ class HistoryService:
                 print(f"HistoryService: MongoDB recent activity fetch failed: {e}")
 
         # Local fallback recent activity
-        filtered = cls._local_fallback_logs
-        if user_id:
-            filtered = [log for log in cls._local_fallback_logs if log.get("user_id") == user_id]
+        filtered = [log for log in cls._local_fallback_logs if str(log.get("user_id")) == user_id_str]
 
         # Sort by upload date descending
         filtered = sorted(filtered, key=lambda x: x.get("upload_date", ""), reverse=True)[:limit]
@@ -215,12 +214,15 @@ class HistoryService:
 
     @classmethod
     def get_history_logs(cls, user_id=None):
-        """Fetches all history logs."""
+        """Fetches history logs strictly for the specified user_id."""
+        if not user_id:
+            return []
+        user_id_str = str(user_id)
         cls._load_local_fallback()
         col = MongoDBService.get_collection()
         if col is not None:
             try:
-                query = {"user_id": user_id} if user_id else {}
+                query = {"user_id": user_id_str}
                 records = list(col.find(query).sort("upload_date", -1))
                 for r in records:
                     if "_id" in r:
@@ -230,9 +232,7 @@ class HistoryService:
                 print(f"HistoryService: MongoDB history fetch failed: {e}")
 
         # Local fallback history logs
-        filtered = cls._local_fallback_logs
-        if user_id:
-            filtered = [log for log in cls._local_fallback_logs if log.get("user_id") == user_id]
+        filtered = [log for log in cls._local_fallback_logs if str(log.get("user_id")) == user_id_str]
         return sorted(filtered, key=lambda x: x.get("upload_date", ""), reverse=True)
 
     @classmethod

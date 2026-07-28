@@ -738,6 +738,37 @@ class DashboardScreen(QWidget):
         if hasattr(self, "gst_report_widget") and self.gst_report_widget is not None:
             self.gst_report_widget.update_theme_style(theme)
 
+    def reset_screen_data(self):
+        """Purges cached dashboard metrics, tables, and HTML elements on user logout."""
+        if hasattr(self, "stats_processed_lbl") and self.stats_processed_lbl is not None:
+            self.stats_processed_lbl.setText("0")
+        if hasattr(self, "stats_verified_lbl") and self.stats_verified_lbl is not None:
+            self.stats_verified_lbl.setText("0")
+        if hasattr(self, "stats_exported_lbl") and self.stats_exported_lbl is not None:
+            self.stats_exported_lbl.setText("0")
+            
+        if hasattr(self, "dashboard_web_view") and self.dashboard_web_view is not None:
+            script = """
+            var p = document.getElementById('stat-processed'); if (p) p.textContent = '0';
+            var v = document.getElementById('stat-verified'); if (v) v.textContent = '0';
+            var e = document.getElementById('stat-exported'); if (e) e.textContent = '0';
+            var title = document.getElementById('welcome-title'); if (title) title.textContent = 'Welcome Back';
+            """
+            self.dashboard_web_view.page().runJavaScript(script)
+            
+        if hasattr(self, "history_table") and self.history_table is not None:
+            self.history_table.setRowCount(0)
+            
+        if hasattr(self, "duplicate_finder_widget") and self.duplicate_finder_widget is not None:
+            if hasattr(self.duplicate_finder_widget, "loaded_statements"):
+                self.duplicate_finder_widget.loaded_statements = []
+            if hasattr(self.duplicate_finder_widget, "load_history_dropdown"):
+                self.duplicate_finder_widget.history_combo.clear()
+
+        if hasattr(self, "ai_auditor_widget") and self.ai_auditor_widget is not None:
+            if hasattr(self.ai_auditor_widget, "load_history_dropdown"):
+                self.ai_auditor_widget.load_history_dropdown()
+
 # Refactored / updated upload_statement module and service integration
 
 

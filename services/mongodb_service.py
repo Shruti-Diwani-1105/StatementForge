@@ -71,11 +71,14 @@ class MongoDBService:
 
     @classmethod
     def get_user_statements(cls, user_id, limit=20):
-        """Fetches statement logs for a specific user, sorted by most recent."""
+        """Fetches statement logs strictly for a specific user_id, sorted by most recent."""
+        if not user_id:
+            return []
+        user_id_str = str(user_id)
         col = cls.get_collection()
         if col is not None:
             try:
-                query = {"user_id": user_id} if user_id else {}
+                query = {"user_id": user_id_str}
                 cursor = col.find(query).sort("upload_date", -1).limit(limit)
                 return list(cursor)
             except Exception as e:

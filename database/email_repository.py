@@ -91,8 +91,11 @@ class EmailRepository:
     @classmethod
     def get_email_logs(cls, user_id=None, recipient_filter=None, report_type_filter=None, status_filter=None):
         """
-        Fetches email history logs with optional filtering.
+        Fetches email history logs with optional filtering, strictly scoped to user_id.
         """
+        if not user_id:
+            return []
+        user_id_str = str(user_id)
         cls._load_local_fallback()
         logs = []
 
@@ -100,9 +103,7 @@ class EmailRepository:
         col = cls._get_collection()
         if col is not None:
             try:
-                query = {}
-                if user_id:
-                    query["user_id"] = user_id
+                query = {"user_id": user_id_str}
                 if status_filter and status_filter != "All":
                     query["status"] = status_filter
                 if report_type_filter and report_type_filter != "All":
@@ -121,9 +122,7 @@ class EmailRepository:
 
         # 2. Fallback to Local Cache if MongoDB returns no logs or failed
         if not logs:
-            logs = list(cls._local_fallback_logs)
-            if user_id:
-                logs = [l for l in logs if l.get("user_id") == user_id]
+            logs = [l for l in cls._local_fallback_logs if str(l.get("user_id")) == user_id_str]
             if status_filter and status_filter != "All":
                 logs = [l for l in logs if l.get("status") == status_filter]
             if report_type_filter and report_type_filter != "All":
@@ -142,24 +141,36 @@ class EmailRepository:
         return logs
 
     @classmethod
-    def delete_email_log(cls, log_id):
+    def delete_email_log(cls, log_id, user_id=None):
         """
-        Deletes a draft or email log by ID.
+        Deletes a draft or email log by ID, verifying user_id ownership if provided.
         """
         cls._load_local_fallback()
         if not log_id:
             return False
 
+        user_id_str = str(user_id) if user_id else None
+
         # 1. MongoDB delete
         col = cls._get_collection()
         if col is not None:
             try:
-                col.delete_one({"id": log_id})
+                del_query = {"id": log_id}
+                if user_id_str:
+                    del_query["user_id"] = user_id_str
+                col.delete_one(del_query)
             except Exception as e:
                 print(f"EmailRepository: MongoDB delete failed: {e}")
 
         # 2. Local JSON delete
-        cls._local_fallback_logs = [item for item in cls._local_fallback_logs if item.get("id") != log_id]
+        if user_id_str:
+            cls._local_fallback_logs = [
+                item for item in cls._local_fallback_logs 
+                if not (item.get("id") == log_id and str(item.get("user_id")) == user_id_str)
+            ]
+        else:
+            cls._local_fallback_logs = [item for item in cls._local_fallback_logs if item.get("id") != log_id]
+
         cls._save_local_fallback()
         return True
 
