@@ -1,15 +1,15 @@
 /* ==========================================================================
-   StatementForge - AI Financial Auditor (Aligned to Upload Statement Layout)
+   StatementForge - AI Financial Auditor (Vibrant & Colorful Theme)
    ========================================================================== */
 
 :root {
     --bg-page: transparent;
     --card-bg: #FFFFFF;
-    --border-color: #E2E8F0;
+    --border-color: #CBD5E1;
     --border-light: #F1F5F9;
     
     --text-primary: #0F172A;
-    --text-secondary: #475569;
+    --text-secondary: #334155;
     --text-muted: #64748B;
     
     --primary-blue: #2563EB;
@@ -20,15 +20,15 @@
     --purple-light: #F5F3FF;
     --purple-border: #DDD6FE;
     
-    --success-green: #16A34A;
-    --error-red: #EF4444;
+    --success-green: #059669;
+    --error-red: #DC2626;
     
-    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-    --shadow-hover: 0 8px 24px rgba(37, 99, 235, 0.12);
+    --shadow-card: 0 4px 20px rgba(37, 99, 235, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
+    --shadow-hover: 0 12px 32px rgba(37, 99, 235, 0.16);
     
     --radius-card: 14px;
     --radius-btn: 8px;
-    --radius-sm: 6px;
+    --radius-sm: 8px;
     
     --font-serif: 'Times New Roman', Times, Georgia, serif;
     
@@ -37,10 +37,10 @@
 
 /* Dark Mode Integration */
 body.dark-mode {
-    --card-bg: #1E293B;
-    --border-color: #334155;
-    --border-light: #1E293B;
-    --text-primary: #F8FAFC;
+    --card-bg: #151D2A;
+    --border-color: #232E42;
+    --border-light: #151D2A;
+    --text-primary: #F9FAFB;
     --text-secondary: #CBD5E1;
     --text-muted: #94A3B8;
     --primary-light: rgba(37, 99, 235, 0.15);
@@ -91,7 +91,7 @@ body {
 }
 
 /* ==========================================
-   1. HEADER SECTION (Matched to Upload Statement)
+   1. HEADER SECTION
    ========================================== */
 .dashboard-header {
     margin-bottom: 16px;
@@ -171,7 +171,7 @@ body.dark-mode .custom-select {
 }
 
 .btn-secondary {
-    background-color: #F1F5F9;
+    background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
     color: var(--text-secondary);
     border: 1px solid #CBD5E1;
     border-radius: var(--radius-sm);
@@ -187,7 +187,7 @@ body.dark-mode .custom-select {
 }
 
 .btn-secondary:hover {
-    background-color: #E2E8F0;
+    background: #E2E8F0;
 }
 
 .btn-icon-svg {
@@ -195,7 +195,7 @@ body.dark-mode .custom-select {
     height: 14px;
 }
 
-/* Integrated Summary Metrics Grid (6 Equal Columns in One Aligned Row) */
+/* Integrated Summary Metrics Grid (Colorful Gradient Cards) */
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -204,18 +204,60 @@ body.dark-mode .custom-select {
 }
 
 .metric-box {
-    background-color: #F8FAFC;
-    border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    transition: var(--transition);
 }
 
-body.dark-mode .metric-box {
-    background-color: #0F172A;
+.metric-box:hover {
+    transform: translateY(-2px);
 }
+
+/* Card 1: Bank Name (Sky Blue Tint) */
+.metric-box:nth-child(1) {
+    background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
+    border: 1px solid #BFDBFE;
+}
+
+/* Card 2: Statement Period (Slate Tint) */
+.metric-box:nth-child(2) {
+    background: linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%);
+    border: 1px solid #CBD5E1;
+}
+
+/* Card 3: Total Credits (Emerald Green Tint) */
+.metric-box:nth-child(3) {
+    background: linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 100%);
+    border: 1px solid #A7F3D0;
+}
+
+/* Card 4: Total Debits (Rose Red Tint) */
+.metric-box:nth-child(4) {
+    background: linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%);
+    border: 1px solid #FECDD3;
+}
+
+/* Card 5: Net Savings (Indigo Tint) */
+.metric-box:nth-child(5) {
+    background: linear-gradient(135deg, #EEF2FF 0%, #FFFFFF 100%);
+    border: 1px solid #C7D2FE;
+}
+
+/* Card 6: Audit Score (Purple Gradient Tint) */
+.score-metric-box {
+    background: linear-gradient(135deg, #F5F3FF 0%, #FFFFFF 100%);
+    border: 1px solid #DDD6FE;
+}
+
+body.dark-mode .metric-box:nth-child(1) { background: #1E293B; border-color: #334155; }
+body.dark-mode .metric-box:nth-child(2) { background: #1E293B; border-color: #334155; }
+body.dark-mode .metric-box:nth-child(3) { background: #064E3B; border-color: #047857; }
+body.dark-mode .metric-box:nth-child(4) { background: #881337; border-color: #BE123C; }
+body.dark-mode .metric-box:nth-child(5) { background: #1E1B4B; border-color: #3730A3; }
+body.dark-mode .score-metric-box { background: #2E1065; border-color: #581C87; }
 
 .metric-label {
     font-family: var(--font-serif);
@@ -232,20 +274,9 @@ body.dark-mode .metric-box {
     color: var(--text-primary);
 }
 
-.text-green { color: var(--success-green); }
-.text-red { color: var(--error-red); }
-.text-purple { color: var(--purple-main); }
-
-/* Integrated Score Metric Box */
-.score-metric-box {
-    background: linear-gradient(135deg, #F5F3FF 0%, #EFF6FF 100%);
-    border-color: var(--purple-border);
-}
-
-body.dark-mode .score-metric-box {
-    background: linear-gradient(135deg, #2E1065 0%, #1E3A8A 100%);
-    border-color: #581C87;
-}
+.text-green { color: #059669; }
+.text-red { color: #DC2626; }
+.text-purple { color: #7C3AED; }
 
 /* ==========================================
    3. ACTION SEGMENTED TAB BAR
@@ -279,19 +310,19 @@ body.dark-mode .action-tab-bar {
 }
 
 .tab-btn:hover {
-    background-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.6);
     color: var(--text-primary);
 }
 
 .tab-btn.active {
-    background-color: #FFFFFF;
-    color: var(--primary-blue);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 body.dark-mode .tab-btn.active {
-    background-color: #1E293B;
-    color: #60A5FA;
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+    color: #FFFFFF;
 }
 
 .btn-highlight {
@@ -301,12 +332,13 @@ body.dark-mode .tab-btn.active {
 .btn-highlight.active {
     background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
     color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
 }
 
 /* Loading Box Bar */
 .loading-box {
-    background-color: #F8FAFC;
-    border: 1px solid var(--border-color);
+    background-color: #EFF6FF;
+    border: 1px solid #BFDBFE;
     border-radius: var(--radius-sm);
     padding: 10px 16px;
     display: flex;
@@ -321,7 +353,7 @@ body.dark-mode .loading-box {
 .loading-spinner {
     width: 18px;
     height: 18px;
-    border: 2px solid var(--border-color);
+    border: 2px solid #BFDBFE;
     border-top-color: var(--primary-blue);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -333,7 +365,7 @@ body.dark-mode .loading-box {
     font-family: var(--font-serif);
     font-size: 12px;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--primary-blue);
 }
 
 /* ==========================================
@@ -344,6 +376,7 @@ body.dark-mode .loading-box {
     display: flex;
     flex-direction: column;
     min-height: 380px;
+    border-top: 3px solid var(--primary-blue);
 }
 
 .viewer-header {
@@ -368,7 +401,7 @@ body.dark-mode .loading-box {
 }
 
 .btn-purple {
-    background-color: var(--purple-light);
+    background: linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%);
     color: var(--purple-main);
     border: 1px solid var(--purple-border);
     border-radius: var(--radius-sm);
@@ -381,11 +414,11 @@ body.dark-mode .loading-box {
 }
 
 .btn-purple:hover {
-    background-color: #EDE9FE;
+    background: #DDD6FE;
 }
 
 .btn-outline {
-    background-color: #F8FAFC;
+    background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
     color: var(--text-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -398,7 +431,7 @@ body.dark-mode .loading-box {
 }
 
 .btn-outline:hover {
-    background-color: #F1F5F9;
+    background: #E2E8F0;
 }
 
 .report-content-area {
@@ -425,7 +458,8 @@ body.dark-mode .loading-box {
 .placeholder-icon {
     width: 36px;
     height: 36px;
-    opacity: 0.5;
+    color: var(--primary-blue);
+    opacity: 0.6;
 }
 
 .placeholder-text {
@@ -443,6 +477,7 @@ body.dark-mode .loading-box {
     display: flex;
     flex-direction: column;
     padding: 16px 18px;
+    border-top: 3px solid var(--purple-main);
 }
 
 .chat-header {
@@ -462,10 +497,12 @@ body.dark-mode .loading-box {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    background-color: var(--purple-light);
+    background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+    color: #FFFFFF;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3);
 }
 
 .chat-title {
@@ -607,9 +644,9 @@ body.dark-mode .user-bubble .bubble-content {
 }
 
 .chip-btn {
-    background-color: #F1F5F9;
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #F5F3FF 0%, #EFF6FF 100%);
+    color: var(--purple-main);
+    border: 1px solid var(--purple-border);
     border-radius: 10px;
     padding: 3px 8px;
     font-family: var(--font-serif);
@@ -620,7 +657,7 @@ body.dark-mode .user-bubble .bubble-content {
 }
 
 .chip-btn:hover {
-    background-color: #E2E8F0;
+    background: #DDD6FE;
     color: var(--text-primary);
 }
 
@@ -656,7 +693,7 @@ body.dark-mode .chat-input-field {
 }
 
 .send-btn {
-    background-color: var(--primary-blue);
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
     color: #FFFFFF;
     border: none;
     border-radius: 14px;
@@ -665,11 +702,12 @@ body.dark-mode .chat-input-field {
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
     transition: var(--transition);
 }
 
 .send-btn:hover {
-    background-color: var(--primary-hover);
+    background: var(--primary-hover);
 }
 
 /* Responsive Grid Adjustments */

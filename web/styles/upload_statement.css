@@ -1,43 +1,50 @@
 /* ==========================================================================
-   StatementForge - Upload Bank Statement (Full-Width Dashboard Layout)
+   StatementForge - Upload Bank Statement (Vibrant & Rich Fintech Theme)
    ========================================================================== */
 
 :root {
     /* Color Palette */
     --bg-page: transparent;
     --card-bg: #FFFFFF;
-    --card-glass: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.9) 100%);
-    --border-color: #E2E8F0;
-    --border-dashed: rgba(59, 130, 246, 0.35);
+    --card-glass: linear-gradient(135deg, #F0F4FF 0%, #FFFFFF 50%, #EFF6FF 100%);
+    --border-color: #CBD5E1;
+    --border-dashed: #3B82F6;
     
     --text-primary: #0F172A;
-    --text-secondary: #475569;
+    --text-secondary: #334155;
     --text-muted: #64748B;
     
     --primary-blue: #2563EB;
     --primary-gradient: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
     --primary-hover: #1D4ED8;
     --primary-light: #EFF6FF;
-    --primary-glow: rgba(37, 99, 235, 0.2);
+    --primary-glow: rgba(37, 99, 235, 0.25);
     
-    --success-green: #10B981;
+    --success-green: #059669;
     --success-bg: #ECFDF5;
+    --success-border: #A7F3D0;
     --success-text: #047857;
     
-    --warning-amber: #F59E0B;
+    --warning-amber: #D97706;
     --warning-bg: #FFFBEB;
+    --warning-border: #FDE68A;
     --warning-text: #B45309;
     
-    --error-red: #EF4444;
+    --error-red: #DC2626;
     --error-bg: #FEF2F2;
+    --error-border: #FECDD3;
     --error-text: #B91C1C;
+    
+    --purple-main: #7C3AED;
+    --purple-bg: #F5F3FF;
+    --purple-border: #DDD6FE;
     
     --pill-bg: #F1F5F9;
     --pill-text: #334155;
     
-    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-    --shadow-hover: 0 16px 40px rgba(37, 99, 235, 0.14), 0 4px 12px rgba(0, 0, 0, 0.03);
-    --shadow-hero: 0 20px 48px rgba(37, 99, 235, 0.16);
+    --shadow-card: 0 4px 20px rgba(37, 99, 235, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
+    --shadow-hover: 0 12px 32px rgba(37, 99, 235, 0.18), 0 4px 12px rgba(0, 0, 0, 0.04);
+    --shadow-hero: 0 16px 40px rgba(37, 99, 235, 0.2);
     
     --radius-hero: 18px;
     --radius-card: 14px;
@@ -56,12 +63,12 @@ body.dark-mode {
     --card-bg: #151D2A;
     --card-glass: linear-gradient(135deg, rgba(30,41,59,0.95) 0%, rgba(21,29,42,0.9) 100%);
     --border-color: #232E42;
-    --border-dashed: rgba(59, 130, 246, 0.4);
+    --border-dashed: rgba(59, 130, 246, 0.5);
     --text-primary: #F9FAFB;
     --text-secondary: #CBD5E1;
-    --text-muted: #64748B;
+    --text-muted: #94A3B8;
     
-    --primary-light: rgba(37, 99, 235, 0.15);
+    --primary-light: rgba(37, 99, 235, 0.2);
     --pill-bg: #1E293B;
     --pill-text: #E2E8F0;
     
@@ -132,7 +139,7 @@ body {
 }
 
 /* ==========================================
-   2. HERO GLASSMORPHISM UPLOAD CARD
+   2. HERO UPLOAD CARD (Vibrant Blue Ambient Gradient)
    ========================================== */
 .upload-hero-container {
     position: relative;
@@ -144,10 +151,10 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0) 70%);
-    filter: blur(40px);
+    width: 70%;
+    height: 70%;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0) 70%);
+    filter: blur(36px);
     pointer-events: none;
     z-index: 1;
 }
@@ -174,8 +181,8 @@ body {
 
 .upload-hero-card:hover,
 .upload-hero-card.drag-over {
-    border-color: var(--primary-blue);
-    background-color: var(--primary-light);
+    border-color: #1D4ED8;
+    background: linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 100%);
     box-shadow: var(--shadow-hero);
     transform: translateY(-2px);
 }
@@ -201,7 +208,7 @@ body {
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    border: 2px dashed rgba(37, 99, 235, 0.3);
+    border: 2px dashed rgba(37, 99, 235, 0.4);
     animation: rotateOrbit 12s linear infinite;
 }
 
@@ -211,29 +218,28 @@ body {
 }
 
 .icon-circle-glass {
-    width: 52px;
-    height: 52px;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
-    background: var(--primary-light);
-    border: 1px solid rgba(37, 99, 235, 0.2);
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--primary-blue);
-    box-shadow: 0 6px 18px var(--primary-glow);
+    color: #FFFFFF;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
     transition: var(--transition);
     position: relative;
     z-index: 2;
 }
 
 .upload-hero-card:hover .icon-circle-glass {
-    transform: scale(1.08) rotate(-4deg);
-    background-color: #DBEAFE;
+    transform: scale(1.1) rotate(-4deg);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.5);
 }
 
 .cloud-hero-svg {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
 }
 
 .hero-text-content {
@@ -270,13 +276,13 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
     transition: var(--transition);
 }
 
 .btn-flagship:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.5);
 }
 
 .btn-flagship:active {
@@ -289,7 +295,7 @@ body {
 }
 
 /* ==========================================
-   3. ENTERPRISE FEATURE CARDS GRID
+   3. ENTERPRISE FEATURE CARDS GRID (Vibrant Accent Colors)
    ========================================== */
 .features-grid {
     display: grid;
@@ -300,7 +306,6 @@ body {
 
 .feature-card {
     background: var(--card-bg);
-    border: 1px solid var(--border-color);
     border-radius: var(--radius-card);
     padding: 14px 16px;
     display: flex;
@@ -310,16 +315,35 @@ body {
     transition: var(--transition);
 }
 
+.feature-card:nth-child(1) {
+    background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
+    border: 1px solid #BFDBFE;
+}
+
+.feature-card:nth-child(2) {
+    background: linear-gradient(135deg, #F5F3FF 0%, #FFFFFF 100%);
+    border: 1px solid #DDD6FE;
+}
+
+.feature-card:nth-child(3) {
+    background: linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%);
+    border: 1px solid #FDE68A;
+}
+
+.feature-card:nth-child(4) {
+    background: linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 100%);
+    border: 1px solid #A7F3D0;
+}
+
 .feature-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-hover);
-    border-color: rgba(37, 99, 235, 0.4);
 }
 
 .feat-icon-box {
     width: 38px;
     height: 38px;
-    border-radius: 8px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -331,10 +355,10 @@ body {
     height: 18px;
 }
 
-.blue-gradient { background: #EFF6FF; color: #2563EB; }
-.purple-gradient { background: #F5F3FF; color: #8B5CF6; }
-.amber-gradient { background: #FFFBEB; color: #D97706; }
-.emerald-gradient { background: #ECFDF5; color: #10B981; }
+.blue-gradient { background: #2563EB; color: #FFFFFF; }
+.purple-gradient { background: #7C3AED; color: #FFFFFF; }
+.amber-gradient { background: #D97706; color: #FFFFFF; }
+.emerald-gradient { background: #059669; color: #FFFFFF; }
 
 .feat-details h4 {
     font-family: var(--font-serif);
@@ -354,8 +378,9 @@ body {
    4. CONFIGURATION SETTINGS CARD
    ========================================== */
 .config-card {
-    background: var(--card-bg);
+    background: linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%);
     border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-blue);
     border-radius: var(--radius-card);
     padding: 14px 20px;
     display: flex;
@@ -393,7 +418,7 @@ body {
     width: 18px;
     height: 18px;
     border-radius: 5px;
-    border: 2px solid var(--border-dashed);
+    border: 2px solid #94A3B8;
     background-color: var(--card-bg);
     transition: var(--transition);
     display: flex;
@@ -431,6 +456,7 @@ body {
 .recent-analytics-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
+    border-top: 3px solid var(--primary-blue);
     border-radius: var(--radius-card);
     padding: 18px 20px;
     box-shadow: var(--shadow-card);
@@ -465,6 +491,7 @@ body {
     font-weight: 600;
     color: var(--success-green);
     background-color: var(--success-bg);
+    border: 1px solid var(--success-border);
     padding: 2px 8px;
     border-radius: 10px;
 }
@@ -507,7 +534,7 @@ body {
 }
 
 .recent-table th {
-    background-color: #F8FAFC;
+    background-color: #F1F5F9;
     color: var(--text-secondary);
     font-family: var(--font-serif);
     font-weight: 700;
@@ -531,7 +558,7 @@ body.dark-mode .recent-table th {
 }
 
 .recent-table tbody tr:nth-child(even) {
-    background-color: rgba(248, 250, 252, 0.5);
+    background-color: rgba(248, 250, 252, 0.6);
 }
 
 body.dark-mode .recent-table tbody tr:nth-child(even) {
@@ -549,12 +576,12 @@ body.dark-mode .recent-table tbody tr:nth-child(even) {
 .bank-name {
     font-family: var(--font-serif);
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--primary-blue);
 }
 
 .file-name {
     font-family: var(--font-serif);
-    font-weight: 400;
+    font-weight: 500;
     color: var(--text-secondary);
 }
 
@@ -578,16 +605,19 @@ body.dark-mode .recent-table tbody tr:nth-child(even) {
 .status-completed {
     background-color: var(--success-bg);
     color: var(--success-text);
+    border: 1px solid var(--success-border);
 }
 
 .status-processing {
     background-color: var(--warning-bg);
     color: var(--warning-text);
+    border: 1px solid var(--warning-border);
 }
 
 .status-failed {
     background-color: var(--error-bg);
     color: var(--error-text);
+    border: 1px solid var(--error-border);
 }
 
 /* Empty State Illustration */
@@ -607,11 +637,11 @@ body.dark-mode .recent-table tbody tr:nth-child(even) {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background-color: var(--pill-bg);
+    background-color: var(--primary-light);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-muted);
+    color: var(--primary-blue);
 }
 
 .empty-icon-wrapper svg {

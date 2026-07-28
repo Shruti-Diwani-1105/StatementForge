@@ -232,7 +232,7 @@ class AIAuditorWidget(QWidget):
         
         completed_logs = [log for log in logs if log.get("status") == "Completed" and log.get("excel_path")]
         
-        options_js = "const cb = document.getElementById('statementCb'); cb.innerHTML = '';"
+        options_js = "(function(){ var cb = document.getElementById('statementCb'); if(!cb) return; cb.innerHTML = '';"
         if not completed_logs:
             options_js += "cb.innerHTML += `<option value=''>No parsed statements found in history.</option>`;"
         else:
@@ -253,6 +253,7 @@ class AIAuditorWidget(QWidget):
                 escaped_path = json.dumps(excel_path)
                 escaped_text = json.dumps(display_text)
                 options_js += f"cb.innerHTML += `<option value=${escaped_path}>${display_text}</option>`;"
+        options_js += "})();"
                 
         self.html_wrapper.eval_js(options_js)
 
