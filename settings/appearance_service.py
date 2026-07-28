@@ -17,8 +17,9 @@ class AppearanceService:
         if not app:
             return False
             
+        theme_clean = theme_name.lower().strip() if isinstance(theme_name, str) else "light"
         # Determine theme filename
-        filename = "theme.qss" if theme_name == "light" else "theme_dark.qss"
+        filename = "theme.qss" if theme_clean in ["light", "system"] else "theme_dark.qss"
         
         # Get path to styles folder (two levels up from settings/appearance_service.py)
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,7 +34,7 @@ class AppearanceService:
                 qss_content = f.read()
                 
             # Perform accent color mapping replacements
-            qss_content = AppearanceService._replace_accents(qss_content, theme_name, accent_color)
+            qss_content = AppearanceService._replace_accents(qss_content, theme_clean, accent_color)
             
             # Perform font size replacements
             qss_content = AppearanceService._replace_font_size(qss_content, font_size)
@@ -48,73 +49,84 @@ class AppearanceService:
     @staticmethod
     def _replace_accents(qss_content, theme, accent):
         """Replaces standard blue hex values in QSS with selected accent color hex values."""
-        accent = accent.lower()
-        if accent == "blue":
-            return qss_content # Blue is the default, no replacement needed
+        accent = str(accent).lower().strip() if accent else "blue"
+        if accent in ["blue", "royal blue"]:
+            return qss_content
             
-        # Standard Blue values to locate and replace
-        # Light mode defaults: Blue is #2563EB, Hover is #1D4ED8, Pressed is #1E40AF, Selected BG is #EFF6FF, checkbox checked is #2563EB
-        # Dark mode defaults: Blue is #3B82F6, Hover is #2563EB, Pressed is #1D4ED8, Selected BG is #1E293B, checkbox checked is #3B82F6
-        
         replacements = []
-        
         if theme == "light":
-            if accent == "green":
+            if accent in ["indigo"]:
                 replacements = [
-                    ("#2563EB", "#16A34A"), # Primary
-                    ("#1D4ED8", "#15803D"), # Hover
-                    ("#1E40AF", "#166534"), # Pressed
-                    ("#EFF6FF", "#F0FDF4"), # Selected BG
-                    ("#93C5FD", "#86EFAC"), # Disabled BG
+                    ("#2563EB", "#4F46E5"),
+                    ("#1D4ED8", "#3730A3"),
+                    ("#1E40AF", "#312E81"),
+                    ("#EFF6FF", "#EEF2FF"),
+                    ("#93C5FD", "#A5B4FC"),
                 ]
-            elif accent == "purple":
+            elif accent in ["purple"]:
                 replacements = [
-                    ("#2563EB", "#7C3AED"),
-                    ("#1D4ED8", "#6D28D9"),
-                    ("#1E40AF", "#5B21B6"),
+                    ("#2563EB", "#8B5CF6"),
+                    ("#1D4ED8", "#7C3AED"),
+                    ("#1E40AF", "#6D28D9"),
                     ("#EFF6FF", "#F5F3FF"),
-                    ("#93C5FD", "#C084FC"),
+                    ("#93C5FD", "#DDD6FE"),
                 ]
-            elif accent == "orange":
+            elif accent in ["emerald", "green"]:
                 replacements = [
-                    ("#2563EB", "#EA580C"),
-                    ("#1D4ED8", "#C2410C"),
-                    ("#1E40AF", "#9A3412"),
-                    ("#EFF6FF", "#FFF7ED"),
-                    ("#93C5FD", "#FDBA74"),
+                    ("#2563EB", "#10B981"),
+                    ("#1D4ED8", "#059669"),
+                    ("#1E40AF", "#047857"),
+                    ("#EFF6FF", "#ECFDF5"),
+                    ("#93C5FD", "#A7F3D0"),
                 ]
-        else: # dark theme
-            if accent == "green":
+            elif accent in ["amber", "orange"]:
                 replacements = [
-                    ("#3B82F6", "#10B981"), # Primary
-                    ("#2563EB", "#059669"), # Hover
-                    ("#1D4ED8", "#047857"), # Pressed
-                    ("#EFF6FF", "#064E3B"), # Selected
-                    ("#1E3A8A", "#064E3B"), # Disabled BG
-                    ("#60A5FA", "#34D399"), # Progress chunk
+                    ("#2563EB", "#F59E0B"),
+                    ("#1D4ED8", "#D97706"),
+                    ("#1E40AF", "#B45309"),
+                    ("#EFF6FF", "#FFFBEB"),
+                    ("#93C5FD", "#FDE68A"),
                 ]
-            elif accent == "purple":
+        else:  # Dark mode
+            if accent in ["indigo"]:
                 replacements = [
-                    ("#3B82F6", "#8B5CF6"),
-                    ("#2563EB", "#7C3AED"),
-                    ("#1D4ED8", "#6D28D9"),
-                    ("#EFF6FF", "#4C1D95"),
-                    ("#1E3A8A", "#4C1D95"),
-                    ("#60A5FA", "#A78BFA"),
+                    ("#3B82F6", "#6366F1"),
+                    ("#2563EB", "#4F46E5"),
+                    ("#1D4ED8", "#3730A3"),
+                    ("#EFF6FF", "#1E1B4B"),
+                    ("#1E3A8A", "#312E81"),
+                    ("#60A5FA", "#818CF8"),
                 ]
-            elif accent == "orange":
+            elif accent in ["purple"]:
                 replacements = [
-                    ("#3B82F6", "#F97316"),
-                    ("#2563EB", "#EA580C"),
-                    ("#1D4ED8", "#C2410C"),
-                    ("#EFF6FF", "#7C2D12"),
-                    ("#1E3A8A", "#7C2D12"),
-                    ("#60A5FA", "#FB923C"),
+                    ("#3B82F6", "#A855F7"),
+                    ("#2563EB", "#8B5CF6"),
+                    ("#1D4ED8", "#7C3AED"),
+                    ("#EFF6FF", "#3B0764"),
+                    ("#1E3A8A", "#581C87"),
+                    ("#60A5FA", "#C084FC"),
+                ]
+            elif accent in ["emerald", "green"]:
+                replacements = [
+                    ("#3B82F6", "#10B981"),
+                    ("#2563EB", "#059669"),
+                    ("#1D4ED8", "#047857"),
+                    ("#EFF6FF", "#064E3B"),
+                    ("#1E3A8A", "#065F46"),
+                    ("#60A5FA", "#34D399"),
+                ]
+            elif accent in ["amber", "orange"]:
+                replacements = [
+                    ("#3B82F6", "#F59E0B"),
+                    ("#2563EB", "#D97706"),
+                    ("#1D4ED8", "#B45309"),
+                    ("#EFF6FF", "#78350F"),
+                    ("#1E3A8A", "#92400E"),
+                    ("#60A5FA", "#FBBF24"),
                 ]
                 
         for target, replacement in replacements:
             qss_content = qss_content.replace(target, replacement)
-            # Support lowercase matching just in case
             qss_content = qss_content.replace(target.lower(), replacement)
             
         return qss_content
@@ -122,9 +134,8 @@ class AppearanceService:
     @staticmethod
     def _replace_font_size(qss_content, size_name):
         """Replaces base font sizing inside the QSS file."""
-        # Baseline is font-size: 14px in both theme files under QWidget
         if size_name == "Small":
             return qss_content.replace("font-size: 14px;", "font-size: 12px;")
         elif size_name == "Large":
             return qss_content.replace("font-size: 14px;", "font-size: 16px;")
-        return qss_content # Medium (14px) is default
+        return qss_content
