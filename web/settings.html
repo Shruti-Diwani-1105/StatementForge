@@ -39,13 +39,18 @@
         <!-- 2. SCROLLABLE CONTENT AREA -->
         <main class="settings-content-area" id="settingsContentArea">
 
-            <!-- TAB 1: GENERAL SETTINGS -->
+            <!-- TAB 1: GENERAL SETTINGS (MINIMAL & PROFESSIONAL READ-ONLY INFO + ESSENTIAL SETTINGS) -->
             <section class="tab-panel active" id="panel-general">
                 <header class="panel-header">
-                    <h2 class="panel-title">General Preferences</h2>
-                    <p class="panel-subtitle">Configure application identity, system storage paths, and localization preferences.</p>
+                    <h2 class="panel-title">General Information</h2>
+                    <p class="panel-subtitle">Application specifications, environment details, and essential storage preferences.</p>
                 </header>
 
+                <!-- Hidden inputs to preserve Python model bindings cleanly -->
+                <input type="hidden" id="genAppName" value="StatementForge AI Engine">
+                <input type="hidden" id="genLang" value="English (US)">
+
+                <!-- Read-Only Application Overview Card -->
                 <div class="settings-card identity-card">
                     <div class="card-header-icon">
                         <div class="app-avatar-box">
@@ -53,32 +58,59 @@
                         </div>
                         <div class="identity-meta">
                             <div class="title-badge-row">
-                                <h3 class="card-section-title">Application Identity</h3>
-                                <span class="badge badge-enterprise">v2.4 Enterprise</span>
+                                <h3 class="card-section-title">StatementForge Engine</h3>
+                                <span class="badge badge-enterprise">v2.4</span>
+                                <span class="badge badge-active">● Active</span>
+                                <span class="badge badge-role">Stable</span>
                             </div>
-                            <p class="card-section-subtitle">StatementForge Automated Bank Statement Ingestion &amp; Financial Auditor Engine</p>
+                            <p class="card-section-subtitle">Automated Financial Statement Ingestion, GST Auditor &amp; Accounting Suite</p>
                         </div>
                     </div>
 
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label class="form-label" for="genAppName">Application Title</label>
-                            <input type="text" id="genAppName" class="form-control" value="StatementForge AI Engine" oninput="notifyFieldChange('app_name', this.value)">
-                            <span class="form-hint">Displayed in topbar, notifications, and exported reports.</span>
+                    <!-- System Specifications Read-Only Grid -->
+                    <div class="info-specs-grid mt-14">
+                        <div class="info-spec-item">
+                            <span class="spec-label">Version &amp; Build</span>
+                            <span class="spec-value">v2.4 (Build 2026.07.28)</span>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label" for="genWorkspace">Workspace Domain</label>
-                            <input type="text" id="genWorkspace" class="form-control" value="Enterprise Ledger Workspace" readonly>
+                        <div class="info-spec-item">
+                            <span class="spec-label">Cross-Platform Support</span>
+                            <span class="spec-value">Windows / macOS / Linux</span>
+                        </div>
+                        <div class="info-spec-item">
+                            <span class="spec-label">Supported Language</span>
+                            <span class="spec-value"><span class="badge badge-build">English</span></span>
+                        </div>
+                        <div class="info-spec-item">
+                            <span class="spec-label">Database Engine</span>
+                            <span class="spec-value"><span class="badge badge-enterprise">MongoDB Atlas</span></span>
+                        </div>
+                        <div class="info-spec-item">
+                            <span class="spec-label">AI Engine</span>
+                            <span class="spec-value"><span class="badge badge-role">Google Gemini AI</span></span>
+                        </div>
+                        <div class="info-spec-item">
+                            <span class="spec-label">OCR Vision Core</span>
+                            <span class="spec-value"><span class="badge badge-build">Tesseract OCR</span></span>
+                        </div>
+                        <div class="info-spec-item">
+                            <span class="spec-label">Export Format</span>
+                            <span class="spec-value">Excel (.xlsx)</span>
+                        </div>
+                        <div class="info-spec-item">
+                            <span class="spec-label">License Type</span>
+                            <span class="spec-value">Enterprise Edition</span>
                         </div>
                     </div>
                 </div>
 
+                <!-- Essential Preferences (Editable) Card -->
                 <div class="settings-card storage-card">
                     <div class="card-title-row">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                         <div>
-                            <h3 class="card-section-title">Storage &amp; Localization</h3>
-                            <p class="card-section-subtitle">Manage statement export destination directories and language formats.</p>
+                            <h3 class="card-section-title">Application Storage Preferences</h3>
+                            <p class="card-section-subtitle">Manage statement export destination directory and persistence settings.</p>
                         </div>
                     </div>
 
@@ -91,27 +123,15 @@
                         <span class="form-hint error-hint" id="genSaveLocationErr"></span>
                     </div>
 
-                    <div class="form-grid-2col">
-                        <div class="form-group">
-                            <label class="form-label" for="genLang">Interface Language</label>
-                            <select id="genLang" class="form-control custom-select" onchange="notifyFieldChange('language', this.value)">
-                                <option value="English (US)">English (US)</option>
-                                <option value="English (UK)">English (UK)</option>
-                                <option value="Spanish">Spanish</option>
-                                <option value="German">German</option>
-                            </select>
+                    <div class="toggle-group-card mt-14">
+                        <div class="toggle-text-info">
+                            <label class="form-label">Auto-Save Configurations</label>
+                            <span class="form-hint">Automatically persist workspace settings updates on change.</span>
                         </div>
-
-                        <div class="form-group toggle-group-card">
-                            <div class="toggle-text-info">
-                                <label class="form-label">Auto-Save Configurations</label>
-                                <span class="form-hint">Automatically persist workspace settings updates.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="genAutoSave" checked onchange="notifyFieldChange('auto_save', this.checked)">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="genAutoSave" checked onchange="notifyFieldChange('auto_save', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
             </section>
