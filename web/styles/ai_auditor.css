@@ -54,6 +54,8 @@ body.dark-mode {
     font-family: var(--font-serif);
     user-select: none;
     -webkit-user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 body {
@@ -63,6 +65,9 @@ body {
     padding: 16px 20px;
     overflow-x: hidden;
     font-family: var(--font-serif);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 .auditor-app-container {

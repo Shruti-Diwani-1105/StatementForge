@@ -1,5 +1,5 @@
 /* ==========================================================================
-   StatementForge - Settings Module (Fixed Scrollable Content & Sticky Footer)
+   StatementForge - Settings Module (Cross-Platform Windows/macOS/Linux Responsive)
    ========================================================================== */
 
 :root {
@@ -40,7 +40,7 @@
     --radius-btn: 10px;
     --radius-sm: 8px;
     
-    --font-serif: 'Times New Roman', Times, Georgia, serif;
+    --font-serif: 'Times New Roman', Times, Georgia, 'Liberation Serif', serif;
     
     --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -66,6 +66,9 @@ html, body {
     background-color: var(--bg-page);
     color: var(--text-primary);
     font-family: var(--font-serif);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 * {
@@ -75,6 +78,8 @@ html, body {
     font-family: var(--font-serif);
     user-select: none;
     -webkit-user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .settings-app-container {
@@ -757,4 +762,26 @@ body.dark-mode .settings-sticky-footer {
 .footer-actions-group {
     display: flex;
     gap: 10px;
+}
+
+/* Cross-Platform Responsive Breakpoints */
+@media (max-width: 900px) {
+    .settings-app-container {
+        padding: 10px 12px 0 12px;
+    }
+    .theme-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    .color-cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .notifications-grid {
+        grid-template-columns: 1fr;
+    }
+    .form-grid-2col {
+        grid-template-columns: 1fr;
+    }
+    .settings-sticky-footer {
+        padding: 0 16px;
+    }
 }
