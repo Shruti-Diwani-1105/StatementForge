@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge - AI Financial Auditor</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="styles/ai_auditor.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body>
+    <div class="auditor-app-container fade-in" id="auditor-app">
+
+        <!-- Left Main Area: Controls, Metrics, Action Tabs, Report Viewer -->
+        <div class="auditor-main-left">
+
+            <!-- 1. Page Header (Matched to Upload Statement Header) -->
+            <header class="dashboard-header">
+                <h1 class="header-title">AI Financial Auditor &amp; Business Advisor</h1>
+                <p class="header-subtitle">Big-4 Style Forensic Audit &amp; Executive Recommendations powered by AI.</p>
+            </header>
+
+            <!-- 2. Statement Selection & Summary Metrics Card -->
+            <section class="card-panel preview-card">
+                <!-- Selection Row -->
+                <div class="selection-row">
+                    <label for="statementCb" class="select-label">Statement:</label>
+                    <select id="statementCb" class="custom-select" onchange="onStatementChanged(this)">
+                        <option value="">Select from parsed statement history...</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary refresh-btn" onclick="triggerRefreshHistory()">
+                        <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        Refresh List
+                    </button>
+                </div>
+
+                <!-- Integrated Summary Metrics Grid Row (6 Aligned Cards) -->
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <span class="metric-label">Bank Name</span>
+                        <span class="metric-value" id="lblBank">-</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Statement Period</span>
+                        <span class="metric-value" id="lblPeriod">-</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Total Credits</span>
+                        <span class="metric-value text-green" id="lblCredits">-</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Total Debits</span>
+                        <span class="metric-value text-red" id="lblDebits">-</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Net Savings</span>
+                        <span class="metric-value" id="lblSavings">-</span>
+                    </div>
+                    <div class="metric-box score-metric-box">
+                        <span class="metric-label">Audit Score</span>
+                        <span class="metric-value text-purple" id="lblScore">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Action Segmented Tab Bar -->
+            <nav class="action-tab-bar">
+                <button type="button" class="tab-btn active" id="tabSummary" onclick="triggerTask('summary')">
+                    Financial Summary
+                </button>
+                <button type="button" class="tab-btn" id="tabSpending" onclick="triggerTask('spending')">
+                    Spending Insights
+                </button>
+                <button type="button" class="tab-btn" id="tabRisk" onclick="triggerTask('risk')">
+                    Risk Analysis
+                </button>
+                <button type="button" class="tab-btn btn-highlight" id="tabReport" onclick="triggerTask('report')">
+                    Generate AI Report
+                </button>
+            </nav>
+
+            <!-- Progress / Loading Bar Container -->
+            <div class="loading-box" id="loadingBox" style="display: none;">
+                <div class="loading-spinner"></div>
+                <span class="loading-text" id="loadingText">AI is analyzing transaction data...</span>
+            </div>
+
+            <!-- 4. Report Viewer Card -->
+            <section class="card-panel viewer-card">
+                <div class="viewer-header">
+                    <h2 class="viewer-title">Audit Report Viewer</h2>
+                    <div class="viewer-actions">
+                        <button type="button" class="btn btn-purple" onclick="triggerSendEmail()">
+                            ✉ Send via Email
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="triggerExportPdf()">
+                            📥 Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="report-content-area" id="reportViewer">
+                    <div class="empty-placeholder">
+                        <svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        <p class="placeholder-text">Select a statement above and click an analysis button to generate a report.</p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+
+        <!-- Right Area: Interactive AI Business Advisor Chat Sidebar -->
+        <aside class="auditor-sidebar-right">
+            <div class="card-panel chat-card">
+                <div class="chat-header">
+                    <div class="advisor-status-box">
+                        <span class="advisor-icon">🤖</span>
+                        <div class="status-details">
+                            <h3 class="chat-title">Ask AI Financial Advisor</h3>
+                            <span class="status-online"><span class="online-dot"></span> Active Assistant</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Messages Scroll Area -->
+                <div class="chat-messages-area" id="chatContainer">
+                    <div class="chat-bubble advisor-bubble">
+                        <div class="bubble-avatar">🤖</div>
+                        <div class="bubble-content">
+                            <div class="bubble-header">
+                                <span class="sender-name">Business Advisor</span>
+                                <span class="bubble-time">Now</span>
+                            </div>
+                            <p class="bubble-text">Hello! I am your AI Business Advisor. Select a statement and ask me any questions like:<br>• What are my top expenses?<br>• Is there any duplicate UPI transactions?<br>• What subscriptions did I pay for?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggestions Panel -->
+                <div class="suggestions-row">
+                    <button type="button" class="chip-btn" onclick="useSuggestion('Top Expenses')">Top Expenses</button>
+                    <button type="button" class="chip-btn" onclick="useSuggestion('Duplicate UPIs')">Duplicate UPIs</button>
+                    <button type="button" class="chip-btn" onclick="useSuggestion('Active Subscriptions')">Active Subscriptions</button>
+                </div>
+
+                <!-- Chat Input Row -->
+                <div class="chat-input-row">
+                    <input type="text" id="chatInput" class="chat-input-field" placeholder="Ask a question about this statement..." onkeypress="handleChatKeyPress(event)">
+                    <button type="button" class="btn btn-primary send-btn" id="sendBtn" onclick="triggerSendChat()">Send</button>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- UI IPC Controller JS -->
+    <script>
+        function triggerRefreshHistory() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_refresh_history', {});
+            }
+        }
+
+        function onStatementChanged(selectEl) {
+            const path = selectEl.value;
+            if (path && typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_select_statement', { path: path });
+            }
+        }
+
+        function triggerTask(actionKey) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const clickedBtn = document.getElementById('tab' + actionKey.charAt(0).toUpperCase() + actionKey.slice(1));
+            if (clickedBtn) clickedBtn.classList.add('active');
+
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_run_task', { action: actionKey });
+            }
+        }
+
+        function triggerSendEmail() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_send_email', {});
+            }
+        }
+
+        function triggerExportPdf() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_export_pdf', {});
+            }
+        }
+
+        function useSuggestion(text) {
+            const input = document.getElementById('chatInput');
+            if (input) {
+                input.value = text;
+                triggerSendChat();
+            }
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                triggerSendChat();
+            }
+        }
+
+        function triggerSendChat() {
+            const input = document.getElementById('chatInput');
+            const msg = input ? input.value.trim() : '';
+            if (!msg) return;
+
+            // Add user message bubble locally
+            appendChatBubble('user', msg);
+            input.value = '';
+
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_send_chat', { message: msg });
+            }
+        }
+
+        function appendChatBubble(sender, text) {
+            const container = document.getElementById('chatContainer');
+            if (!container) return;
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = `chat-bubble ${sender === 'user' ? 'user-bubble' : 'advisor-bubble'}`;
+
+            const avatar = sender === 'user' ? '👤' : '🤖';
+            const senderName = sender === 'user' ? 'You' : 'Business Advisor';
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const formattedText = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+                .replace(/\*(.*?)\*/g, "<i>$1</i>")
+                .replace(/\n/g, "<br>");
+
+            bubbleDiv.innerHTML = `
+                <div class="bubble-avatar">${avatar}</div>
+                <div class="bubble-content">
+                    <div class="bubble-header">
+                        <span class="sender-name">${senderName}</span>
+                        <span class="bubble-time">${timeStr}</span>
+                    </div>
+                    <div class="bubble-text">${formattedText}</div>
+                </div>
+            `;
+
+            container.appendChild(bubbleDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function showThinkingIndicator() {
+            const container = document.getElementById('chatContainer');
+            if (!container) return;
+
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.id = 'thinkingBubble';
+            thinkingDiv.className = 'chat-bubble advisor-bubble thinking-bubble';
+            thinkingDiv.innerHTML = `
+                <div class="bubble-avatar">🤖</div>
+                <div class="bubble-content">
+                    <span class="thinking-dots">Thinking...</span>
+                </div>
+            `;
+            container.appendChild(thinkingDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function removeThinkingIndicator() {
+            const el = document.getElementById('thinkingBubble');
+            if (el) el.remove();
+        }
+
+        function setMetrics(bank, period, credits, debits, savings, score, isPositive) {
+            document.getElementById('lblBank').innerText = bank || '-';
+            document.getElementById('lblPeriod').innerText = period || '-';
+            document.getElementById('lblCredits').innerText = credits || '-';
+            document.getElementById('lblDebits').innerText = debits || '-';
+            
+            const savEl = document.getElementById('lblSavings');
+            savEl.innerText = savings || '-';
+            savEl.className = 'metric-value ' + (isPositive ? 'text-green' : 'text-red');
+            
+            document.getElementById('lblScore').innerText = score || '-';
+        }
+
+        function setReportHtml(html) {
+            const viewer = document.getElementById('reportViewer');
+            if (viewer) viewer.innerHTML = html;
+        }
+
+        function setLoading(show, text) {
+            const box = document.getElementById('loadingBox');
+            if (box) {
+                box.style.display = show ? 'flex' : 'none';
+                if (text) document.getElementById('loadingText').innerText = text;
+            }
+        }
+    </script>
+</body>
+</html>
