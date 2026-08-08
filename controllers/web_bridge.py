@@ -43,7 +43,14 @@ class WebBridge(QObject):
         success, message, user_details = AuthDB.validate_user(email, password)
         
         if success:
-            self.loginSuccess.emit(user_details)
+            from ui.login_otp_dialog import LoginOTPDialog
+            from PyQt6.QtWidgets import QDialog
+            
+            dialog = LoginOTPDialog(email, self.parent())
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                self.loginSuccess.emit(user_details)
+            else:
+                self.loginFailed.emit("Login verification cancelled or failed.")
         else:
             self.loginFailed.emit(message)
 

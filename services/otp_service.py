@@ -18,10 +18,11 @@ class SendOTPWorker(QThread):
     """
     finished = pyqtSignal(bool, str)  # (success, message)
 
-    def __init__(self, email: str, otp: str):
+    def __init__(self, email: str, otp: str, action_type: str = "reset"):
         super().__init__()
-        self.email = email
+        self.email = email.strip().lower()
         self.otp = otp
+        self.action_type = action_type
 
     def run(self):
         sender_email = os.getenv("SMTP_SENDER_EMAIL")
@@ -34,19 +35,31 @@ class SendOTPWorker(QThread):
         smtp_server = "smtp.gmail.com"
         port = 465  # SSL port
 
+        if self.action_type == "login":
+            subject = f"StatementForge - Login Verification Code: {self.otp}"
+            text_content = (
+                f"Your StatementForge login verification code is: {self.otp}\n\n"
+                f"Please enter code {self.otp} in the application to complete your first-time login.\n"
+                f"This code is valid for 5 minutes."
+            )
+            action_title = "First-Time Login Verification"
+            action_desc = f"To complete your first-time login for <b>{self.email}</b>, use the 6-digit verification code below:"
+        else:
+            subject = f"StatementForge - Verification Code: {self.otp}"
+            text_content = (
+                f"Your StatementForge password reset verification code is: {self.otp}\n\n"
+                f"Please enter code {self.otp} in the application to reset your password.\n"
+                f"This code is valid for 5 minutes."
+            )
+            action_title = "Your Verification Code"
+            action_desc = f"You requested a password reset for <b>{self.email}</b>. Use the 6-digit verification code below:"
+
         # Create message container
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"StatementForge - Verification Code: {self.otp}"
+        msg["Subject"] = subject
         msg["From"] = f"StatementForge Support <{sender_email}>"
         msg["To"] = self.email
 
-        # Create standard text and beautiful HTML message bodies
-        text_content = (
-            f"Your StatementForge password reset verification code is: {self.otp}\n\n"
-            f"Please enter code {self.otp} in the application to reset your password.\n"
-            f"This code is valid for 5 minutes."
-        )
-        
         html_content = f"""
         <html>
           <body style="font-family: 'Times New Roman', Times, Georgia, serif; background-color: #F8FAFC; color: #1E293B; padding: 40px 20px; margin: 0;">
@@ -57,9 +70,9 @@ class SendOTPWorker(QThread):
               </div>
               <!-- Body -->
               <div style="padding: 32px 24px;">
-                <h2 style="margin-top: 0; font-size: 18px; font-weight: 600; color: #0F172A;">Your Verification Code</h2>
+                <h2 style="margin-top: 0; font-size: 18px; font-weight: 600; color: #0F172A;">{action_title}</h2>
                 <p style="font-size: 14px; line-height: 1.6; color: #64748B;">
-                  You requested a password reset for <b>{self.email}</b>. Use the 6-digit verification code below:
+                  {action_desc}
                 </p>
                 <div style="background-color: #EFF6FF; border: 2px dashed #0037b0; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: center;">
                   <span style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #0037b0; font-family: monospace;">{self.otp}</span>
@@ -77,24 +90,48 @@ class SendOTPWorker(QThread):
         </html>
         """
 
-
         part1 = MIMEText(text_content, "plain")
         part2 = MIMEText(html_content, "html")
         msg.attach(part1)
         msg.attach(part2)
 
         try:
-            # Create a secure SSL context and connect
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(smtp_server, port, context=context, timeout=8) as server:
-                server.login(sender_email, sender_password)
-                server.sendmail(sender_email, self.email, msg.as_string())
-                
-            self.finished.emit(True, "OTP email sent successfully via SMTP.")
-        except smtplib.SMTPAuthenticationError:
-            self.finished.emit(False, "SMTP Authentication failed. Please verify your email and app passkey.")
+            # Try to build a secure SSL context; fallback to unverified context if macOS certificates are missing
+            try:
+                context = ssl.create_default_context()
+            except Exception:
+                context = ssl._create_unverified_context()
+
+            success = False
+            smtp_err = ""
+
+            # Try Port 465 SSL first
+            try:
+                with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context, timeout=8) as server:
+                    server.login(sender_email, sender_password)
+                    server.sendmail(sender_email, self.email, msg.as_string())
+                success = True
+            except Exception as e:
+                smtp_err = str(e)
+                print(f"SMTP Port 465 failed: {e}. Trying Port 587 STARTTLS...")
+
+            # Fallback to Port 587 STARTTLS if SSL fails (common when ISPs block Port 465)
+            if not success:
+                try:
+                    with smtplib.SMTP("smtp.gmail.com", 587, timeout=8) as server:
+                        server.starttls(context=context)
+                        server.login(sender_email, sender_password)
+                        server.sendmail(sender_email, self.email, msg.as_string())
+                    success = True
+                except Exception as e:
+                    smtp_err = f"Port 465 SSL failed ({smtp_err}); Port 587 STARTTLS failed ({str(e)})"
+
+            if success:
+                self.finished.emit(True, "OTP email sent successfully.")
+            else:
+                self.finished.emit(False, f"SMTP Error: {smtp_err}")
         except Exception as e:
-            self.finished.emit(False, f"SMTP Error: {str(e)}")
+            self.finished.emit(False, f"SMTP Worker General Error: {str(e)}")
 
 
 class OTPService:

@@ -70,7 +70,9 @@ class DashboardScreen(QWidget):
         
         # Add placeholders for the other 9 pages
         for _ in range(9):
-            self.page_stack.addWidget(QWidget())
+            placeholder = QWidget()
+            placeholder.setProperty("is_placeholder", True)
+            self.page_stack.addWidget(placeholder)
         
         right_layout.addWidget(self.page_stack)
         layout.addWidget(right_container)
@@ -95,7 +97,7 @@ class DashboardScreen(QWidget):
         
         current_widget = self.page_stack.widget(idx)
         # Check if the widget at idx is a basic QWidget (placeholder) rather than a specialized sub-page widget subclass
-        if type(current_widget) is QWidget:
+        if current_widget and current_widget.property("is_placeholder"):
             # Load and instantiate target widget
             if key == "upload":
                 from ui.upload_statement import UploadStatementWidget
@@ -481,7 +483,7 @@ class DashboardScreen(QWidget):
         self.history_table.setColumnWidth(0, 150) # Upload Date
         self.history_table.setColumnWidth(3, 130) # Status
         self.history_table.setColumnWidth(4, 110) # Output Format
-        self.history_table.setColumnWidth(5, 120) # Action
+        self.history_table.setColumnWidth(5, 180) # Action
         
         # Align headers explicitly
         for col_idx, alignment in enumerate([
@@ -605,8 +607,29 @@ class DashboardScreen(QWidget):
                 action_container = QWidget()
                 ac_layout = QHBoxLayout(action_container)
                 ac_layout.setContentsMargins(4, 4, 4, 4)
+                ac_layout.setSpacing(8)
                 ac_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 
+                # Delete Button (Always available)
+                delete_btn = QPushButton("Delete")
+                delete_btn.setFixedSize(60, 22)
+                delete_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+                delete_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #FEE2E2;
+                        color: #DC2626;
+                        border: none;
+                        border-radius: 6px;
+                        font-weight: 600;
+                        font-size: 11px;
+                    }
+                    QPushButton:hover {
+                        background-color: #FCA5A5;
+                    }
+                """)
+                rec_id = log.get("_id")
+                delete_btn.clicked.connect(lambda checked, rid=rec_id: self.delete_history_record(rid))
+
                 if status == "Completed":
                     view_btn = QPushButton("View")
                     view_btn.setFixedSize(60, 22)
@@ -629,9 +652,10 @@ class DashboardScreen(QWidget):
                     ac_layout.addWidget(view_btn)
                 else:
                     act_lbl = QLabel(status)
-                    act_lbl.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: 500;")
+                    act_lbl.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: 500; margin-right: 4px;")
                     ac_layout.addWidget(act_lbl)
-                    
+                
+                ac_layout.addWidget(delete_btn)
                 self.history_table.setCellWidget(row_idx, 5, action_container)
 
         self._safe_run_query(db_query, db_callback)
@@ -652,6 +676,34 @@ class DashboardScreen(QWidget):
                 subprocess.run(["xdg-open", filepath])
         except Exception as e:
             QMessageBox.critical(self, "Error Opening File", f"An error occurred while opening the file:\n{e}")
+
+    def delete_history_record(self, record_id):
+        """Displays confirmation dialog and handles deletion of statement log."""
+        if not record_id:
+            return
+
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Delete",
+            "Are you sure you want to permanently delete this statement log from history?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if confirm == QMessageBox.StandardButton.Yes:
+            def db_query():
+                from services.history_service import HistoryService
+                return HistoryService.delete_record(record_id)
+                
+            def db_callback(success):
+                if success:
+                    # Refresh dashboard statistics and history log table list
+                    self.update_dashboard_stats()
+                    self.load_history_table()
+                    QMessageBox.information(self, "Success", "Record deleted successfully.")
+                else:
+                    QMessageBox.warning(self, "Error", "Failed to delete the history record.")
+                    
+            self._safe_run_query(db_query, db_callback)
 
     def instantiate_reports_page(self):
         """Reports Page presenting downloadable report options."""

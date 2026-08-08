@@ -144,6 +144,7 @@ class AuthDB:
                 try:
                     if bcrypt.checkpw(password.encode('utf-8'), stored_hash_str.encode('utf-8')):
                         now = datetime.datetime.utcnow()
+                        is_first = (user.get("last_login") is None)
                         # Update last_login in MongoDB Atlas
                         collection.update_one({"_id": user["_id"]}, {"$set": {"last_login": now}})
                         
@@ -156,7 +157,8 @@ class AuthDB:
                             "role": user.get("role", "user"),
                             "status": user.get("status", "active"),
                             "created_at": user.get("created_at", now),
-                            "last_login": now
+                            "last_login": now,
+                            "is_first_login": is_first
                         }
                         return True, "Login successful!", user_details
                 except Exception as ex:
@@ -184,6 +186,7 @@ class AuthDB:
 
         if valid:
             now = datetime.datetime.utcnow()
+            is_first = (user.get("last_login") is None)
             user["last_login"] = now
             if "created_at" not in user:
                 user["created_at"] = now - datetime.timedelta(days=2)
@@ -197,7 +200,8 @@ class AuthDB:
                 "role": user.get("role", "user"),
                 "status": user.get("status", "active"),
                 "created_at": user.get("created_at", now),
-                "last_login": now
+                "last_login": now,
+                "is_first_login": is_first
             }
             return True, "Login successful!", user_details
 
@@ -320,5 +324,23 @@ class AuthDB:
             return True, "Google login successful!", user_details
 
         return False, "Failed to retrieve Google user details.", None
+
+    @classmethod
+    def reset_last_login(cls, email):
+        """Resets the last_login field for a user back to None."""
+        email_clean = email.strip().lower()
+        collection = cls.get_mongo_collection()
+        if collection is not None:
+            try:
+                collection.update_one({"email": email_clean}, {"$unset": {"last_login": ""}})
+                return True
+            except Exception as e:
+                print(f"AuthDB: Failed to reset last_login ({e})")
+        
+        # Fallback to local memory dictionary
+        if email_clean in cls._users:
+            cls._users[email_clean]["last_login"] = None
+            return True
+        return False
 
 

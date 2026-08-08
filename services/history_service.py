@@ -241,6 +241,32 @@ class HistoryService:
         return cls.get_history_logs(user_id)
 
     @classmethod
+    def delete_record(cls, record_id):
+        """Deletes a history record from database or local fallback."""
+        cls._load_local_fallback()
+        
+        # 1. MongoDB Delete
+        col = MongoDBService.get_collection()
+        if col is not None:
+            try:
+                col.delete_one({"_id": ObjectId(record_id)})
+                return True
+            except Exception:
+                try:
+                    col.delete_one({"_id": record_id})
+                    return True
+                except Exception as e:
+                    print(f"HistoryService: Failed to delete MongoDB record: {e}")
+        
+        # 2. Local Fallback Delete
+        for i, log in enumerate(cls._local_fallback_logs):
+            if log.get("_id") == record_id:
+                cls._local_fallback_logs.pop(i)
+                cls._save_local_fallback()
+                return True
+        return False
+
+    @classmethod
     def save_record(cls, user_id, pdf_path, excel_path, bank_name, statement_period, processing_time, total_transactions):
         """Kept for backward compatibility, automatically creates a Completed record."""
         record_id = cls.create_record(user_id, pdf_path, bank_name, status="Completed")
