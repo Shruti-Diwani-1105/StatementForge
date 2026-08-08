@@ -143,7 +143,11 @@ class ExcelWorker(QObject):
                 bank_name=self.payload["bank_name"],
                 account_holder=self.payload["account_holder"],
                 period=self.payload["period"],
-                transactions=self.payload["transactions"]
+                transactions=self.payload["transactions"],
+                original_headers=self.payload.get("original_headers"),
+                raw_rows=self.payload.get("raw_rows"),
+                extraction_audit=self.payload.get("extraction_audit"),
+                review_rows=self.payload.get("review_rows")
             )
             time.sleep(0.3) # Slower UI animation update feel
             self.step_completed.emit(5, "success")

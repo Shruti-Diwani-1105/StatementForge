@@ -155,6 +155,10 @@ class TableExtractor:
                     # PNB custom dividers for OCR image coordinates (scale=2.5)
                     dividers = [250, 400, 1040, 1140, 1250]
                     return cls._extract_table_by_dividers(blocks, dividers)
+                elif bank_name == "Kotak Mahindra Bank":
+                    # Kotak custom dividers for OCR image coordinates (scale=2.5)
+                    dividers = [150, 281, 297, 666, 685, 917, 1094, 1267]
+                    return cls._extract_table_by_dividers(blocks, dividers)
                     
                 return cls._cluster_text_into_grid(blocks)
         except Exception as e:
@@ -241,3 +245,66 @@ class TableExtractor:
             grid_table.append(grid_row)
 
         return grid_table
+
+    @classmethod
+    def detect_table_headers(cls, grid_table: list) -> tuple:
+        """
+        Detects header row in grid_table and returns (headers, header_row_idx).
+        If not found, returns (None, -1).
+        """
+        if not grid_table:
+            return None, -1
+        import re
+        for idx, row in enumerate(grid_table):
+            row_str = " ".join(str(c).lower() for c in row)
+            has_date = "date" in row_str or "val dt" in row_str or "txn dt" in row_str
+            has_other = any(k in row_str for k in ["particulars", "narration", "description", "details", "withdraw", "deposit", "amount", "balance", "debit", "credit"])
+            if has_date and has_other:
+                # Retrieve the header by combining preceding rows (max 2)
+                start_h = max(0, idx - 2)
+                combined_header = [""] * len(row)
+                for h_idx in range(start_h, idx + 1):
+                    for col_idx, cell in enumerate(grid_table[h_idx]):
+                        if col_idx < len(combined_header):
+                            val = str(cell).strip()
+                            if val:
+                                if combined_header[col_idx]:
+                                    combined_header[col_idx] += " " + val
+                                else:
+                                    combined_header[col_idx] = val
+                headers = [re.sub(r"\s+", " ", h).strip() for h in combined_header]
+                return headers, idx
+        return None, -1
+
+    @classmethod
+    def extract_structured_table(cls, pdf_path: str, page_num: int, logger=None) -> dict:
+        """
+        Extracts table from a page using PositionalTableBuilder.
+        """
+        from parser.positional_builder import PositionalTableBuilder
+        
+        # Cache and share dividers across pages of the same statement
+        shared_dividers = getattr(cls, "_shared_dividers", None)
+        
+        res = PositionalTableBuilder.build_grid(pdf_path, page_num, shared_dividers)
+        grid_table = res.get("grid", [])
+        headers = res.get("headers")
+        dividers = res.get("dividers", [])
+        method = res.get("method", "digital")
+        
+        if dividers and not shared_dividers:
+            cls._shared_dividers = dividers
+            
+        confidence = 0.95 if method == "digital" else 0.80
+        if not grid_table:
+            confidence = 0.0
+            
+        return {
+            "headers": headers,
+            "rows": grid_table,
+            "page_number": page_num + 1,
+            "method": method,
+            "confidence": confidence,
+            "header_row_idx": 0 if headers else -1,
+            "raw_grid": grid_table
+        }

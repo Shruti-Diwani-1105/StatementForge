@@ -1879,20 +1879,23 @@ Guidelines:
     @classmethod
     def validate_extracted_transactions(cls, raw_text, transactions, currency="INR") -> list:
         """
-        Bypassed to preserve transaction records exactly as they are extracted from the PDF
-        without any AI modifications, as requested by the user.
+        Runs Gemini AI verification on extracted transactions to detect OCR errors and column shifts
+        WITHOUT automatically modifying the authoritative values in-place.
+        Attaches warnings and suggestions to the transaction dictionaries.
         """
-        return transactions
+        if not transactions:
+            return transactions
 
-        # Format transactions for Gemini
-        tx_text = cls._format_transactions(transactions, currency)
-        
-        # Limit raw text to first 3000 chars to avoid token bloat/slowness
-        raw_text_sample = str(raw_text)[:3000]
+        # Format first 100 transactions for audit
+        tx_text = cls._format_transactions(transactions[:100], currency)
+        raw_text_sample = str(raw_text)[:4000]
 
         prompt = f"""
-You are a forensic data clean-up assistant.
-Review the raw text snippet and the locally parsed transaction list. Your job is to improve the accuracy of the transactions by matching them to the raw text snippet.
+You are a financial statement auditor. Compare the raw text snippet of a bank statement with the parsed transactions.
+Identify any potential extraction errors, such as:
+1. OCR typos in Date, Reference Number, Debit, Credit, or Balance.
+2. Column alignment shifts (e.g. an amount placed in the wrong column).
+3. Incorrect/fabricated values.
 
 Raw Text Snippet:
 {raw_text_sample}
@@ -1900,23 +1903,26 @@ Raw Text Snippet:
 Parsed Transactions:
 {tx_text}
 
-Guidelines:
-1. Reconstruct narrations that were split across multiple lines.
-2. Correct OCR typos in date, narration, and amount fields based on the raw text.
-3. Ensure no transaction is removed.
-4. Align shifted columns (e.g. if a debit was placed in credit, or vice versa, correct it based on standard accounting rules).
-5. Output the corrected transactions in valid JSON format only as a list of objects containing date, narration, debit, credit, and balance.
-6. If the parsed transactions look correct, return them as is.
+For each suspected error, output a JSON object containing:
+- "index": The 0-based index of the transaction in the list.
+- "field": The field name with the error ("date", "narration", "debit", "credit", "balance", "ref_no").
+- "original_value": The value currently parsed.
+- "suggested_value": The correct value according to the raw text.
+- "issue": A brief explanation of why you think it is wrong.
+- "confidence": A float confidence score between 0.0 and 1.0.
 
-Return valid JSON list only. Do not wrap in markdown or write explanation text.
+Format the output as a valid JSON list of objects only. If no errors are found, return an empty list [].
+Do not wrap in markdown and do not write any explanation text.
 """
         try:
             client = cls.get_client()
+            import google.genai.types as types
+            import json
+            
             config = types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.1
             )
-            # Use stable fast model
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
                 contents=prompt,
@@ -1930,32 +1936,23 @@ Return valid JSON list only. Do not wrap in markdown or write explanation text.
                 response_text = response_text.rsplit("```", 1)[0]
             response_text = response_text.strip()
             
-            cleaned = json.loads(response_text)
-            
-            # Map keys back to lowercase
-            result = []
-            for tx in cleaned:
-                # Get fields case-insensitively
-                date_val = tx.get("Date") or tx.get("date") or ""
-                narr_val = tx.get("Narration") or tx.get("narration") or tx.get("Description") or tx.get("description") or ""
-                debit_val = tx.get("Debit") or tx.get("debit") or ""
-                credit_val = tx.get("Credit") or tx.get("credit") or ""
-                bal_val = tx.get("Balance") or tx.get("balance") or ""
-                
-                result.append({
-                    "date": str(date_val),
-                    "narration": str(narr_val),
-                    "debit": str(debit_val),
-                    "credit": str(credit_val),
-                    "balance": str(bal_val)
-                })
-            
-            if len(result) > 0:
-                print(f"GeminiService: Successfully validated and enhanced {len(result)} transactions.")
-                return result
-                
+            errors = json.loads(response_text)
+            if isinstance(errors, list):
+                for err in errors:
+                    idx = err.get("index")
+                    if idx is not None and 0 <= idx < len(transactions):
+                        tx = transactions[idx]
+                        tx["_review_required"] = True
+                        tx["_ai_review"] = {
+                            "field": err.get("field"),
+                            "original_value": err.get("original_value"),
+                            "suggested_correction": err.get("suggested_value"),
+                            "issue": err.get("issue"),
+                            "confidence": int(float(err.get("confidence", 0.8)) * 100)
+                        }
+                        print(f"Gemini Auditing: Flagged transaction {idx} for review: {err.get('issue')}")
         except Exception as e:
-            print(f"GeminiService: Validation failed, falling back to local result. Error: {e}")
+            print(f"Gemini Auditing error: {e}")
             
         return transactions
 

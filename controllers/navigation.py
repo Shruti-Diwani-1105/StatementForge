@@ -36,28 +36,10 @@ class NavigationController(QMainWindow):
         self.stacked_widget = QStackedWidget(self)
         self.main_layout.addWidget(self.stacked_widget)
         
-        # Instantiate Screens
-        self.welcome_screen = WelcomeScreen(self)
-        self.login_screen = LoginScreen(self)
-        self.register_screen = RegisterScreen(self)
-        self.dashboard_screen = DashboardScreen(self)
-        
-        from ui.profile_window import ProfileWindow
-        from controllers.profile_controller import ProfileController
-        
-        self.profile_window = ProfileWindow(self)
-        self.profile_controller = ProfileController(self.profile_window)
-        
-        # Add screens to stacked widget
+        # Instantiate placeholder widgets to preserve index alignment
         # Indices: 0: Welcome, 1: Login, 2: Register, 3: Dashboard, 4: Profile
-        self.stacked_widget.addWidget(self.welcome_screen)
-        self.stacked_widget.addWidget(self.login_screen)
-        self.stacked_widget.addWidget(self.register_screen)
-        self.stacked_widget.addWidget(self.dashboard_screen)
-        self.stacked_widget.addWidget(self.profile_window)
-
-        # Connect Navigation Signals
-        self.connect_signals()
+        for _ in range(5):
+            self.stacked_widget.addWidget(QWidget())
         
         # Check for active persistent session and auto-login
         saved_user = UserSession.load_session()
@@ -70,49 +52,89 @@ class NavigationController(QMainWindow):
         from utils.theme_manager import ThemeManager
         self.sync_theme_styles(ThemeManager.get_theme())
 
-    def connect_signals(self):
-        # Welcome Page transitions
-        self.welcome_screen.gotoLogin.connect(self.show_login_page)
-        self.welcome_screen.gotoRegister.connect(self.show_register_page)
+    def ensure_screen_loaded(self, index):
+        """Lazily instantiates the screen at the specified index if it's currently a placeholder QWidget."""
+        current_widget = self.stacked_widget.widget(index)
+        if type(current_widget) is not QWidget:
+            # Already loaded
+            return current_widget
+
+        # Needs to be loaded
+        if index == 0:
+            from ui.welcome_screen import WelcomeScreen
+            self.welcome_screen = WelcomeScreen(self)
+            self.welcome_screen.gotoLogin.connect(self.show_login_page)
+            self.welcome_screen.gotoRegister.connect(self.show_register_page)
+            widget = self.welcome_screen
+        elif index == 1:
+            from ui.login import LoginScreen
+            self.login_screen = LoginScreen(self)
+            self.login_screen.gotoWelcome.connect(self.show_welcome_page)
+            self.login_screen.gotoRegister.connect(self.show_register_page)
+            self.login_screen.loginSuccess.connect(self.show_dashboard_page)
+            widget = self.login_screen
+        elif index == 2:
+            from ui.register import RegisterScreen
+            self.register_screen = RegisterScreen(self)
+            self.register_screen.gotoWelcome.connect(self.show_welcome_page)
+            self.register_screen.gotoLogin.connect(self.show_login_page)
+            self.register_screen.registerSuccess.connect(self.show_login_page)
+            self.register_screen.loginSuccess.connect(self.show_dashboard_page)
+            widget = self.register_screen
+        elif index == 3:
+            from ui.dashboard import DashboardScreen
+            self.dashboard_screen = DashboardScreen(self)
+            self.dashboard_screen.logoutRequested.connect(self.handle_logout)
+            self.dashboard_screen.topbar.profile_widget.clicked.connect(self.open_profile_window)
+            widget = self.dashboard_screen
+        elif index == 4:
+            from ui.profile_window import ProfileWindow
+            from controllers.profile_controller import ProfileController
+            self.profile_window = ProfileWindow(self)
+            self.profile_controller = ProfileController(self.profile_window)
+            self.profile_window.back_to_dashboard.connect(self.close_profile_window)
+            self.profile_window.logout_requested.connect(self.handle_profile_logout)
+            self.profile_window.profile_updated.connect(self.sync_profile_details)
+            widget = self.profile_window
+        else:
+            return None
+
+        # Replace placeholder in the stacked widget
+        self.stacked_widget.removeWidget(current_widget)
+        current_widget.deleteLater()
+        self.stacked_widget.insertWidget(index, widget)
         
-        # Login Page transitions
-        self.login_screen.gotoWelcome.connect(self.show_welcome_page)
-        self.login_screen.gotoRegister.connect(self.show_register_page)
-        self.login_screen.loginSuccess.connect(self.show_dashboard_page)
-        
-        # Register Page transitions
-        self.register_screen.gotoWelcome.connect(self.show_welcome_page)
-        self.register_screen.gotoLogin.connect(self.show_login_page)
-        self.register_screen.registerSuccess.connect(self.show_login_page)
-        self.register_screen.loginSuccess.connect(self.show_dashboard_page)
-        
-        # Dashboard Page transitions
-        self.dashboard_screen.logoutRequested.connect(self.handle_logout)
-        
-        # Connect Topbar User Profile Click
-        self.dashboard_screen.topbar.profile_widget.clicked.connect(self.open_profile_window)
-        
-        # Profile Page transitions
-        self.profile_window.back_to_dashboard.connect(self.close_profile_window)
-        self.profile_window.logout_requested.connect(self.handle_profile_logout)
-        self.profile_window.profile_updated.connect(self.sync_profile_details)
+        # Synchronize theme at loading for this screen
+        from utils.theme_manager import ThemeManager
+        theme = ThemeManager.get_theme()
+        if index == 3:
+            self.dashboard_screen.update_theme_styles(theme)
+        elif index == 4:
+            self.profile_window.update_theme_style(theme)
+            
+        return widget
 
     # --- Transition Helpers ---
 
     def show_welcome_page(self):
+        self.ensure_screen_loaded(0)
         self.stacked_widget.setCurrentIndex(0)
 
     def show_login_page(self):
+        self.ensure_screen_loaded(1)
         self.login_screen.clear_fields()
         self.stacked_widget.setCurrentIndex(1)
 
     def show_register_page(self):
+        self.ensure_screen_loaded(2)
         self.register_screen.clear_fields()
         self.stacked_widget.setCurrentIndex(2)
 
     def show_dashboard_page(self, user_details):
         # Start user session
         UserSession.start_session(user_details)
+        
+        self.ensure_screen_loaded(3)
         
         # Update user profile in dashboard
         self.dashboard_screen.set_user_profile(user_details)
@@ -129,12 +151,15 @@ class NavigationController(QMainWindow):
             self.dashboard_screen.reset_screen_data()
         
         # Clear fields and redirect
-        self.login_screen.clear_fields()
-        self.register_screen.clear_fields()
+        if hasattr(self, "login_screen") and self.login_screen is not None:
+            self.login_screen.clear_fields()
+        if hasattr(self, "register_screen") and self.register_screen is not None:
+            self.register_screen.clear_fields()
         self.show_welcome_page()
 
     def open_profile_window(self):
         """Switches to the profile page."""
+        self.ensure_screen_loaded(4)
         user = UserSession.get_current_user()
         if user:
             self.profile_window.load_user_data(user)
@@ -146,6 +171,7 @@ class NavigationController(QMainWindow):
         # Re-sync welcome label & topbar details
         user = UserSession.get_current_user()
         if user:
+            self.ensure_screen_loaded(3)
             self.dashboard_screen.set_user_profile(user)
             
         self.stacked_widget.setCurrentWidget(self.dashboard_screen)
@@ -156,6 +182,7 @@ class NavigationController(QMainWindow):
 
     def sync_profile_details(self, user_details):
         """Syncs updated details in real-time onto the dashboard layout."""
+        self.ensure_screen_loaded(3)
         self.dashboard_screen.set_user_profile(user_details)
 
     def sync_theme_styles(self, theme):

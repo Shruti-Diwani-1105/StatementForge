@@ -80,6 +80,8 @@ class TransactionParser:
                     mapping["narration"] = col_idx
                 elif any(x in cell_clean for x in ["chq no", "cheque", "ref no", "reference", "utr", "instrument"]) or any(x in cell_no_space for x in ["chqno", "cheque", "refno", "reference", "utr", "instrument"]):
                     mapping["ref_no"] = col_idx
+                elif any(x in cell_clean for x in ["dr / cr", "dr/cr", "cr/dr", "cr / dr", "dr or cr", "dr_cr", "dr /cr", "dr/ cr"]):
+                    mapping["indicator"] = col_idx
                 elif any(x in cell_clean for x in ["debit", "withdrawal", "withdraw", "payment", "increased"]) or any(w == "dr" for w in cell_clean.replace("/", " ").split()):
                     mapping["debit"] = col_idx
                 elif any(x in cell_clean for x in ["credit", "deposit", "receipt", "decreased"]) or any(w == "cr" for w in cell_clean.replace("/", " ").split()):
@@ -102,7 +104,16 @@ class TransactionParser:
             col_types = {i: {"dates": 0, "numeric": 0, "non_empty": 0, "text_len": 0} for i in range(len(rows[0]))}
             num_cols = len(rows[0])
             
-            sample_rows = rows[header_row_idx + 1 : header_row_idx + 21] if header_row_idx != -1 else rows[:20]
+            start_idx = 0
+            if header_row_idx != -1:
+                start_idx = header_row_idx + 1
+            else:
+                for idx, row in enumerate(rows):
+                    row_str = " ".join(str(c).lower() for c in row)
+                    if any(k in row_str for k in ["opening balance", "b/f", "brought forward", "opening bal", "carried forward", "c/f"]):
+                        start_idx = idx
+                        break
+            sample_rows = rows[start_idx : start_idx + 30]
             for row in sample_rows:
                 for col_idx, cell in enumerate(row[:num_cols]):
                     cell_str = str(cell).strip()
@@ -137,7 +148,7 @@ class TransactionParser:
                 non_empty = scores["non_empty"]
                 if non_empty > 0:
                     ratio = scores["numeric"] / non_empty
-                    if ratio >= 0.7 and scores["numeric"] >= 1 and i not in taken_indices and scores["dates"] == 0:
+                    if ratio >= 0.7 and scores["numeric"] >= 1 and i not in taken_indices and scores["dates"] == 0 and i > 0:
                         numeric_cols.append(i)
             
             if "balance" not in mapping and numeric_cols:
@@ -167,7 +178,24 @@ class TransactionParser:
                     narration_col = max(remaining_cols, key=lambda i: col_types[i]["text_len"])
                     mapping["narration"] = narration_col
 
+            # Map Ref No (only if not found)
+            if "ref_no" not in mapping:
+                taken = [mapping.get(k) for k in ["date", "value_date", "balance", "debit", "credit", "narration"] if mapping.get(k) is not None]
+                remaining_cols = [i for i in col_types.keys() if i not in taken]
+                if remaining_cols:
+                    ref_col = max(remaining_cols, key=lambda i: col_types[i]["text_len"])
+                    if col_types[ref_col]["text_len"] > 50 and col_types[ref_col]["non_empty"] > 3:
+                        mapping["ref_no"] = ref_col
+
         return mapping
+
+    @classmethod
+    def is_header_row(cls, row: list) -> bool:
+        """Checks if a row is a repeated header row."""
+        row_str = " ".join(str(c).lower() for c in row)
+        has_date = "date" in row_str or "val dt" in row_str or "txn dt" in row_str
+        has_other = any(k in row_str for k in ["particulars", "narration", "description", "details", "withdraw", "deposit", "amount", "balance", "debit", "credit"])
+        return bool(has_date and has_other)
 
     @classmethod
     def parse_rows(cls, rows: list, mapping: dict) -> list:
@@ -187,106 +215,46 @@ class TransactionParser:
         current_tx = None
 
         for r_idx, row in enumerate(rows):
+            if cls.is_header_row(row):
+                continue
+                
+            # Skip completely empty rows
+            if not any(str(c).strip() for c in row):
+                continue
+
             def get_cell(idx):
                 if idx is not None and idx < len(row):
                     return str(row[idx]).strip()
                 return ""
 
             cell_date = get_cell(date_idx)
-            
-            # Merge all text columns between the date column(s) and the amount column(s)
-            narration_cells = []
-            max_date_col = max(x for x in [date_idx, val_date_idx] if x is not None) if any(x is not None for x in [date_idx, val_date_idx]) else -1
-            min_num_col = min(x for x in [debit_idx, credit_idx, balance_idx] if x is not None) if any(x is not None for x in [debit_idx, credit_idx, balance_idx]) else len(row)
-            
-            for idx in range(max_date_col + 1, min_num_col):
-                if idx == ref_idx:
-                    continue
-                val = get_cell(idx)
-                if val:
-                    if ParserUtils.is_valid_date(val):
-                        continue
-                    narration_cells.append(val)
-            
-            if narration_cells:
-                cell_narration = " ".join(narration_cells)
-            else:
-                cell_narration = get_cell(narration_idx)
-                
+            cell_val_date = get_cell(val_date_idx)
+            cell_narration = get_cell(narration_idx)
             cell_debit = get_cell(debit_idx)
             cell_credit = get_cell(credit_idx)
             cell_balance = get_cell(balance_idx)
-            if balance_idx is not None and balance_idx + 1 < len(row):
-                indicator = str(row[balance_idx + 1]).strip().upper()
-                if "DR" in indicator:
-                    cell_balance += " DR"
-                elif "CR" in indicator:
-                    cell_balance += " CR"
-            cell_val_date = get_cell(val_date_idx)
             cell_ref = get_cell(ref_idx)
-            row_str = " ".join(str(c).lower() for c in row)
 
-            # If debit and credit are mapped to the same column (single amount column)
-            if debit_idx is not None and credit_idx is not None and debit_idx == credit_idx:
-                amt_str = ParserUtils.clean_amount(cell_debit)
-                is_credit = False
-                
-                # Check for CR indicator or credit keywords in narration
-                narr_lower = cell_narration.lower()
-                if "cr" in row_str.lower() or "credit" in row_str.lower() or "deposit" in row_str.lower() or "refund" in row_str.lower():
-                    is_credit = True
-                
-                if amt_str:
-                    if is_credit:
-                        cell_debit = ""
-                        cell_credit = amt_str
-                    else:
-                        cell_debit = amt_str
-                        cell_credit = ""
-                else:
-                    cell_debit = ""
-                    cell_credit = ""
-                
-            if cls.META_REGEX.search(row_str):
-                if not (ParserUtils.is_valid_date(cell_date) or ParserUtils.is_valid_date(cell_val_date)):
-                    continue
-            
             # Determine if this row starts a new transaction
             is_new_tx = bool(ParserUtils.is_valid_date(cell_date) or ParserUtils.is_valid_date(cell_val_date))
-            if not is_new_tx and current_tx:
-                has_amount = False
-                if cell_debit and ParserUtils.clean_amount(cell_debit):
-                    has_amount = True
-                if cell_credit and ParserUtils.clean_amount(cell_credit):
-                    has_amount = True
-                if has_amount:
-                    is_new_tx = True
-
-            if not is_new_tx and not cell_narration and not cell_debit and not cell_credit and not cell_balance:
-                continue
 
             if is_new_tx:
                 if current_tx:
                     transactions.append(current_tx)
 
-                # Determine the date for the new transaction (inherit from previous if blank)
+                # Determine dates
                 tx_date = ""
                 if ParserUtils.is_valid_date(cell_date):
-                    tx_date = cell_date.replace('\n', '').replace('\r', '').replace(' ', '').strip()
+                    tx_date = cell_date.strip()
                 elif ParserUtils.is_valid_date(cell_val_date):
-                    tx_date = cell_val_date.replace('\n', '').replace('\r', '').replace(' ', '').strip()
-                elif current_tx:
-                    tx_date = current_tx["date"]
-                    
-                # Determine value date
+                    tx_date = cell_val_date.strip()
+
                 tx_val_date = ""
                 if val_date_idx is not None:
                     if ParserUtils.is_valid_date(cell_val_date):
-                        tx_val_date = cell_val_date.replace('\n', '').replace('\r', '').replace(' ', '').strip()
+                        tx_val_date = cell_val_date.strip()
                     elif ParserUtils.is_valid_date(cell_date):
-                        tx_val_date = cell_date.replace('\n', '').replace('\r', '').replace(' ', '').strip()
-                    elif current_tx:
-                        tx_val_date = current_tx.get("value_date", "")
+                        tx_val_date = cell_date.strip()
 
                 current_tx = {
                     "date": tx_date,
@@ -303,19 +271,19 @@ class TransactionParser:
             else:
                 # Continuation narration row
                 if current_tx:
-                    if not cls.META_REGEX.search(cell_narration):
+                    if cell_narration:
                         if current_tx["narration"]:
                             current_tx["narration"] += " " + cell_narration
                         else:
                             current_tx["narration"] = cell_narration
-                        
-                        # Populate missing debit/credit/balance if they wrapped to continuation rows
-                        if not current_tx["debit"] and cell_debit:
-                            current_tx["debit"] = ParserUtils.clean_amount(cell_debit)
-                        if not current_tx["credit"] and cell_credit:
-                            current_tx["credit"] = ParserUtils.clean_amount(cell_credit)
-                        if not current_tx["balance"] and cell_balance:
-                            current_tx["balance"] = ParserUtils.clean_balance(cell_balance)
+                    
+                    # Accumulate wrapped amounts if they appear in continuation lines
+                    if not current_tx["debit"] and cell_debit:
+                        current_tx["debit"] = ParserUtils.clean_amount(cell_debit)
+                    if not current_tx["credit"] and cell_credit:
+                        current_tx["credit"] = ParserUtils.clean_amount(cell_credit)
+                    if not current_tx["balance"] and cell_balance:
+                        current_tx["balance"] = ParserUtils.clean_balance(cell_balance)
 
         if current_tx:
             transactions.append(current_tx)

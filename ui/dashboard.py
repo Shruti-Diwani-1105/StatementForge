@@ -65,20 +65,81 @@ class DashboardScreen(QWidget):
         # 3. Main content Stacked Widget
         self.page_stack = QStackedWidget()
         
-        # Create and add individual sub-pages
+        # Create the main dashboard overview page immediately (index 0)
         self.create_main_dashboard_page()
-        self.create_upload_page()
-        self.create_ai_auditor_page()
-        self.create_history_page()
-        self.create_reports_page()
-        self.create_settings_page()
-        self.create_generate_excel_page()
-        self.create_gst_report_page()
-        self.create_duplicate_finder_page()
-        self.create_email_history_page()
+        
+        # Add placeholders for the other 9 pages
+        for _ in range(9):
+            self.page_stack.addWidget(QWidget())
         
         right_layout.addWidget(self.page_stack)
         layout.addWidget(right_container)
+
+    def ensure_page_loaded(self, key):
+        """Lazily instantiates the sub-page if it is currently a placeholder QWidget."""
+        mapping = {
+            "dashboard": 0,
+            "upload": 1,
+            "ai_auditor": 2,
+            "history": 3,
+            "reports": 4,
+            "settings": 5,
+            "generate_excel": 6,
+            "gst_report": 7,
+            "duplicate_finder": 8,
+            "email_history": 9
+        }
+        if key not in mapping:
+            return
+        idx = mapping[key]
+        
+        current_widget = self.page_stack.widget(idx)
+        # Check if the widget at idx is a basic QWidget (placeholder) rather than a specialized sub-page widget subclass
+        if type(current_widget) is QWidget:
+            # Load and instantiate target widget
+            if key == "upload":
+                from ui.upload_statement import UploadStatementWidget
+                self.upload_widget = UploadStatementWidget(self)
+                self.upload_widget.processingCompleted.connect(self.update_dashboard_stats)
+                new_widget = self.upload_widget
+            elif key == "ai_auditor":
+                from ui.ai_auditor import AIAuditorWidget
+                self.ai_auditor_widget = AIAuditorWidget(self)
+                new_widget = self.ai_auditor_widget
+            elif key == "history":
+                new_widget = self.instantiate_history_page()
+            elif key == "reports":
+                new_widget = self.instantiate_reports_page()
+            elif key == "settings":
+                from settings.settings_window import SettingsWindow
+                from settings.settings_controller import SettingsController
+                self.settings_window = SettingsWindow(self)
+                self.settings_controller = SettingsController(self.settings_window)
+                new_widget = self.settings_window
+            elif key == "generate_excel":
+                from ui.generate_excel import GenerateExcelWidget
+                self.generate_excel_widget = GenerateExcelWidget(self)
+                new_widget = self.generate_excel_widget
+            elif key == "gst_report":
+                from ui.gst_report import GSTReportWidget
+                self.gst_report_widget = GSTReportWidget(self)
+                new_widget = self.gst_report_widget
+            elif key == "duplicate_finder":
+                from ui.duplicate_finder import DuplicateFinderWidget
+                self.duplicate_finder_widget = DuplicateFinderWidget(self)
+                self.duplicate_finder_widget.closed.connect(lambda: self.switch_dashboard_page("dashboard"))
+                new_widget = self.duplicate_finder_widget
+            elif key == "email_history":
+                from ui.email_history_page import EmailHistoryPage
+                self.email_history_widget = EmailHistoryPage(self)
+                new_widget = self.email_history_widget
+            else:
+                return
+            
+            # Replace placeholder in the stacked widget
+            self.page_stack.removeWidget(current_widget)
+            current_widget.deleteLater()
+            self.page_stack.insertWidget(idx, new_widget)
 
     def switch_dashboard_page(self, key):
         """Switches the sub-page stacked widget index based on the clicked sidebar option."""
@@ -95,6 +156,7 @@ class DashboardScreen(QWidget):
             "email_history": 9
         }
         if key in mapping:
+            self.ensure_page_loaded(key)
             self.page_stack.setCurrentIndex(mapping[key])
             
             # Sync sidebar checked state if called programmatically
@@ -120,6 +182,7 @@ class DashboardScreen(QWidget):
 
     def switch_to_upload_with_preset(self, flow):
         """Pre-sets the format selection on the upload widget before switching pages."""
+        self.ensure_page_loaded("upload")
         if hasattr(self, "upload_widget"):
             self.upload_widget.target_flow_preset = flow
             if hasattr(self.upload_widget, "format_combo"):
@@ -148,6 +211,11 @@ class DashboardScreen(QWidget):
             self.settings_controller.load_user_settings()
             from settings.settings_service import SettingsService
             SettingsService.apply_settings_instantly(self.settings_controller.model.to_dict())
+        else:
+            from settings.settings_service import SettingsService
+            settings_dict = SettingsService.load_settings(user_details)
+            if settings_dict:
+                SettingsService.apply_settings_instantly(settings_dict)
             
         # Refresh dashboard stats dynamically
         self.update_dashboard_stats()
@@ -368,14 +436,13 @@ class DashboardScreen(QWidget):
         self.duplicate_finder_widget = DuplicateFinderWidget(self)
         self.duplicate_finder_widget.closed.connect(lambda: self.switch_dashboard_page("dashboard"))
         self.page_stack.addWidget(self.duplicate_finder_widget)
-
     def create_email_history_page(self):
         """Creates the Email History page."""
         from ui.email_history_page import EmailHistoryPage
         self.email_history_widget = EmailHistoryPage(self)
         self.page_stack.addWidget(self.email_history_widget)
 
-    def create_history_page(self):
+    def instantiate_history_page(self):
         """History Page presenting actual processed transaction logs."""
         page = QWidget()
         page_layout = QVBoxLayout(page)
@@ -443,10 +510,11 @@ class DashboardScreen(QWidget):
         tc_layout.addWidget(self.history_table)
         page_layout.addWidget(table_container)
         
-        self.page_stack.addWidget(page)
+        return page
 
     def load_history_table(self):
         """Loads actual user-generated statement log history from database/local file."""
+        self.ensure_page_loaded("history")
         from utils.user_session import UserSession
         user = UserSession.get_current_user()
         user_id = user["id"] if user else "guest"
@@ -585,7 +653,7 @@ class DashboardScreen(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error Opening File", f"An error occurred while opening the file:\n{e}")
 
-    def create_reports_page(self):
+    def instantiate_reports_page(self):
         """Reports Page presenting downloadable report options."""
         page = QWidget()
         page_layout = QVBoxLayout(page)
@@ -689,7 +757,7 @@ class DashboardScreen(QWidget):
         rl_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
         
         page_layout.addWidget(reports_list)
-        self.page_stack.addWidget(page)
+        return page
 
     def export_gst_ledger_action(self):
         """Guides the user to the statement upload screen to parse and generate a GST report."""

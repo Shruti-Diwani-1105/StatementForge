@@ -1,6 +1,7 @@
 import os
 import datetime
 import re
+from decimal import Decimal
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -10,7 +11,8 @@ class ExcelWriter:
     """Generates professional dual-sheet bank statement Excel spreadsheets."""
 
     @classmethod
-    def write_excel(cls, pdf_path: str, bank_name: str, account_holder: str, period: str, transactions: list) -> str:
+    def write_excel(cls, pdf_path: str, bank_name: str, account_holder: str, period: str, transactions: list,
+                    original_headers=None, raw_rows=None, extraction_audit=None, review_rows=None) -> str:
         """
         Builds the Excel sheet beside the PDF, handles collisions, styles elements, and returns output path.
         """
@@ -50,110 +52,188 @@ class ExcelWriter:
         ws_tx.title = "Transactions"
         ws_tx.views.sheetView[0].showGridLines = True
 
-        all_keys = set()
-        for tx in transactions:
-            all_keys.update(tx.keys())
+        headers_count = 5
 
-        preferred_order = [
-            ("date", "Date"),
-            ("value_date", "Value Date"),
-            ("value date", "Value Date"),
-            ("narration", "Transaction Description / Narration"),
-            ("description", "Transaction Description / Narration"),
-            ("ref_no", "Cheque Number / Reference Number"),
-            ("ref no", "Cheque Number / Reference Number"),
-            ("debit", "Debit"),
-            ("credit", "Credit"),
-            ("balance", "Balance"),
-            ("transaction_type", "Transaction Type"),
-            ("type", "Transaction Type")
-        ]
+        # Raw fidelity mode if raw rows are provided
+        if original_headers and raw_rows is not None:
+            # Write dynamic original headers
+            ws_tx.row_dimensions[1].height = 28
+            for col_idx, header in enumerate(original_headers, start=1):
+                cell = ws_tx.cell(row=1, column=col_idx)
+                cell.value = header
+                cell.font = Font(name=font_name, size=11, bold=True, color="FFFFFF")
+                cell.fill = blue_hdr_fill
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = thin_border
 
-        headers = []
-        key_order = []
-        seen_keys = set()
+            # Write raw rows
+            for row_idx, row in enumerate(raw_rows, start=2):
+                ws_tx.row_dimensions[row_idx].height = 20
+                for col_idx, val in enumerate(row, start=1):
+                    cell = ws_tx.cell(row=row_idx, column=col_idx)
+                    header_lower = original_headers[col_idx - 1].lower()
+                    
+                    val_str = str(val).strip() if val is not None else ""
+                    if not val_str:
+                        cell.value = ""
+                    else:
+                        is_currency = any(term in header_lower for term in ["debit", "credit", "balance", "amount", "withdrawal", "deposit"])
+                        if is_currency:
+                            if val_str in ["-", "cr", "dr", "cr.", "dr."]:
+                                cell.value = val_str
+                                cell.alignment = Alignment(horizontal="center", vertical="center")
+                            else:
+                                # Clean amount safely but preserve format where possible
+                                clean_num = re.sub(r"[^\d\.\-]", "", val_str)
+                                if clean_num:
+                                    try:
+                                        parsed = Decimal(clean_num)
+                                        val_upper = val_str.upper()
+                                        if "CR" in val_upper:
+                                            cell.value = f"{parsed} CR"
+                                            cell.alignment = Alignment(horizontal="right", vertical="center")
+                                        elif "DR" in val_upper:
+                                            cell.value = f"{parsed} DR"
+                                            cell.alignment = Alignment(horizontal="right", vertical="center")
+                                        else:
+                                            cell.value = parsed
+                                            cell.number_format = currency_format
+                                            cell.alignment = Alignment(horizontal="right", vertical="center")
+                                    except Exception:
+                                        cell.value = val_str
+                                        cell.alignment = Alignment(horizontal="right", vertical="center")
+                                else:
+                                    cell.value = val_str
+                                    cell.alignment = Alignment(horizontal="right", vertical="center")
+                        elif "date" in header_lower:
+                            parsed_date = ParserUtils.parse_date(val_str)
+                            cell.value = parsed_date
+                            if isinstance(parsed_date, datetime.date):
+                                cell.number_format = 'yyyy-mm-dd'
+                            cell.alignment = Alignment(horizontal="center", vertical="center")
+                        else:
+                            cell.value = val_str
+                            cell.number_format = '@'
+                            cell.alignment = Alignment(horizontal="left", vertical="center")
+                    
+                    cell.font = regular_val_font
+                    if row_idx % 2 == 0:
+                        cell.fill = zebra_fill
 
-        for key_pat, header_name in preferred_order:
+            written_rows = ws_tx.max_row - 1 if raw_rows else 0
+            if len(raw_rows) != written_rows:
+                raise ValueError(
+                    f"Data Integrity Error: Extracted transaction count ({len(raw_rows)}) "
+                    f"does not match written Excel row count ({written_rows}). Export aborted."
+                )
+            headers_count = len(original_headers)
+        else:
+            # Fallback normalized format
+            all_keys = set()
+            for tx in transactions:
+                all_keys.update(tx.keys())
+
+            preferred_order = [
+                ("date", "Date"),
+                ("value_date", "Value Date"),
+                ("value date", "Value Date"),
+                ("narration", "Transaction Description / Narration"),
+                ("description", "Transaction Description / Narration"),
+                ("ref_no", "Cheque Number / Reference Number"),
+                ("ref no", "Cheque Number / Reference Number"),
+                ("debit", "Debit"),
+                ("credit", "Credit"),
+                ("balance", "Balance"),
+                ("transaction_type", "Transaction Type"),
+                ("type", "Transaction Type")
+            ]
+
+            headers = []
+            key_order = []
+            seen_keys = set()
+
+            for key_pat, header_name in preferred_order:
+                for actual_key in all_keys:
+                    if actual_key.lower() == key_pat and actual_key not in seen_keys:
+                        headers.append(header_name)
+                        key_order.append(actual_key)
+                        seen_keys.add(actual_key)
+                        break
+
             for actual_key in all_keys:
-                if actual_key.lower() == key_pat and actual_key not in seen_keys:
+                if actual_key not in seen_keys:
+                    header_name = actual_key.replace("_", " ").title()
                     headers.append(header_name)
                     key_order.append(actual_key)
                     seen_keys.add(actual_key)
-                    break
 
-        for actual_key in all_keys:
-            if actual_key not in seen_keys:
-                header_name = actual_key.replace("_", " ").title()
-                headers.append(header_name)
-                key_order.append(actual_key)
-                seen_keys.add(actual_key)
+            # Write header
+            ws_tx.row_dimensions[1].height = 28
+            for col_idx, header in enumerate(headers, start=1):
+                cell = ws_tx.cell(row=1, column=col_idx)
+                cell.value = header
+                cell.font = Font(name=font_name, size=11, bold=True, color="FFFFFF")
+                cell.fill = blue_hdr_fill
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = thin_border
 
-        # Write header
-        ws_tx.row_dimensions[1].height = 28
-        for col_idx, header in enumerate(headers, start=1):
-            cell = ws_tx.cell(row=1, column=col_idx)
-            cell.value = header
-            cell.font = Font(name=font_name, size=11, bold=True, color="FFFFFF")
-            cell.fill = blue_hdr_fill
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            cell.border = thin_border
+            # Write data rows - strictly ensuring every transaction is output
+            for row_idx, tx in enumerate(transactions, start=2):
+                ws_tx.row_dimensions[row_idx].height = 20
+                for col_idx, key in enumerate(key_order, start=1):
+                    cell = ws_tx.cell(row=row_idx, column=col_idx)
+                    val = tx.get(key)
+                    header_lower = headers[col_idx - 1].lower()
 
-        # Write data rows - strictly ensuring every transaction is output
-        for row_idx, tx in enumerate(transactions, start=2):
-            ws_tx.row_dimensions[row_idx].height = 20
-            for col_idx, key in enumerate(key_order, start=1):
-                cell = ws_tx.cell(row=row_idx, column=col_idx)
-                val = tx.get(key)
-                header_lower = headers[col_idx - 1].lower()
-
-                is_currency = any(term in header_lower for term in ["debit", "credit", "balance", "amount"])
-                
-                if is_currency:
-                    parsed_val = ParserUtils.parse_numeric(val)
-                    if parsed_val is not None and isinstance(parsed_val, (int, float)):
-                        cell.value = parsed_val
-                        cell.number_format = currency_format
-                        cell.alignment = Alignment(horizontal="right", vertical="center")
-                    else:
-                        cell.value = None
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
-                elif "date" in header_lower:
-                    parsed_date = ParserUtils.parse_date(val)
-                    cell.value = parsed_date
-                    if isinstance(parsed_date, datetime.date):
-                        cell.number_format = 'yyyy-mm-dd'
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
-                else:
-                    is_text_field = any(term in header_lower for term in ["narration", "description", "particulars", "remarks", "reference", "cheque", "ref no", "type"])
-                    if is_text_field:
-                        cell.value = str(val) if val is not None else ""
-                        cell.number_format = '@'
-                        cell.alignment = Alignment(horizontal="left", vertical="center")
-                    else:
+                    is_currency = any(term in header_lower for term in ["debit", "credit", "balance", "amount"])
+                    
+                    if is_currency:
                         parsed_val = ParserUtils.parse_numeric(val)
-                        cell.value = parsed_val
-                        if isinstance(parsed_val, (int, float)):
+                        if parsed_val is not None and isinstance(parsed_val, (int, float, Decimal)):
+                            cell.value = parsed_val
+                            cell.number_format = currency_format
                             cell.alignment = Alignment(horizontal="right", vertical="center")
                         else:
+                            cell.value = None
+                            cell.alignment = Alignment(horizontal="center", vertical="center")
+                    elif "date" in header_lower:
+                        parsed_date = ParserUtils.parse_date(val)
+                        cell.value = parsed_date
+                        if isinstance(parsed_date, datetime.date):
+                            cell.number_format = 'yyyy-mm-dd'
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                    else:
+                        is_text_field = any(term in header_lower for term in ["narration", "description", "particulars", "remarks", "reference", "cheque", "ref no", "type"])
+                        if is_text_field:
+                            cell.value = str(val) if val is not None else ""
+                            cell.number_format = '@'
                             cell.alignment = Alignment(horizontal="left", vertical="center")
+                        else:
+                            parsed_val = ParserUtils.parse_numeric(val)
+                            cell.value = parsed_val
+                            if isinstance(parsed_val, (int, float, Decimal)):
+                                cell.alignment = Alignment(horizontal="right", vertical="center")
+                            else:
+                                cell.alignment = Alignment(horizontal="left", vertical="center")
 
-                cell.font = regular_val_font
-                if row_idx % 2 == 0:
-                    cell.fill = zebra_fill
+                    cell.font = regular_val_font
+                    if row_idx % 2 == 0:
+                        cell.fill = zebra_fill
 
-        # Data integrity check: Verify written row count matches input transaction count
-        written_rows = ws_tx.max_row - 1 if transactions else 0
-        if len(transactions) != written_rows:
-            raise ValueError(
-                f"Data Integrity Error: Extracted transaction count ({len(transactions)}) "
-                f"does not match written Excel row count ({written_rows}). Export aborted."
-            )
+            # Data integrity check
+            written_rows = ws_tx.max_row - 1 if transactions else 0
+            if len(transactions) != written_rows:
+                raise ValueError(
+                    f"Data Integrity Error: Extracted transaction count ({len(transactions)}) "
+                    f"does not match written Excel row count ({written_rows}). Export aborted."
+                )
+            headers_count = len(headers)
 
         ws_tx.freeze_panes = "A2"
-        if transactions:
-            last_col_letter = get_column_letter(len(headers))
-            ws_tx.auto_filter.ref = f"A1:{last_col_letter}{len(transactions) + 1}"
-
+        row_count = len(raw_rows) if raw_rows is not None else len(transactions)
+        if row_count:
+            last_col_letter = get_column_letter(headers_count)
+            ws_tx.auto_filter.ref = f"A1:{last_col_letter}{row_count + 1}"
 
         for col in ws_tx.columns:
             max_len = 0
@@ -163,7 +243,7 @@ class ExcelWriter:
                 if val is not None:
                     if isinstance(val, datetime.date):
                         val_str = val.strftime('%Y-%m-%d')
-                    elif isinstance(val, (int, float)) and any(term in ws_tx.cell(row=1, column=cell.column).value.lower() for term in ["debit", "credit", "balance", "amount"]):
+                    elif isinstance(val, (int, float, Decimal)) and any(term in ws_tx.cell(row=1, column=cell.column).value.lower() for term in ["debit", "credit", "balance", "amount"]):
                         val_str = f"₹ {val:,.2f}"
                     else:
                         val_str = str(val)
@@ -184,31 +264,34 @@ class ExcelWriter:
         title_cell.alignment = Alignment(horizontal="center", vertical="center")
         ws_sum.row_dimensions[1].height = 40
 
-        opening_balance = 0.0
-        closing_balance = 0.0
-        total_debit = 0.0
-        total_credit = 0.0
+        opening_balance = Decimal("0.00")
+        closing_balance = Decimal("0.00")
+        total_debit = Decimal("0.00")
+        total_credit = Decimal("0.00")
 
         for tx in transactions:
             deb_val = ParserUtils.parse_numeric(tx.get("debit"))
-            if isinstance(deb_val, (int, float)):
-                total_debit += deb_val
+            if isinstance(deb_val, (int, float, Decimal)):
+                total_debit += Decimal(str(deb_val))
             cred_val = ParserUtils.parse_numeric(tx.get("credit"))
-            if isinstance(cred_val, (int, float)):
-                total_credit += cred_val
+            if isinstance(cred_val, (int, float, Decimal)):
+                total_credit += Decimal(str(cred_val))
 
         if transactions:
             first_tx = transactions[0]
             last_tx = transactions[-1]
-            first_bal = ParserUtils.parse_numeric(first_tx.get("balance"))
-            last_bal = ParserUtils.parse_numeric(last_tx.get("balance"))
-            first_deb = ParserUtils.parse_numeric(first_tx.get("debit")) or 0.0
-            first_cred = ParserUtils.parse_numeric(first_tx.get("credit")) or 0.0
+            first_bal_raw = ParserUtils.parse_numeric(first_tx.get("balance"))
+            last_bal_raw = ParserUtils.parse_numeric(last_tx.get("balance"))
+            first_deb_raw = ParserUtils.parse_numeric(first_tx.get("debit"))
+            first_cred_raw = ParserUtils.parse_numeric(first_tx.get("credit"))
 
-            if first_bal is not None:
-                opening_balance = first_bal + first_deb - first_cred
-            if last_bal is not None:
-                closing_balance = last_bal
+            first_bal = Decimal(str(first_bal_raw)) if first_bal_raw is not None else Decimal("0.00")
+            last_bal = Decimal(str(last_bal_raw)) if last_bal_raw is not None else Decimal("0.00")
+            first_deb = Decimal(str(first_deb_raw)) if first_deb_raw is not None else Decimal("0.00")
+            first_cred = Decimal(str(first_cred_raw)) if first_cred_raw is not None else Decimal("0.00")
+
+            opening_balance = first_bal + first_deb - first_cred
+            closing_balance = last_bal
 
         summary_rows = [
             ("", ""),
@@ -255,7 +338,7 @@ class ExcelWriter:
                 c_val.border = thin_border
                 c_val.alignment = Alignment(vertical="center", indent=1)
 
-                if isinstance(val, (int, float)):
+                if isinstance(val, (int, float, Decimal)):
                     c_val.font = bold_val_font
                     if label != "Transaction Count":
                         c_val.number_format = currency_format
@@ -268,6 +351,157 @@ class ExcelWriter:
         ws_sum.column_dimensions["A"].width = 28
         ws_sum.column_dimensions["B"].width = 38
         ws_sum.column_dimensions["C"].width = 15
+
+        # ----------------------------------------------------
+        # EXTRACTION AUDIT SHEET
+        # ----------------------------------------------------
+        if extraction_audit:
+            ws_aud = wb.create_sheet(title="Extraction Audit")
+            ws_aud.views.sheetView[0].showGridLines = True
+            
+            ws_aud.row_dimensions[1].height = 32
+            ws_aud.merge_cells("A1:D1")
+            aud_title = ws_aud["A1"]
+            aud_title.value = "StatementForge Extraction Audit Report"
+            aud_title.font = Font(name=font_name, size=12, bold=True, color="FFFFFF")
+            aud_title.fill = blue_hdr_fill
+            aud_title.alignment = Alignment(horizontal="center", vertical="center")
+            
+            audit_metrics = [
+                ("Source PDF", extraction_audit.get("source_pdf", "")),
+                ("Detected Bank", extraction_audit.get("detected_bank", "")),
+                ("Account Holder", extraction_audit.get("account_holder", "")),
+                ("Statement Period", extraction_audit.get("statement_period", "")),
+                ("Total PDF Pages", extraction_audit.get("total_pages", 0)),
+                ("Pages Processed Successfully", extraction_audit.get("pages_processed", 0)),
+                ("Digital Pages", extraction_audit.get("digital_pages", 0)),
+                ("OCR Pages", extraction_audit.get("ocr_pages", 0)),
+                ("AI Fallback Pages", extraction_audit.get("ai_fallback_pages", 0)),
+                ("Failed/Review Pages", extraction_audit.get("failed_pages_count", 0)),
+                ("Raw Rows Detected", extraction_audit.get("raw_rows_detected", 0)),
+                ("Transactions Exported", extraction_audit.get("transactions_exported", 0)),
+                ("Low Confidence Rows", extraction_audit.get("low_confidence_rows", 0)),
+                ("Balance Mismatches", extraction_audit.get("balance_mismatches", 0)),
+                ("Data Integrity Score", f"{extraction_audit.get('data_integrity', 100.0)}%"),
+                ("Generated Date/Time", extraction_audit.get("generated_at", ""))
+            ]
+            
+            for idx, (metric_name, metric_val) in enumerate(audit_metrics, start=3):
+                ws_aud.row_dimensions[idx].height = 20
+                c_lbl = ws_aud.cell(row=idx, column=1)
+                c_lbl.value = metric_name
+                c_lbl.font = bold_label_font
+                c_lbl.border = thin_border
+                
+                c_val = ws_aud.cell(row=idx, column=2)
+                c_val.value = metric_val
+                c_val.font = regular_val_font
+                c_val.border = thin_border
+                
+            start_row = len(audit_metrics) + 5
+            ws_aud.row_dimensions[start_row].height = 24
+            
+            page_headers = ["Page", "Method", "Rows", "Confidence", "Status"]
+            for col_idx, header in enumerate(page_headers, start=1):
+                cell = ws_aud.cell(row=start_row, column=col_idx)
+                cell.value = header
+                cell.font = Font(name=font_name, size=10, bold=True, color="FFFFFF")
+                cell.fill = blue_hdr_fill
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = thin_border
+                
+            current_row = start_row + 1
+            for p_detail in extraction_audit.get("page_details", []):
+                ws_aud.row_dimensions[current_row].height = 20
+                
+                cell_p = ws_aud.cell(row=current_row, column=1, value=p_detail.get("page"))
+                cell_p.alignment = Alignment(horizontal="center", vertical="center")
+                
+                cell_m = ws_aud.cell(row=current_row, column=2, value=p_detail.get("method"))
+                cell_m.alignment = Alignment(horizontal="left", vertical="center")
+                
+                cell_r = ws_aud.cell(row=current_row, column=3, value=p_detail.get("rows"))
+                cell_r.alignment = Alignment(horizontal="center", vertical="center")
+                
+                cell_c = ws_aud.cell(row=current_row, column=4, value=p_detail.get("confidence"))
+                cell_c.alignment = Alignment(horizontal="center", vertical="center")
+                
+                cell_s = ws_aud.cell(row=current_row, column=5, value=p_detail.get("status"))
+                cell_s.alignment = Alignment(horizontal="center", vertical="center")
+                
+                for col in range(1, 6):
+                    c = ws_aud.cell(row=current_row, column=col)
+                    c.border = thin_border
+                    c.font = regular_val_font
+                    if p_detail.get("status") in ["Review", "Failed"]:
+                        c.fill = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+                    elif current_row % 2 == 0:
+                        c.fill = zebra_fill
+                        
+                current_row += 1
+                
+            ws_aud.column_dimensions["A"].width = 28
+            ws_aud.column_dimensions["B"].width = 38
+            ws_aud.column_dimensions["C"].width = 12
+            ws_aud.column_dimensions["D"].width = 15
+            ws_aud.column_dimensions["E"].width = 15
+
+        # ----------------------------------------------------
+        # REVIEW REQUIRED SHEET
+        # ----------------------------------------------------
+        if review_rows:
+            ws_rev = wb.create_sheet(title="Review Required")
+            ws_rev.views.sheetView[0].showGridLines = True
+            
+            ws_rev.row_dimensions[1].height = 28
+            review_headers = ["Page", "Row Index", "Original Extracted Data", "Issue", "Confidence", "Suggested Correction", "Status"]
+            orange_hdr_fill = PatternFill(start_color="D97706", end_color="D97706", fill_type="solid")
+            
+            for col_idx, header in enumerate(review_headers, start=1):
+                cell = ws_rev.cell(row=1, column=col_idx)
+                cell.value = header
+                cell.font = Font(name=font_name, size=11, bold=True, color="FFFFFF")
+                cell.fill = orange_hdr_fill
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = thin_border
+                
+            for idx, r_row in enumerate(review_rows, start=2):
+                ws_rev.row_dimensions[idx].height = 22
+                
+                cell_p = ws_rev.cell(row=idx, column=1, value=r_row.get("page"))
+                cell_p.alignment = Alignment(horizontal="center", vertical="center")
+                
+                cell_r = ws_rev.cell(row=idx, column=2, value=r_row.get("row"))
+                cell_r.alignment = Alignment(horizontal="center", vertical="center")
+                
+                cell_o = ws_rev.cell(row=idx, column=3, value=r_row.get("original_value"))
+                cell_o.alignment = Alignment(horizontal="left", vertical="center")
+                
+                cell_i = ws_rev.cell(row=idx, column=4, value=r_row.get("issue"))
+                cell_i.alignment = Alignment(horizontal="left", vertical="center")
+                
+                cell_c = ws_rev.cell(row=idx, column=5, value=f"{r_row.get('confidence', 100)}%")
+                cell_c.alignment = Alignment(horizontal="center", vertical="center")
+                
+                cell_s_corr = ws_rev.cell(row=idx, column=6, value=r_row.get("suggested_correction"))
+                cell_s_corr.alignment = Alignment(horizontal="left", vertical="center")
+                
+                cell_s = ws_rev.cell(row=idx, column=7, value=r_row.get("status"))
+                cell_s.alignment = Alignment(horizontal="center", vertical="center")
+                
+                for col in range(1, 8):
+                    c = ws_rev.cell(row=idx, column=col)
+                    c.border = thin_border
+                    c.font = regular_val_font
+                    c.fill = PatternFill(start_color="FFFBEB", end_color="FFFBEB", fill_type="solid")
+                    
+            ws_rev.column_dimensions["A"].width = 8
+            ws_rev.column_dimensions["B"].width = 12
+            ws_rev.column_dimensions["C"].width = 45
+            ws_rev.column_dimensions["D"].width = 25
+            ws_rev.column_dimensions["E"].width = 12
+            ws_rev.column_dimensions["F"].width = 30
+            ws_rev.column_dimensions["G"].width = 18
 
         wb.save(excel_path)
         print("Excel Generated Successfully")

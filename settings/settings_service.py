@@ -11,6 +11,10 @@ class SettingsService:
     """
     _cached_settings = {}
     _local_backup_dir = os.path.expanduser("~")
+    _mongo_client = None
+    _db = None
+    _collection = None
+    _mongo_available = False
 
     @classmethod
     def get_local_path(cls, user_email):
@@ -144,17 +148,26 @@ class SettingsService:
 
     @classmethod
     def _get_settings_collection(cls):
-        """Initializes and returns settings collection client."""
-        # Try to reuse MongoClient connection from AuthDB
+        """Initializes and returns settings collection client, using a cached connection if available."""
+        if cls._mongo_client is not None:
+            return cls._collection if cls._mongo_available else None
+
         uri = os.getenv("MONGODB_URI")
         if not uri or not uri.strip():
+            cls._mongo_client = "none"
+            cls._mongo_available = False
             return None
         try:
-            client = MongoClient(uri, serverSelectionTimeoutMS=2000)
-            client.admin.command('ping')
-            db = client["statementforge"]
-            return db["settings"]
+            cls._mongo_client = MongoClient(uri, serverSelectionTimeoutMS=2000)
+            cls._mongo_client.admin.command('ping')
+            cls._db = cls._mongo_client["statementforge"]
+            cls._collection = cls._db["settings"]
+            cls._mongo_available = True
+            return cls._collection
         except Exception:
+            cls._mongo_client = "failed"
+            cls._mongo_available = False
+            cls._collection = None
             return None
 
     @classmethod
