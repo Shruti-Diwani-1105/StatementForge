@@ -1,17 +1,17 @@
+import os
+import json
 import datetime
-import re
-from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QFrame, QPushButton, QGridLayout, QScrollArea, QSpacerItem, QSizePolicy
-)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QSize
-from PyQt6.QtGui import QFont, QCursor, QPixmap, QIcon
-from ui.register import ToastNotification, PasswordRequirementsWidget
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QMessageBox
+from PyQt6.QtCore import Qt, pyqtSignal, QUrl
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from utils.user_session import UserSession
+from utils.profile_service import ProfileService
+from utils.theme_manager import ThemeManager
 
 class ProfileWindow(QWidget):
     """
-    Dedicated user profile management screen. Allows editing personal details,
-    viewing account stats, and changing passwords.
+    Dedicated Profile & Edit Profile window rendering native web/profile.html.
+    Supports real-time bidirectional communication with Python backend services.
     """
     save_requested = pyqtSignal(str, str, str)  # name, phone, username
     password_change_requested = pyqtSignal(str, str)  # old_password, new_password
@@ -22,556 +22,206 @@ class ProfileWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ProfileWindow")
-        self.setStyleSheet("QWidget#ProfileWindow { background-color: #F6F8FC; }")
-
+        
         # Main Layout
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(40, 24, 40, 32)
-        self.main_layout.setSpacing(24)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
 
-        # 1. Top Navigation Bar
-        top_bar = QHBoxLayout()
-        self.back_btn = QPushButton("←  Back to Dashboard")
-        self.back_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.back_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #FFFFFF;
-                color: #475569;
-                border: 1px solid #c4c5d7;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 13px;
-                padding: 8px 16px;
-                font-family: 'Times New Roman';
-            }
-            QPushButton:hover {
-                background-color: #F8FAFC;
-                color: #0F172A;
-                border-color: #CBD5E1;
-            }
-        """)
-        self.back_btn.clicked.connect(self.back_to_dashboard.emit)
-        top_bar.addWidget(self.back_btn)
-        top_bar.addStretch()
-        self.main_layout.addLayout(top_bar)
+        # WebEngine View
+        self.web_view = QWebEngineView(self)
+        self.web_view.page().setBackgroundColor(Qt.GlobalColor.transparent)
+        
+        # IPC listener
+        self.web_view.titleChanged.connect(self.handle_title_changed)
+        
+        # Load profile.html
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        html_path = os.path.join(base_dir, "web", "profile.html")
+        if os.path.exists(html_path):
+            self.web_view.setUrl(QUrl.fromLocalFile(html_path))
+            self.web_view.loadFinished.connect(self._on_html_loaded)
+        else:
+            print(f"Error: Profile HTML file not found at {html_path}")
 
-        # Page Header
-        header_layout = QVBoxLayout()
-        header_layout.setSpacing(4)
-        title_lbl = QLabel("My Profile")
-        title_lbl.setStyleSheet("font-size: 26px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
-        sub_lbl = QLabel("Manage your personal information and account settings.")
-        sub_lbl.setStyleSheet("font-size: 13px; color: #64748B; font-weight: 500; font-family: 'Times New Roman';")
-        header_layout.addWidget(title_lbl)
-        header_layout.addWidget(sub_lbl)
-        self.main_layout.addLayout(header_layout)
+        self.layout.addWidget(self.web_view)
 
-        # 2. Main Content Split (Left Sidebar Panel & Right Form Panel)
-        content_split = QHBoxLayout()
-        content_split.setSpacing(24)
-
-        # ==========================================
-        # LEFT COLUMN (Avatar, Stats, Action Buttons)
-        # ==========================================
-        left_panel = QFrame()
-        left_panel.setFixedWidth(320)
-        left_panel.setStyleSheet("""
-            QFrame {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 16px;
-            }
-        """)
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(24, 32, 24, 24)
-        left_layout.setSpacing(24)
-
-        # Large Circular Avatar Badge
-        avatar_container = QHBoxLayout()
-        self.avatar_lbl = QLabel("K")
-        self.avatar_lbl.setFixedSize(120, 120)
-        self.avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.avatar_lbl.setStyleSheet("""
-            QLabel {
-                background-color: #0037b0; /* Solid Premium Blue */
-                color: #FFFFFF;
-                font-weight: bold;
-                font-size: 52px;
-                border-radius: 60px;
-                border: none;
-                font-family: 'Times New Roman';
-            }
-        """)
-        avatar_container.addWidget(self.avatar_lbl)
-        left_layout.addLayout(avatar_container)
-
-        self.name_heading = QLabel("User Name")
-        self.name_heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.name_heading.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman'; border: none;")
-        left_layout.addWidget(self.name_heading)
-
-        # Divider line
-        divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.HLine)
-        divider.setStyleSheet("background-color: #E2E8F0; max-height: 1px; border: none;")
-        left_layout.addWidget(divider)
-
-        # Account Info section (Status, Created Date, Last Login)
-        info_layout = QVBoxLayout()
-        info_layout.setSpacing(12)
-
-        info_header = QLabel("Account Information")
-        info_header.setStyleSheet("font-weight: bold; font-size: 12px; color: #64748B; border: none; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Times New Roman';")
-        info_layout.addWidget(info_header)
-
-        # Status badge line
-        status_row = QHBoxLayout()
-        status_row.setSpacing(8)
-        status_lbl = QLabel("Account Status:")
-        status_lbl.setStyleSheet("font-size: 12px; color: #64748B; border: none; font-weight: 500; font-family: 'Times New Roman';")
-        self.status_badge = QLabel("Active")
-        self.status_badge.setFixedSize(70, 20)
-        self.status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_badge.setStyleSheet("""
-            QLabel {
-                background-color: #ECFDF5;
-                color: #059669;
-                font-weight: 700;
-                font-size: 10px;
-                border-radius: 10px;
-                border: 1px solid #A7F3D0;
-            }
-        """)
-        status_row.addWidget(status_lbl)
-        status_row.addWidget(self.status_badge)
-        status_row.addStretch()
-        info_layout.addLayout(status_row)
-
-        # Created Date
-        self.created_lbl = QLabel("Joined: N/A")
-        self.created_lbl.setStyleSheet("font-size: 12px; color: #475569; border: none; font-weight: 500; font-family: 'Times New Roman';")
-        info_layout.addWidget(self.created_lbl)
-
-        # Last Login
-        self.login_lbl = QLabel("Last Login: N/A")
-        self.login_lbl.setStyleSheet("font-size: 12px; color: #475569; border: none; font-weight: 500; font-family: 'Times New Roman';")
-        info_layout.addWidget(self.login_lbl)
-
-        left_layout.addLayout(info_layout)
-
-        # Spacer to push action buttons down
-        left_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
-        # Action Buttons Section
-        btn_layout = QVBoxLayout()
-        btn_layout.setSpacing(10)
-
-        # Save changes button
-        self.save_btn = QPushButton("Save Changes")
-        self.save_btn.setFixedHeight(42)
-        self.save_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0037b0;
-                color: #FFFFFF;
-                border: none;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: 13px;
-                font-family: 'Times New Roman';
-            }
-            QPushButton:hover {
-                background-color: #1d4ed8;
-            }
-            QPushButton:pressed {
-                background-color: #002c8c;
-            }
-        """)
-        self.save_btn.clicked.connect(self.on_save_clicked)
-        btn_layout.addWidget(self.save_btn)
-
-        # Logout button
-        self.logout_btn = QPushButton("Logout")
-        self.logout_btn.setFixedHeight(42)
-        self.logout_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.logout_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #EF4444;
-                border: 1px solid #FCA5A5;
-                border-radius: 8px;
-                font-weight: 600;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background-color: #FEF2F2;
-                color: #B91C1C;
-                border-color: #F87171;
-            }
-        """)
-        self.logout_btn.clicked.connect(self.logout_requested.emit)
-        btn_layout.addWidget(self.logout_btn)
-
-        left_layout.addLayout(btn_layout)
-        content_split.addWidget(left_panel)
-
-        # ==========================================
-        # RIGHT COLUMN (Form Inputs Scroll Area)
-        # ==========================================
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setStyleSheet("background-color: transparent; border: none;")
-
-        scroll_content = QWidget()
-        scroll_content.setStyleSheet("background-color: transparent;")
-        right_layout = QVBoxLayout(scroll_content)
-        right_layout.setContentsMargins(0, 0, 8, 0)
-        right_layout.setSpacing(24)
-
-        # 1. Personal Information Section
-        personal_card = QFrame()
-        personal_card.setStyleSheet("""
-            QFrame {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 16px;
-            }
-        """)
-        personal_layout = QVBoxLayout(personal_card)
-        personal_layout.setContentsMargins(24, 24, 24, 24)
-        personal_layout.setSpacing(16)
-
-        personal_title = QLabel("Personal Information")
-        personal_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman'; border: none;")
-        personal_layout.addWidget(personal_title)
-
-        form_grid = QGridLayout()
-        form_grid.setSpacing(12)
-
-        # QSS for editable vs read-only inputs
-        input_style = """
-            QLineEdit {
-                background-color: #FFFFFF;
-                border: 1px solid #c4c5d7;
-                border-radius: 6px;
-                padding: 10px 14px;
-                font-size: 14px;
-                color: #191c1e;
-                font-family: 'Times New Roman';
-            }
-            QLineEdit:focus {
-                border: 2px solid #0037b0;
-            }
-            QLineEdit:disabled {
-                background-color: #F1F5F9;
-                color: #64748B;
-                border-color: #E2E8F0;
-            }
-        """
-
-        # Username Field
-        un_label = QLabel("Username")
-        un_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
-        self.username_input = QLineEdit()
-        self.username_input.setStyleSheet(input_style)
-        form_grid.addWidget(un_label, 0, 0)
-        form_grid.addWidget(self.username_input, 1, 0)
-
-        # Role Field (Read-only, shows User)
-        role_label = QLabel("Role")
-        role_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
-        self.role_input = QLineEdit("User")
-        self.role_input.setEnabled(False)
-        self.role_input.setStyleSheet(input_style)
-        form_grid.addWidget(role_label, 0, 1)
-        form_grid.addWidget(self.role_input, 1, 1)
-
-        # Full Name Field
-        fn_label = QLabel("Full Name *")
-        fn_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
-        self.name_input = QLineEdit()
-        self.name_input.setStyleSheet(input_style)
-        form_grid.addWidget(fn_label, 2, 0)
-        form_grid.addWidget(self.name_input, 3, 0)
-
-        # Email Address Field
-        em_label = QLabel("Email Address *")
-        em_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
-        self.email_input = QLineEdit()
-        self.email_input.setStyleSheet(input_style)
-        form_grid.addWidget(em_label, 2, 1)
-        form_grid.addWidget(self.email_input, 3, 1)
-
-        # Phone Number Field
-        ph_label = QLabel("Phone Number *")
-        ph_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
-        self.phone_input = QLineEdit()
-        self.phone_input.setStyleSheet(input_style)
-        form_grid.addWidget(ph_label, 4, 0)
-        form_grid.addWidget(self.phone_input, 5, 0)
-
-        personal_layout.addLayout(form_grid)
-        right_layout.addWidget(personal_card)
-
-        # 2. Change Password Section
-        password_card = QFrame()
-        password_card.setStyleSheet("""
-            QFrame {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 16px;
-            }
-        """)
-        pwd_layout = QVBoxLayout(password_card)
-        pwd_layout.setContentsMargins(24, 24, 24, 24)
-        pwd_layout.setSpacing(14)
-
-        pwd_title = QLabel("Change Password")
-        pwd_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman'; border: none;")
-        pwd_layout.addWidget(pwd_title)
-
-        pwd_form = QGridLayout()
-        pwd_form.setSpacing(12)
-
-        # Old Password
-        old_label = QLabel("Old Password")
-        old_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
-        self.old_pwd_input = QLineEdit()
-        self.old_pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.old_pwd_input.setStyleSheet(input_style)
-        pwd_form.addWidget(old_label, 0, 0)
-        pwd_form.addWidget(self.old_pwd_input, 1, 0)
-
-        # Confirm Password
-        confirm_label = QLabel("Confirm New Password")
-        confirm_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
-        self.confirm_pwd_input = QLineEdit()
-        self.confirm_pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.confirm_pwd_input.setStyleSheet(input_style)
-        pwd_form.addWidget(confirm_label, 0, 1)
-        pwd_form.addWidget(self.confirm_pwd_input, 1, 1)
-
-        # New Password (spans both columns for width)
-        new_label = QLabel("New Password")
-        new_label.setStyleSheet("font-weight: bold; font-size: 12px; color: #475569; font-family: 'Times New Roman'; border: none;")
-        self.new_pwd_input = QLineEdit()
-        self.new_pwd_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.new_pwd_input.setStyleSheet(input_style)
-        self.new_pwd_input.textChanged.connect(self.on_new_password_changed)
-        pwd_form.addWidget(new_label, 2, 0, 1, 2)
-        pwd_form.addWidget(self.new_pwd_input, 3, 0, 1, 2)
-
-        pwd_layout.addLayout(pwd_form)
-
-        # Live Horizontal Password validation checklist
-        self.reqs_widget = PasswordRequirementsWidget()
-        pwd_layout.addWidget(self.reqs_widget)
-
-        # Password Error label
-        self.pwd_error_lbl = QLabel("")
-        self.pwd_error_lbl.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: 500; border: none;")
-        pwd_layout.addWidget(self.pwd_error_lbl)
-
-        # Action Change password button
-        self.change_pwd_btn = QPushButton("Change Password")
-        self.change_pwd_btn.setFixedHeight(42)
-        self.change_pwd_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.change_pwd_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #FFFFFF;
-                color: #475569;
-                border: 1px solid #c4c5d7;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: 13px;
-                font-family: 'Times New Roman';
-            }
-            QPushButton:hover {
-                background-color: #EFF6FF;
-                color: #0037b0;
-                border-color: #0037b0;
-            }
-            QPushButton:disabled {
-                background-color: #F1F5F9;
-                color: #94A3B8;
-                border-color: #E2E8F0;
-            }
-        """)
-        self.change_pwd_btn.clicked.connect(self.on_change_password_clicked)
-        pwd_layout.addWidget(self.change_pwd_btn)
-
-        right_layout.addWidget(password_card)
-        scroll_area.setWidget(scroll_content)
-        content_split.addWidget(scroll_area)
-
-        self.main_layout.addLayout(content_split)
+    def _on_html_loaded(self, success):
+        if success:
+            user = UserSession.get_current_user()
+            if user:
+                self.load_user_data(user)
+            self.update_theme_style(ThemeManager.get_theme())
 
     def load_user_data(self, user):
-        """Populates UI controls with user details from the session model."""
-        self.name_heading.setText(user.get("name", "User Name"))
-        self.username_input.setText(user.get("username", ""))
-        self.name_input.setText(user.get("name", ""))
-        self.email_input.setText(user.get("email", ""))
-        self.phone_input.setText(user.get("phone", ""))
+        """Fetches real user profile from database and populates HTML view."""
+        email = user.get("email", "") if user else ""
+        profile_data = ProfileService.get_profile(email)
         
-        # Display first letter dynamically in avatar
-        initial = "U"
-        if user.get("name", "").strip():
-            initial = user.get("name", "").strip()[0].upper()
-        self.avatar_lbl.setText(initial)
+        # Datetime serializer for JSON
+        def dt_converter(o):
+            if isinstance(o, datetime.datetime):
+                return o.isoformat()
+            return str(o)
 
-        # Setup Dates
-        created_dt = user.get("created_at")
-        self.created_lbl.setText(f"Joined: {self.format_date(created_dt)}")
+        json_str = json.dumps(profile_data, default=dt_converter)
+        script = f"if (typeof loadUserProfileData === 'function') {{ loadUserProfileData({json_str}); }}"
+        self.web_view.page().runJavaScript(script)
+
+    def handle_title_changed(self, title: str):
+        """Processes document.title IPC commands sent from JavaScript inside Profile HTML."""
+        if not title or not title.startswith("app-cmd:"):
+            return
         
-        login_dt = user.get("last_login")
-        self.login_lbl.setText(f"Last Login: {self.format_date(login_dt)}")
+        parts = title.split(":", 2)
+        cmd = parts[1] if len(parts) > 1 else ""
+        payload_str = parts[2] if len(parts) > 2 else ""
 
-    def format_date(self, dt):
-        if not dt:
-            return "N/A"
-        if isinstance(dt, datetime.datetime):
-            return dt.strftime("%B %d, %Y")
-        return str(dt)
+        payload = None
+        if payload_str:
+            try:
+                payload = json.loads(payload_str)
+            except Exception:
+                payload = payload_str
 
-    def on_new_password_changed(self, password):
-        self.reqs_widget.update_requirements(password)
+        if cmd == "profile_back":
+            self.back_to_dashboard.emit()
 
-    def on_save_clicked(self):
-        name = self.name_input.text().strip()
-        email = self.email_input.text().strip()
-        phone = self.phone_input.text().strip()
-        username = self.username_input.text().strip()
+        elif cmd == "profile_request_data":
+            user = UserSession.get_current_user()
+            if user:
+                self.load_user_data(user)
 
-        # Simple client side check
-        if not name or not email or not phone or not username:
-            self.show_error("Please fill in all required fields.")
-            return
+        elif cmd == "profile_save":
+            if isinstance(payload, dict):
+                name = payload.get("name", "")
+                phone = payload.get("phone", "")
+                job_title = payload.get("job_title", "")
+                department = payload.get("department", "")
+                timezone = payload.get("timezone", "")
+                bio = payload.get("bio", "")
+                profile_color = payload.get("profile_color", "#0037b0")
 
-        self.save_requested.emit(name, phone, username)
+                user = UserSession.get_current_user()
+                if not user:
+                    self.show_toast("No active user session found.", is_error=True)
+                    return
 
-    def on_change_password_clicked(self):
-        old_pwd = self.old_pwd_input.text()
-        new_pwd = self.new_pwd_input.text()
-        confirm_pwd = self.confirm_pwd_input.text()
+                username = user.get("username", user.get("email", "").split('@')[0])
+                success, msg = ProfileService.update_profile(
+                    user["email"], name, phone, username,
+                    job_title=job_title, department=department, bio=bio,
+                    profile_color=profile_color, timezone=timezone
+                )
 
-        self.pwd_error_lbl.setText("")
+                if success:
+                    updated = ProfileService.get_profile(user["email"])
+                    self.load_user_data(updated)
+                    self.profile_updated.emit(updated)
+                    self.show_toast("Profile updated successfully!", is_error=False)
+                    # Switch view back to view mode in JS
+                    self.web_view.page().runJavaScript("if (typeof toggleEditView === 'function') toggleEditView(false);")
+                else:
+                    self.show_toast(msg, is_error=True)
 
-        if not old_pwd or not new_pwd or not confirm_pwd:
-            self.pwd_error_lbl.setText("❌ All password fields are required.")
-            return
+        elif cmd in ["profile_reset_password", "profile_forgot_password", "forgot_password"]:
+            from PyQt6.QtWidgets import QDialog
+            from ui.forgot_password_dialog import ForgotPasswordDialog
+            user = UserSession.get_current_user()
+            email = user.get("email", "") if user else ""
+            dialog = ForgotPasswordDialog(self)
+            if email:
+                dialog.email_input.setText(email)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                self.show_toast("Password reset completed successfully!", is_error=False)
+                if email:
+                    updated = ProfileService.get_profile(email)
+                    self.load_user_data(updated)
 
-        # Check new password rules
-        special_chars = "!@#$%^&*()_+-=[]{}|;':\",./<>?`~"
-        if len(new_pwd) < 8:
-            self.pwd_error_lbl.setText("❌ New password must be at least 8 characters.")
-            return
-        if not any(c.isupper() for c in new_pwd):
-            self.pwd_error_lbl.setText("❌ New password must contain an uppercase letter.")
-            return
-        if not any(c.islower() for c in new_pwd):
-            self.pwd_error_lbl.setText("❌ New password must contain a lowercase letter.")
-            return
-        if not any(c.isdigit() for c in new_pwd):
-            self.pwd_error_lbl.setText("❌ New password must contain a number.")
-            return
-        if not any(c in special_chars for c in new_pwd):
-            self.pwd_error_lbl.setText("❌ New password must contain a special character.")
-            return
+        elif cmd == "profile_change_password":
+            if isinstance(payload, dict):
+                old_pwd = payload.get("old_password", "")
+                new_pwd = payload.get("new_password", "")
+                user = UserSession.get_current_user()
+                if not user:
+                    self.show_toast("No active session.", is_error=True)
+                    return
 
-        if new_pwd != confirm_pwd:
-            self.pwd_error_lbl.setText("❌ New passwords do not match.")
-            return
+                success, msg = ProfileService.change_password(user["email"], old_pwd, new_pwd)
+                if success:
+                    self.show_toast(msg, is_error=False)
+                    self.web_view.page().runJavaScript("if (typeof closePasswordModal === 'function') closePasswordModal();")
+                    updated = ProfileService.get_profile(user["email"])
+                    self.load_user_data(updated)
+                else:
+                    self.show_toast(msg, is_error=True)
 
-        self.password_change_requested.emit(old_pwd, new_pwd)
+        elif cmd == "profile_set_password":
+            if isinstance(payload, dict):
+                new_pwd = payload.get("new_password", "")
+                user = UserSession.get_current_user()
+                if not user:
+                    self.show_toast("No active session.", is_error=True)
+                    return
 
-    def show_success_toast(self, message):
-        """Displays a green Success Toast in the top right corner."""
-        toast = ToastNotification(self, f"✓ {message}")
-        toast.show_toast()
+                success, msg = ProfileService.set_password(user["email"], new_pwd)
+                if success:
+                    self.show_toast(msg, is_error=False)
+                    self.web_view.page().runJavaScript("if (typeof closePasswordModal === 'function') closePasswordModal();")
+                    updated = ProfileService.get_profile(user["email"])
+                    self.load_user_data(updated)
+                else:
+                    self.show_toast(msg, is_error=True)
 
-    def show_error(self, message):
-        """Displays an error toast message (red theme notification)."""
-        toast = ToastNotification(self, f"❌ {message}")
-        # Customize background to red
-        toast.setStyleSheet("QWidget#Toast { background-color: #EF4444; border-radius: 8px; }")
-        toast.show_toast()
+        elif cmd == "profile_update_notifications":
+            if isinstance(payload, dict):
+                user = UserSession.get_current_user()
+                if not user:
+                    return
+                email_n = payload.get("email_notifications", True)
+                desktop_n = payload.get("desktop_notifications", True)
+                stmt_n = payload.get("statement_notifications", True)
+
+                success, msg = ProfileService.update_notifications(user["email"], email_n, desktop_n, stmt_n)
+                if success:
+                    self.show_toast(msg, is_error=False)
+                    updated = ProfileService.get_profile(user["email"])
+                    self.load_user_data(updated)
+
+        elif cmd == "profile_disconnect_google":
+            user = UserSession.get_current_user()
+            if user:
+                success, msg = ProfileService.disconnect_google(user["email"])
+                if success:
+                    self.show_toast(msg, is_error=False)
+                    updated = ProfileService.get_profile(user["email"])
+                    self.load_user_data(updated)
+                else:
+                    self.show_toast(msg, is_error=True)
+
+        elif cmd == "profile_connect_google":
+            self.show_toast("Google connect feature uses Google sign in from login page.", is_error=False)
+
+    def show_toast(self, message: str, is_error: bool = False):
+        """Calls JavaScript showToast() function inside Profile HTML."""
+        safe_msg = message.replace("'", "\\'").replace("\n", " ")
+        err_bool = "true" if is_error else "false"
+        script = f"if (typeof showToast === 'function') showToast('{safe_msg}', {err_bool});"
+        self.web_view.page().runJavaScript(script)
+
+    def show_error(self, message: str):
+        self.show_toast(message, is_error=True)
+
+    def show_success_toast(self, message: str):
+        self.show_toast(message, is_error=False)
 
     def clear_password_fields(self):
-        self.old_pwd_input.clear()
-        self.new_pwd_input.clear()
-        self.confirm_pwd_input.clear()
-        self.reqs_widget.update_requirements("")
-        self.pwd_error_lbl.setText("")
+        self.web_view.page().runJavaScript("if (typeof closePasswordModal === 'function') closePasswordModal();")
 
-    def update_theme_style(self, theme):
-        """Updates ProfileWindow widgets, backgrounds, and text colors dynamically based on theme."""
+    def update_theme_style(self, theme: str):
+        """Updates Light/Dark mode styling dynamically based on system theme."""
         if theme == "dark":
-            self.setStyleSheet("""
-                QWidget {
-                    color: #F8FAFC;
-                }
-                QLineEdit {
-                    background-color: #0F172A;
-                    color: #F8FAFC;
-                    border: 1px solid #334155;
-                }
-            """)
+            script = "document.body.classList.add('dark-mode');"
         else:
-            self.setStyleSheet("")
-
-        # Dynamically skin labels and frame backgrounds inside ProfileWindow to match dark mode theme
-        for label in self.findChildren(QLabel):
-            style = label.styleSheet()
-            if theme == "dark" and "color: #0F172A" in style:
-                label.setStyleSheet(style.replace("color: #0F172A", "color: #F8FAFC"))
-            elif theme == "light" and "color: #F8FAFC" in style:
-                label.setStyleSheet(style.replace("color: #F8FAFC", "color: #0F172A"))
-                
-        for frame in self.findChildren(QFrame):
-            style = frame.styleSheet()
-            if theme == "dark" and "background-color: #FFFFFF" in style:
-                new_style = style.replace("background-color: #FFFFFF", "background-color: #1E293B")
-                new_style = new_style.replace("border: 1px solid #E2E8F0", "border: 1px solid #334155")
-                frame.setStyleSheet(new_style)
-            elif theme == "light" and "background-color: #1E293B" in style:
-                new_style = style.replace("background-color: #1E293B", "background-color: #FFFFFF")
-                new_style = new_style.replace("border: 1px solid #334155", "border: 1px solid #E2E8F0")
-                frame.setStyleSheet(new_style)
-
-        # Style the back button
-        if theme == "dark":
-            self.back_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #1E293B;
-                    color: #F8FAFC;
-                    border: 1px solid #334155;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    font-size: 13px;
-                    padding: 8px 16px;
-                }
-                QPushButton:hover {
-                    background-color: #334155;
-                    color: #FFFFFF;
-                    border-color: #475569;
-                }
-            """)
-        else:
-            self.back_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #FFFFFF;
-                    color: #475569;
-                    border: 1px solid #E2E8F0;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    font-size: 13px;
-                    padding: 8px 16px;
-                }
-                QPushButton:hover {
-                    background-color: #F8FAFC;
-                    color: #0F172A;
-                    border-color: #CBD5E1;
-                }
-            """)
+            script = "document.body.classList.remove('dark-mode');"
+        self.web_view.page().runJavaScript(script)

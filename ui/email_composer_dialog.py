@@ -162,7 +162,7 @@ class EmailComposerDialog(QDialog):
                 color: #0F172A;
             }
             QLabel {
-                font-family: 'Times New Roman';
+                font-family: 'Inter', sans-serif;
             }
             QLineEdit, QTextEdit {
                 border: 1px solid #CBD5E1;

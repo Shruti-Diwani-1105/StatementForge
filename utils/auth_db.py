@@ -261,7 +261,151 @@ class AuthDB:
         return True, "Password reset successfully!"
 
     @classmethod
-    def get_or_create_google_user(cls, email, name):
+    def get_user_profile(cls, email_or_id):
+        """
+        Fetches normalized user profile record for the current user.
+        Ensures default fallback values for optional profile fields.
+        """
+        email_clean = str(email_or_id).strip().lower()
+        now = datetime.datetime.utcnow()
+
+        collection = cls.get_mongo_collection()
+        if collection is not None:
+            try:
+                # Query by email or string _id
+                user = collection.find_one({"email": email_clean})
+                if not user:
+                    # Attempt ObjectId query if needed
+                    from bson.objectid import ObjectId
+                    try:
+                        user = collection.find_one({"_id": ObjectId(email_or_id)})
+                    except Exception:
+                        pass
+                
+                if user:
+                    has_pwd = bool(user.get("password")) and not user.get("is_google_only", False)
+                    return {
+                        "id": str(user.get("_id", "")),
+                        "name": user.get("full_name", user.get("name", "User")),
+                        "email": user.get("email", email_clean),
+                        "phone": user.get("phone", ""),
+                        "username": user.get("username", user.get("email", "").split('@')[0]),
+                        "role": user.get("role", "Administrator" if user.get("role") == "admin" else "User"),
+                        "status": user.get("status", "active"),
+                        "job_title": user.get("job_title", ""),
+                        "department": user.get("department", ""),
+                        "bio": user.get("bio", ""),
+                        "profile_picture": user.get("profile_picture", ""),
+                        "profile_color": user.get("profile_color", "#0037b0"),
+                        "timezone": user.get("timezone", "UTC (Coordinated Universal Time)"),
+                        "google_id": user.get("google_id", None),
+                        "has_password": has_pwd,
+                        "email_notifications": user.get("email_notifications", True),
+                        "desktop_notifications": user.get("desktop_notifications", True),
+                        "statement_notifications": user.get("statement_notifications", True),
+                        "created_at": user.get("created_at", now),
+                        "last_login": user.get("last_login", now)
+                    }
+            except Exception as e:
+                print(f"AuthDB: Error fetching profile for {email_clean}: {e}")
+
+        # Fallback to local memory dictionary
+        if email_clean in cls._users:
+            u = cls._users[email_clean]
+            has_pwd = bool(u.get("password") or u.get("hashed_password"))
+            return {
+                "id": email_clean,
+                "name": u.get("name", "User"),
+                "email": email_clean,
+                "phone": u.get("phone", ""),
+                "username": u.get("username", email_clean.split('@')[0]),
+                "role": u.get("role", "User"),
+                "status": u.get("status", "active"),
+                "job_title": u.get("job_title", ""),
+                "department": u.get("department", ""),
+                "bio": u.get("bio", ""),
+                "profile_picture": u.get("profile_picture", ""),
+                "profile_color": u.get("profile_color", "#0037b0"),
+                "timezone": u.get("timezone", "UTC (Coordinated Universal Time)"),
+                "google_id": u.get("google_id", None),
+                "has_password": has_pwd,
+                "email_notifications": u.get("email_notifications", True),
+                "desktop_notifications": u.get("desktop_notifications", True),
+                "statement_notifications": u.get("statement_notifications", True),
+                "created_at": u.get("created_at", now),
+                "last_login": u.get("last_login", now)
+            }
+
+        # Clean empty fallback structure if user record isn't found
+        return {
+            "id": email_clean,
+            "name": "User",
+            "email": email_clean,
+            "phone": "",
+            "username": email_clean.split('@')[0] if '@' in email_clean else email_clean,
+            "role": "User",
+            "status": "active",
+            "job_title": "",
+            "department": "",
+            "bio": "",
+            "profile_picture": "",
+            "profile_color": "#0037b0",
+            "timezone": "UTC (Coordinated Universal Time)",
+            "google_id": None,
+            "has_password": False,
+            "email_notifications": True,
+            "desktop_notifications": True,
+            "statement_notifications": True,
+            "created_at": now,
+            "last_login": now
+        }
+
+    @classmethod
+    def update_user_profile(cls, email, profile_dict):
+        """
+        Updates profile fields for the user identified by email.
+        Refuses to update sensitive security credentials (e.g., _id, password).
+        """
+        email_clean = email.strip().lower()
+        allowed_fields = {
+            "full_name", "name", "phone", "username", "job_title", 
+            "department", "bio", "profile_picture", "profile_color", 
+            "timezone", "email_notifications", "desktop_notifications", 
+            "statement_notifications", "google_id"
+        }
+        
+        update_payload = {}
+        for k, v in profile_dict.items():
+            if k in allowed_fields:
+                if k == "name":
+                    update_payload["full_name"] = v
+                else:
+                    update_payload[k] = v
+
+        if not update_payload:
+            return True
+
+        collection = cls.get_mongo_collection()
+        if collection is not None:
+            try:
+                collection.update_one({"email": email_clean}, {"$set": update_payload})
+                return True
+            except Exception as e:
+                print(f"AuthDB: Error updating profile for {email_clean}: {e}")
+                return False
+
+        # In-memory fallback
+        if email_clean in cls._users:
+            for k, v in update_payload.items():
+                if k == "full_name":
+                    cls._users[email_clean]["name"] = v
+                else:
+                    cls._users[email_clean][k] = v
+            return True
+        return False
+
+    @classmethod
+    def get_or_create_google_user(cls, email, name, google_id=None, profile_pic=None):
         """
         Authenticates a user via Google.
         If the email is not registered, automatically registers a new account with a random password.
@@ -275,32 +419,26 @@ class AuthDB:
         # Check if user exists
         exists = cls.user_exists(email_clean)
         if not exists:
-            # Generate a secure random password for the user record
             random_password = secrets.token_urlsafe(16) + "A1!"
             registered = cls.register_user(name, email_clean, "", random_password)
             if not registered:
                 return False, "Failed to auto-register Google account.", None
 
-        # Login/validate user details without checking password
         collection = cls.get_mongo_collection()
         now = datetime.datetime.utcnow()
         if collection is not None:
             try:
                 user = collection.find_one({"email": email_clean})
                 if user:
-                    collection.update_one({"_id": user["_id"]}, {"$set": {"last_login": now}})
-                    user_details = {
-                        "id": str(user.get("_id", "")),
-                        "name": user.get("full_name", ""),
-                        "email": user.get("email", ""),
-                        "phone": user.get("phone", ""),
-                        "username": user.get("username", user.get("email", "").split('@')[0]),
-                        "role": user.get("role", "user"),
-                        "status": user.get("status", "active"),
-                        "created_at": user.get("created_at", now),
-                        "last_login": now
-                    }
-                    return True, "Google login successful!", user_details
+                    updates = {"last_login": now}
+                    if google_id and not user.get("google_id"):
+                        updates["google_id"] = google_id
+                    if profile_pic and not user.get("profile_picture"):
+                        updates["profile_picture"] = profile_pic
+                    collection.update_one({"_id": user["_id"]}, {"$set": updates})
+                    
+                    profile_details = cls.get_user_profile(email_clean)
+                    return True, "Google login successful!", profile_details
             except Exception as e:
                 print(f"AuthDB: MongoDB google login error ({e}). Falling back to in-memory.")
 
@@ -308,20 +446,12 @@ class AuthDB:
         if email_clean in cls._users:
             user = cls._users[email_clean]
             user["last_login"] = now
-            if "created_at" not in user:
-                user["created_at"] = now - datetime.timedelta(days=2)
-            user_details = {
-                "id": email_clean,
-                "name": user.get("name", "User"),
-                "email": email_clean,
-                "phone": user.get("phone", ""),
-                "username": user.get("username", email_clean.split('@')[0]),
-                "role": user.get("role", "user"),
-                "status": user.get("status", "active"),
-                "created_at": user.get("created_at", now),
-                "last_login": now
-            }
-            return True, "Google login successful!", user_details
+            if google_id:
+                user["google_id"] = google_id
+            if profile_pic and not user.get("profile_picture"):
+                user["profile_picture"] = profile_pic
+            profile_details = cls.get_user_profile(email_clean)
+            return True, "Google login successful!", profile_details
 
         return False, "Failed to retrieve Google user details.", None
 
@@ -342,5 +472,6 @@ class AuthDB:
             cls._users[email_clean]["last_login"] = None
             return True
         return False
+
 
 

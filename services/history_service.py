@@ -187,6 +187,7 @@ class HistoryService:
                 mapped = []
                 for doc in records:
                     mapped.append({
+                        "id": str(doc.get("_id", "")),
                         "file_name": os.path.basename(doc.get("pdf_path", "")) or "Statement.pdf",
                         "bank_name": doc.get("bank_name", "Unknown Bank"),
                         "upload_date": doc.get("upload_date"),
@@ -205,12 +206,34 @@ class HistoryService:
         mapped = []
         for log in filtered:
             mapped.append({
+                "id": str(log.get("_id", "")),
                 "file_name": os.path.basename(log.get("pdf_path", "")) or "Statement.pdf",
                 "bank_name": log.get("bank_name", "Unknown Bank"),
                 "upload_date": log.get("upload_date"),
                 "status": log.get("status", "Completed")
             })
         return mapped
+
+    @classmethod
+    def clear_all_recent_activity(cls, user_id=None):
+        """Clears all statement activity history records for the specified user_id."""
+        if not user_id:
+            return False
+        user_id_str = str(user_id)
+        cls._load_local_fallback()
+        
+        # 1. MongoDB Delete
+        col = MongoDBService.get_collection()
+        if col is not None:
+            try:
+                col.delete_many({"user_id": user_id_str})
+            except Exception as e:
+                print(f"HistoryService: Failed to clear all MongoDB records: {e}")
+
+        # 2. Local Fallback Delete
+        cls._local_fallback_logs = [log for log in cls._local_fallback_logs if str(log.get("user_id")) != user_id_str]
+        cls._save_local_fallback()
+        return True
 
     @classmethod
     def get_history_logs(cls, user_id=None):

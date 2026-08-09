@@ -194,10 +194,11 @@ class DashboardScreen(QWidget):
     def set_user_profile(self, user_details):
         """Updates the dashboard greeting and topbar initials avatar with user details."""
         full_name = user_details.get("name", "User")
+        profile_color = user_details.get("profile_color", "#0037b0")
         
         # Update TopBar details
         if hasattr(self, "topbar") and self.topbar is not None:
-            self.topbar.update_profile(full_name)
+            self.topbar.update_profile(full_name, profile_color)
             
         # Update Welcome Greeting first name
         first_name = full_name.split()[0] if full_name.strip() else "User"
@@ -290,6 +291,7 @@ class DashboardScreen(QWidget):
                     if hasattr(upload_dt, "isoformat"):
                         upload_dt = upload_dt.isoformat()
                     formatted_recent.append({
+                        "id": str(item.get("id", "")),
                         "file_name": item.get("file_name", "Statement.pdf"),
                         "bank_name": item.get("bank_name", "Unknown Bank"),
                         "upload_date": str(upload_dt)
@@ -297,16 +299,24 @@ class DashboardScreen(QWidget):
                 json_str = json.dumps(formatted_recent)
                 script = f"""
                 var listEl = document.getElementById('activity-list');
+                var clearAllBtn = document.getElementById('btn-clear-all-activity');
                 if (listEl) {{
                     listEl.innerHTML = '';
                     var items = {json_str};
                     if (!items || items.length === 0) {{
-                        listEl.innerHTML = '<p style="color:#64748B;font-size:13px;">No recent statement activity recorded.</p>';
+                        if (clearAllBtn) clearAllBtn.style.display = 'none';
+                        listEl.innerHTML = '<p style="color:#64748B;font-size:13px;padding:8px 0;">No recent statement activity recorded.</p>';
                     }} else {{
+                        if (clearAllBtn) clearAllBtn.style.display = 'inline-block';
                         items.forEach(function(item) {{
                             var div = document.createElement('div');
                             div.className = 'activity-item';
-                            div.innerHTML = '<span class="activity-bullet">✓</span><div class="activity-info"><span class="activity-filename">' + (item.file_name || 'Statement.pdf') + '</span><span class="activity-sub">' + (item.bank_name || 'Unknown Bank') + '</span></div>';
+                            div.innerHTML = '<span class="activity-bullet">✓</span>' +
+                                '<div class="activity-info">' +
+                                    '<span class="activity-filename">' + (item.file_name || 'Statement.pdf') + '</span>' +
+                                    '<span class="activity-sub">' + (item.bank_name || 'Unknown Bank') + '</span>' +
+                                '</div>' +
+                                '<button type="button" class="btn-delete-activity" onclick="event.stopPropagation(); sendAppCommand(\\'dash_clear_activity_item\\', \\'' + item.id + '\\')" title="Delete activity entry">✕</button>';
                             listEl.appendChild(div);
                         }});
                     }}
@@ -406,6 +416,19 @@ class DashboardScreen(QWidget):
                 self.show_coming_soon("Tally Export")
             else:
                 self.show_coming_soon(payload)
+        elif cmd == "dash_clear_activity_item":
+            record_id = payload.strip()
+            if record_id:
+                from services.history_service import HistoryService
+                HistoryService.delete_record(record_id)
+                self.update_dashboard_stats()
+        elif cmd == "dash_clear_all_activity":
+            from utils.user_session import UserSession
+            user = UserSession.get_current_user()
+            if user:
+                from services.history_service import HistoryService
+                HistoryService.clear_all_recent_activity(user.get("id"))
+                self.update_dashboard_stats()
 
     def create_upload_page(self):
         """Creates the interactive PDF Upload Statement module."""
@@ -446,219 +469,16 @@ class DashboardScreen(QWidget):
 
     def instantiate_history_page(self):
         """History Page presenting actual processed transaction logs."""
-        page = QWidget()
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(32, 24, 32, 32)
-        page_layout.setSpacing(20)
-        
-        header_lbl = QLabel("Statement History")
-        header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A;")
-        sub_lbl = QLabel("Review previously uploaded and parsed financial statements.")
-        sub_lbl.setStyleSheet("color: #64748B; font-size: 13px;")
-        
-        page_layout.addWidget(header_lbl)
-        page_layout.addWidget(sub_lbl)
-        
-        # Table widget setup
-        table_container = QFrame()
-        table_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        table_container.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;")
-        tc_layout = QVBoxLayout(table_container)
-        tc_layout.setContentsMargins(12, 12, 12, 12)
-        
-        self.history_table = QTableWidget()
-        self.history_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.history_table.setColumnCount(6)
-        self.history_table.setHorizontalHeaderLabels(["Upload Date", "File Name", "Bank Name", "Status", "Output Format", "Action"])
-        
-        # Custom section resize modes and initial/minimum widths for columns
-        header = self.history_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive) # Upload Date
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)     # File Name
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)     # Bank Name
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive) # Status
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Interactive) # Output Format
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Interactive) # Action
-        
-        self.history_table.setColumnWidth(0, 150) # Upload Date
-        self.history_table.setColumnWidth(3, 130) # Status
-        self.history_table.setColumnWidth(4, 110) # Output Format
-        self.history_table.setColumnWidth(5, 180) # Action
-        
-        # Align headers explicitly
-        for col_idx, alignment in enumerate([
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
-            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
-            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-        ]):
-            header_item = self.history_table.horizontalHeaderItem(col_idx)
-            if header_item:
-                header_item.setTextAlignment(alignment)
-                
-        # Scrollbars only as needed
-        self.history_table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.history_table.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        
-        # Row heights consistent at 44px
-        self.history_table.verticalHeader().setDefaultSectionSize(44)
-        
-        self.history_table.setStyleSheet("border: none; gridline-color: #F1F5F9;")
-        self.history_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.history_table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
-        
-        tc_layout.addWidget(self.history_table)
-        page_layout.addWidget(table_container)
-        
-        return page
+        from ui.statement_history_page import StatementHistoryPage
+        self.statement_history_widget = StatementHistoryPage(self)
+        self.statement_history_widget.recordDeleted.connect(self.update_dashboard_stats)
+        return self.statement_history_widget
 
     def load_history_table(self):
         """Loads actual user-generated statement log history from database/local file."""
         self.ensure_page_loaded("history")
-        from utils.user_session import UserSession
-        user = UserSession.get_current_user()
-        user_id = user["id"] if user else "guest"
-        
-        def db_query():
-            from services.history_service import HistoryService
-            return HistoryService.get_history_logs(user_id=user_id)
-            
-        def db_callback(logs):
-            self.history_table.setRowCount(0)
-            self.history_table.setRowCount(len(logs))
-            
-            from PyQt6.QtGui import QCursor
-            
-            for row_idx, log in enumerate(logs):
-                # 1. Upload Date
-                upload_date = log.get("upload_date", "")
-                if isinstance(upload_date, str) and "T" in upload_date:
-                    try:
-                        dt = datetime.datetime.fromisoformat(upload_date)
-                        date_str = dt.strftime("%Y-%m-%d %H:%M")
-                    except:
-                        date_str = upload_date.replace("T", " ")[:16]
-                elif hasattr(upload_date, "strftime"):
-                    date_str = upload_date.strftime("%Y-%m-%d %H:%M")
-                else:
-                    date_str = str(upload_date)[:16]
-                    
-                date_item = QTableWidgetItem(date_str)
-                date_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-                date_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                self.history_table.setItem(row_idx, 0, date_item)
-                
-                # 2. File Name
-                pdf_path = log.get("pdf_path", "")
-                file_name = os.path.basename(pdf_path) if pdf_path else "Unknown.pdf"
-                file_item = QTableWidgetItem(file_name)
-                file_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-                file_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                self.history_table.setItem(row_idx, 1, file_item)
-                
-                # 3. Bank Name
-                bank_name = log.get("bank_name", "Unknown Bank")
-                bank_item = QTableWidgetItem(bank_name)
-                bank_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-                bank_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                self.history_table.setItem(row_idx, 2, bank_item)
-                
-                # 4. Status (Processing, Completed, Failed, Cancelled)
-                status = log.get("status", "Completed")
-                status_colors = {
-                    "Completed": "#16A34A",
-                    "Processing": "#2563EB",
-                    "Failed": "#EF4444",
-                    "Cancelled": "#4B5563"
-                }
-                color = status_colors.get(status, "#4B5563")
-                
-                status_container = QWidget()
-                sc_layout = QHBoxLayout(status_container)
-                sc_layout.setContentsMargins(4, 4, 4, 4)
-                sc_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                
-                status_badge = QLabel(status)
-                status_badge.setFixedSize(100, 22)
-                status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                status_badge.setStyleSheet(f"""
-                    QLabel {{
-                        background-color: {color}1A;
-                        color: {color};
-                        font-weight: 600;
-                        font-size: 11px;
-                        border-radius: 11px;
-                        border: 1px solid {color}33;
-                    }}
-                """)
-                sc_layout.addWidget(status_badge)
-                self.history_table.setCellWidget(row_idx, 3, status_container)
-                
-                # 5. Output Format
-                out_fmt = log.get("output_format", "Excel") if status == "Completed" else "-"
-                fmt_item = QTableWidgetItem(out_fmt)
-                fmt_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-                fmt_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
-                self.history_table.setItem(row_idx, 4, fmt_item)
-                
-                # 6. Action
-                action_container = QWidget()
-                ac_layout = QHBoxLayout(action_container)
-                ac_layout.setContentsMargins(4, 4, 4, 4)
-                ac_layout.setSpacing(8)
-                ac_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                
-                # Delete Button (Always available)
-                delete_btn = QPushButton("Delete")
-                delete_btn.setFixedSize(60, 22)
-                delete_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-                delete_btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: #FEE2E2;
-                        color: #DC2626;
-                        border: none;
-                        border-radius: 6px;
-                        font-weight: 600;
-                        font-size: 11px;
-                    }
-                    QPushButton:hover {
-                        background-color: #FCA5A5;
-                    }
-                """)
-                rec_id = log.get("_id")
-                delete_btn.clicked.connect(lambda checked, rid=rec_id: self.delete_history_record(rid))
-
-                if status == "Completed":
-                    view_btn = QPushButton("View")
-                    view_btn.setFixedSize(60, 22)
-                    view_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-                    view_btn.setStyleSheet("""
-                        QPushButton {
-                            background-color: #EFF6FF;
-                            color: #2563EB;
-                            border: none;
-                            border-radius: 6px;
-                            font-weight: 600;
-                            font-size: 11px;
-                        }
-                        QPushButton:hover {
-                            background-color: #DBEAFE;
-                        }
-                    """)
-                    excel_path = log.get("excel_path", "")
-                    view_btn.clicked.connect(lambda checked, ep=excel_path: self.open_history_file(ep))
-                    ac_layout.addWidget(view_btn)
-                else:
-                    act_lbl = QLabel(status)
-                    act_lbl.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: 500; margin-right: 4px;")
-                    ac_layout.addWidget(act_lbl)
-                
-                ac_layout.addWidget(delete_btn)
-                self.history_table.setCellWidget(row_idx, 5, action_container)
-
-        self._safe_run_query(db_query, db_callback)
+        if hasattr(self, "statement_history_widget") and self.statement_history_widget:
+            self.statement_history_widget.load_history_data()
 
     def open_history_file(self, filepath):
         if not filepath or not os.path.exists(filepath):
@@ -908,6 +728,12 @@ class DashboardScreen(QWidget):
 
         if hasattr(self, "gst_report_widget") and self.gst_report_widget is not None:
             self.gst_report_widget.update_theme_style(theme)
+
+        if hasattr(self, "statement_history_widget") and self.statement_history_widget is not None:
+            self.statement_history_widget.apply_theme(theme_clean)
+
+        if hasattr(self, "email_history_widget") and self.email_history_widget is not None:
+            self.email_history_widget.apply_theme(theme_clean)
 
     def reset_screen_data(self):
         """Purges cached dashboard metrics, tables, and HTML elements on user logout."""

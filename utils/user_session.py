@@ -19,6 +19,15 @@ class UserSession:
         return cls._current_user
 
     @classmethod
+    def update_session_user(cls, updated_data):
+        """Updates in-memory session user data and persists changes to disk."""
+        if cls._current_user is None:
+            cls._current_user = {}
+        cls._current_user.update(updated_data)
+        cls.save_session(cls._current_user)
+        return cls._current_user
+
+    @classmethod
     def clear_session(cls):
         """Clears active session on logout."""
         cls._current_user = None

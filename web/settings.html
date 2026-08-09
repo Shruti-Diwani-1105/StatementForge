@@ -39,11 +39,11 @@
         <!-- 2. SCROLLABLE CONTENT AREA -->
         <main class="settings-content-area" id="settingsContentArea">
 
-            <!-- TAB 1: GENERAL SETTINGS (APPLICATION INFORMATION) -->
+            <!-- TAB 1: GENERAL SETTINGS (APPLICATION PREFERENCES & SYSTEM HEALTH) -->
             <section class="tab-panel active" id="panel-general">
                 <header class="panel-header">
-                    <h2 class="panel-title">General Information</h2>
-                    <p class="panel-subtitle">View application information, system components, and platform details.</p>
+                    <h2 class="panel-title">General Settings</h2>
+                    <p class="panel-subtitle">Manage application preferences, default export paths, and system health status.</p>
                 </header>
 
                 <!-- Hidden inputs to preserve Python backend & FieldProxy bindings cleanly -->
@@ -53,56 +53,89 @@
                 <input type="hidden" id="genAutoSave" value="true">
                 <span id="genSaveLocationErr" style="display:none;"></span>
 
-                <!-- 1. Application Information Card -->
-                <div class="settings-card info-card">
-                    <h3 class="card-section-title">Application Information</h3>
-                    <div class="info-grid-2col mt-14">
-                        <div class="info-row">
-                            <span class="info-label">Application Name</span>
-                            <span class="info-value">StatementForge</span>
+                <!-- 1. Application Preferences Card -->
+                <div class="settings-card" style="margin-bottom: 16px;">
+                    <h3 class="card-section-title">Application Preferences</h3>
+                    <p class="card-section-subtitle">Configure directory paths, language, and automated backups.</p>
+
+                    <div class="form-group-list mt-14">
+                        <!-- Save Location Row -->
+                        <div class="form-row-item">
+                            <div class="form-row-info">
+                                <label class="form-row-label">Default Save Location</label>
+                                <p class="form-row-desc">Directory path for parsed statement outputs and generated reports.</p>
+                            </div>
+                            <div class="form-row-control" style="display: flex; gap: 8px; align-items: center; width: 340px;">
+                                <input type="text" class="input-text-field" id="genSaveLocationDisplay" value="C:\Users\Documents\StatementForge" readonly style="flex: 1;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBrowseFolder()">Browse...</button>
+                            </div>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Version</span>
-                            <span class="info-value">v2.4 Enterprise</span>
+
+                        <!-- Language Row -->
+                        <div class="form-row-item">
+                            <div class="form-row-info">
+                                <label class="form-row-label">Primary Language</label>
+                                <p class="form-row-desc">Interface display and report localization language.</p>
+                            </div>
+                            <div class="form-row-control" style="width: 340px;">
+                                <select class="input-select-field" id="genLangSelect" style="width: 100%;" onchange="notifyFieldChange('gen_language', this.value)">
+                                    <option value="English (US)" selected>English (US)</option>
+                                    <option value="English (UK)">English (UK)</option>
+                                    <option value="Hindi">Hindi (हिंदी)</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Build</span>
-                            <span class="info-value">2026.07.28</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Platform</span>
-                            <span class="info-value">Windows • macOS • Linux</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Database</span>
-                            <span class="info-value">MongoDB Atlas</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">AI Engine</span>
-                            <span class="info-value">Google Gemini AI</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">OCR Engine</span>
-                            <span class="info-value">Tesseract OCR</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Export Format</span>
-                            <span class="info-value">Excel (.xlsx)</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Language</span>
-                            <span class="info-value">English</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">License</span>
-                            <span class="info-value">Enterprise Edition</span>
+
+                        <!-- Auto Save Backup Row -->
+                        <div class="form-row-item">
+                            <div class="form-row-info">
+                                <label class="form-row-label">Automatic Statement Backup</label>
+                                <p class="form-row-desc">Automatically archive statement JSON metadata after parsing.</p>
+                            </div>
+                            <div class="form-row-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="genAutoSaveCheckbox" checked onchange="notifyFieldChange('gen_auto_save', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 2. System Status Card -->
-                <div class="settings-card info-card">
-                    <h3 class="card-section-title">System Status</h3>
+                <!-- 2. Export & Formatting Defaults -->
+                <div class="settings-card" style="margin-bottom: 16px;">
+                    <h3 class="card-section-title">Export &amp; Formatting Defaults</h3>
+                    <p class="card-section-subtitle">Default file types and numerical formatting for reports.</p>
+
+                    <div class="about-split-grid mt-14">
+                        <div class="sys-info-grid">
+                            <div class="sys-info-row">
+                                <span class="sys-label">Primary Export Format</span>
+                                <span class="sys-val">Excel (.xlsx)</span>
+                            </div>
+                            <div class="sys-info-row">
+                                <span class="sys-label">Date Format Standard</span>
+                                <span class="sys-val">YYYY-MM-DD</span>
+                            </div>
+                        </div>
+                        <div class="sys-info-grid">
+                            <div class="sys-info-row">
+                                <span class="sys-label">Default Currency</span>
+                                <span class="sys-val">INR (₹) / Multi-Currency</span>
+                            </div>
+                            <div class="sys-info-row">
+                                <span class="sys-label">Decimal Precision</span>
+                                <span class="sys-val">2 Decimal Places (.00)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. System Connection Health Card -->
+                <div class="settings-card">
+                    <h3 class="card-section-title">System Connection Health</h3>
+                    <p class="card-section-subtitle">Realtime operational status of backend services and database engines.</p>
+
                     <div class="status-grid mt-14">
                         <div class="status-item">
                             <span class="status-label">Application Status</span>
@@ -113,81 +146,82 @@
                             <span class="status-value"><span class="status-dot green-dot"></span> Connected</span>
                         </div>
                         <div class="status-item">
-                            <span class="status-label">AI Engine</span>
+                            <span class="status-label">AI Vision Engine</span>
                             <span class="status-value"><span class="status-dot green-dot"></span> Ready</span>
                         </div>
                         <div class="status-item">
-                            <span class="status-label">OCR Engine</span>
+                            <span class="status-label">OCR Text Engine</span>
                             <span class="status-value"><span class="status-dot green-dot"></span> Ready</span>
                         </div>
                     </div>
                 </div>
-
-                <!-- 3. About StatementForge Card -->
-                <div class="settings-card info-card">
-                    <h3 class="card-section-title">About StatementForge</h3>
-                    <p class="about-text mt-14">
-                        StatementForge is an AI-powered desktop application for automated bank statement parsing, transaction extraction, financial auditing, duplicate detection, GST reporting, and accounting report generation.
-                    </p>
-                </div>
             </section>
 
 
-            <!-- TAB 2: ACCOUNT PAGE (DYNAMIC AUTHENTICATED USER DATA) -->
+            <!-- TAB 2: ACCOUNT PAGE (READ-ONLY PROFILE DETAILS) -->
             <section class="tab-panel" id="panel-account">
                 <header class="panel-header">
                     <h2 class="panel-title">Account Profile</h2>
-                    <p class="panel-subtitle">Manage personal profile information, system credentials, and security settings.</p>
+                    <p class="panel-subtitle">View your authenticated profile details and security credentials.</p>
                 </header>
 
                 <div class="settings-card profile-hero-card">
                     <div class="profile-hero-inner">
-                        <div class="avatar-gradient-ring">
-                            <div class="profile-avatar-circle" id="accAvatarCircle">--</div>
+                        <div class="profile-avatar-wrapper">
+                            <div class="profile-avatar-circle" id="accAvatarCircle">K</div>
                         </div>
                         <div class="profile-hero-meta">
-                            <div class="hero-name-row">
-                                <h3 class="profile-user-name" id="accNameDisplay">User</h3>
-                                <span class="badge badge-active">● Active Account</span>
-                                <span class="badge badge-role" id="accRoleLbl">User</span>
-                            </div>
+                            <h3 class="profile-user-name" id="accNameDisplay">User</h3>
                             <p class="profile-user-email" id="accEmailDisplay">user@statementforge.com</p>
-                            <div class="profile-pill-tags">
-                                <span class="tag-pill" id="accDateLbl">📅 Member since: Active</span>
-                                <span class="tag-pill">🔒 Security Tier 1</span>
-                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="settings-card">
-                    <h3 class="card-section-title">Personal Information</h3>
-                    <div class="form-grid-2col mt-14">
-                        <div class="form-group">
-                            <label class="form-label" for="accUsername">Username</label>
-                            <input type="text" id="accUsername" class="form-control" value="" placeholder="Username" oninput="notifyFieldChange('account_username', this.value)">
-                            <span class="form-hint error-hint" id="accUsernameErr"></span>
+                    <h3 class="card-section-title">Personal Profile Details</h3>
+                    <div class="read-only-profile-grid mt-14">
+                        <div class="info-cell">
+                            <span class="info-label">Full Name</span>
+                            <span class="info-value" id="accValName">User</span>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label" for="accName">Full Name</label>
-                            <input type="text" id="accName" class="form-control" value="" placeholder="Full Name" oninput="notifyFieldChange('account_name', this.value); updateAvatarInitials(this.value)">
-                            <span class="form-hint error-hint" id="accNameErr"></span>
+                        <div class="info-cell">
+                            <span class="info-label">Username</span>
+                            <span class="info-value" id="accValUsername">user</span>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label" for="accEmail">Email Address</label>
-                            <input type="email" id="accEmail" class="form-control" value="" placeholder="user@domain.com" oninput="notifyFieldChange('account_email', this.value)">
+                        <div class="info-cell">
+                            <span class="info-label">Email Address</span>
+                            <span class="info-value" id="accValEmail">user@statementforge.com</span>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label" for="accPhone">Phone Number</label>
-                            <input type="tel" id="accPhone" class="form-control" value="" placeholder="+1 (000) 000-0000" oninput="notifyFieldChange('account_phone', this.value)">
-                            <span class="form-hint error-hint" id="accPhoneErr"></span>
+                        <div class="info-cell">
+                            <span class="info-label">Phone Number</span>
+                            <span class="info-value" id="accValPhone">Not specified</span>
                         </div>
+                        <div class="info-cell">
+                            <span class="info-label">Job Title</span>
+                            <span class="info-value" id="accValJob">Not specified</span>
+                        </div>
+                        <div class="info-cell">
+                            <span class="info-label">Department</span>
+                            <span class="info-value" id="accValDept">Not specified</span>
+                        </div>
+                        <div class="info-cell">
+                            <span class="info-label">Timezone</span>
+                            <span class="info-value" id="accValTimezone">UTC (Coordinated Universal Time)</span>
+                        </div>
+                        <div class="info-cell">
+                            <span class="info-label">Account Status</span>
+                            <span class="info-value text-green">Active • Verified</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-cell-full mt-14">
+                        <span class="info-label">Biography</span>
+                        <div class="info-value-box" id="accValBio">No biography added yet.</div>
                     </div>
                 </div>
 
-                <!-- MODERN ENTERPRISE SECURITY & PASSWORD PANEL -->
+                <!-- MODERN ENTERPRISE SECURITY & CREDENTIALS PANEL -->
                 <div class="settings-card security-panel-card">
-                    <!-- 1. Header Section -->
                     <div class="security-card-header">
                         <div class="security-header-left">
                             <div class="security-icon-shield">
@@ -199,14 +233,12 @@
                             </div>
                             <div class="security-header-titles">
                                 <div class="security-title-badge-row">
-                                    <h3 class="card-section-title security-title">🛡 Security &amp; Password</h3>
-                                    <span class="badge badge-enterprise">Enterprise Tier</span>
+                                    <h3 class="card-section-title security-title">🛡 Security &amp; Credentials</h3>
                                 </div>
-                                <p class="card-section-subtitle">Protect your StatementForge account with secure credentials.</p>
+                                <p class="card-section-subtitle">Account security status and authentication summary.</p>
                             </div>
                         </div>
 
-                        <!-- Security Status Badge -->
                         <div class="security-status-box">
                             <div class="security-status-badge status-protected" id="secStatusBadge">
                                 <span class="status-dot"></span>
@@ -217,129 +249,23 @@
 
                     <div class="sec-divider"></div>
 
-                    <!-- 2. Password Inputs Section -->
-                    <div class="security-form-container">
-                        <!-- Current Password -->
-                        <div class="form-group sec-form-group">
-                            <label class="form-label" for="accOldPwd">Current Password</label>
-                            <div class="sec-input-wrapper">
-                                <input type="password" id="accOldPwd" class="form-control sec-input" placeholder="Enter current password">
-                                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('accOldPwd', this)" title="Toggle password visibility">
-                                    <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                                    <span class="pwd-toggle-text">👁 Show/Hide</span>
-                                </button>
-                            </div>
+                    <div class="read-only-profile-grid">
+                        <div class="info-cell">
+                            <span class="info-label">Authentication Method</span>
+                            <span class="info-value" id="accValAuthMethod">Standard Password &amp; OAuth</span>
                         </div>
-
-                        <!-- New Password & Confirm Password 2-Col Grid -->
-                        <div class="form-grid-2col sec-inputs-grid">
-                            <div class="form-group sec-form-group">
-                                <label class="form-label" for="accNewPwd">New Password</label>
-                                <div class="sec-input-wrapper">
-                                    <input type="password" id="accNewPwd" class="form-control sec-input" placeholder="Create new password" oninput="evaluatePasswordSecurity(this.value)">
-                                    <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('accNewPwd', this)" title="Toggle password visibility">
-                                        <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                        <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                                        <span class="pwd-toggle-text">👁 Show/Hide</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="form-group sec-form-group">
-                                <label class="form-label" for="accConfirmPwd">Confirm New Password</label>
-                                <div class="sec-input-wrapper">
-                                    <input type="password" id="accConfirmPwd" class="form-control sec-input" placeholder="Confirm new password" oninput="verifyPasswordMatch()">
-                                    <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('accConfirmPwd', this)" title="Toggle password visibility">
-                                        <svg class="eye-icon eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                        <svg class="eye-icon eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                                        <span class="pwd-toggle-text">👁 Show/Hide</span>
-                                    </button>
-                                </div>
-                            </div>
+                        <div class="info-cell">
+                            <span class="info-label">Google Connection</span>
+                            <span class="info-value" id="accValGoogleStatus">Not connected</span>
                         </div>
-                        <span class="form-hint error-hint" id="accPwdMatchErr" style="display:none; margin-top:6px;">Passwords do not match. Please verify.</span>
-                    </div>
-
-                    <div class="sec-divider"></div>
-
-                    <!-- 3. Password Strength Indicator -->
-                    <div class="sec-strength-block">
-                        <div class="strength-header">
-                            <span class="sec-block-title">Password Strength</span>
-                            <span class="strength-tag tag-none" id="strengthTag">Not Set</span>
+                        <div class="info-cell">
+                            <span class="info-label">Email Verification</span>
+                            <span class="info-value text-green">✓ Verified</span>
                         </div>
-
-                        <div class="strength-progress-bar">
-                            <div class="strength-progress-fill" id="strengthProgressFill"></div>
+                        <div class="info-cell">
+                            <span class="info-label">Password Management</span>
+                            <span class="info-value"><a href="#" onclick="sendAppCommand('settings_open_profile', ''); return false;" style="color:#0037b0; text-decoration:none; font-weight:600;">Reset in Profile Settings →</a></span>
                         </div>
-
-                        <div class="strength-radios-row">
-                            <div class="strength-radio-item" id="radioWeak">
-                                <span class="radio-circle"></span>
-                                <span class="radio-label">Weak</span>
-                            </div>
-                            <div class="strength-radio-item" id="radioFair">
-                                <span class="radio-circle"></span>
-                                <span class="radio-label">Fair</span>
-                            </div>
-                            <div class="strength-radio-item" id="radioStrong">
-                                <span class="radio-circle"></span>
-                                <span class="radio-label">Strong</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="sec-divider"></div>
-
-                    <!-- 4. Password Requirements Checklist -->
-                    <div class="sec-requirements-block">
-                        <span class="sec-block-title">Password Requirements</span>
-                        <div class="requirements-checklist-grid">
-                            <div class="req-item" id="reqLength">
-                                <span class="req-icon">✓</span>
-                                <span class="req-label">Minimum 8 characters</span>
-                            </div>
-                            <div class="req-item" id="reqUpper">
-                                <span class="req-icon">✓</span>
-                                <span class="req-label">One uppercase letter</span>
-                            </div>
-                            <div class="req-item" id="reqLower">
-                                <span class="req-icon">✓</span>
-                                <span class="req-label">One lowercase letter</span>
-                            </div>
-                            <div class="req-item" id="reqNum">
-                                <span class="req-icon">✓</span>
-                                <span class="req-label">One number</span>
-                            </div>
-                            <div class="req-item" id="reqSpec">
-                                <span class="req-icon">✓</span>
-                                <span class="req-label">One special character</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="sec-divider"></div>
-
-                    <!-- 5. Last Password Changed -->
-                    <div class="sec-last-changed-block">
-                        <div class="last-changed-icon-box">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        </div>
-                        <div class="last-changed-info">
-                            <span class="sec-block-title">Last Password Changed</span>
-                            <p class="last-changed-text">📅 Last changed: <strong>26 July 2026</strong></p>
-                        </div>
-                    </div>
-
-                    <div class="sec-divider"></div>
-
-                    <!-- 6. Primary Action Button -->
-                    <div class="sec-action-footer">
-                        <button type="button" class="btn btn-primary btn-security-update" onclick="triggerChangePassword()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                            Update Password
-                        </button>
                     </div>
                 </div>
             </section>
@@ -401,44 +327,18 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Accent Theme Color Palette -->
-                <div class="settings-card">
-                    <h3 class="card-section-title">Accent Theme Colors</h3>
-                    <p class="card-section-subtitle">Select primary accent highlights for buttons, tabs, and focus states.</p>
-
-                    <div class="color-cards-grid mt-14">
-                        <div class="color-card active" onclick="selectAccentColor('#2563EB', this)">
-                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);"></div>
-                            <span class="color-name">Royal Blue</span>
-                        </div>
-                        <div class="color-card" onclick="selectAccentColor('#4F46E5', this)">
-                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #4F46E5 0%, #3730A3 100%);"></div>
-                            <span class="color-name">Indigo</span>
-                        </div>
-                        <div class="color-card" onclick="selectAccentColor('#8B5CF6', this)">
-                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);"></div>
-                            <span class="color-name">Purple</span>
-                        </div>
-                        <div class="color-card" onclick="selectAccentColor('#10B981', this)">
-                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #10B981 0%, #047857 100%);"></div>
-                            <span class="color-name">Emerald</span>
-                        </div>
-                        <div class="color-card" onclick="selectAccentColor('#F59E0B', this)">
-                            <div class="color-swatch-box" style="background: linear-gradient(135deg, #F59E0B 0%, #B45309 100%);"></div>
-                            <span class="color-name">Amber</span>
-                        </div>
-                    </div>
-                </div>
             </section>
 
 
             <!-- TAB 4: NOTIFICATIONS PAGE -->
             <section class="tab-panel" id="panel-notifications">
-                <header class="panel-header">
-                    <h2 class="panel-title">Notification Alerts</h2>
-                    <p class="panel-subtitle">Configure real-time toast alerts, processing updates, and report dispatches.</p>
-                </header>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <header class="panel-header" style="margin-bottom: 0;">
+                        <h2 class="panel-title">Notification Alerts</h2>
+                        <p class="panel-subtitle">Configure real-time toast alerts, processing updates, and report dispatches.</p>
+                    </header>
+                    <button type="button" class="btn btn-primary" id="btnSaveNotifications" onclick="saveNotificationSettings()" style="padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s;">Save Changes</button>
+                </div>
 
                 <div class="notifications-grid">
                     <div class="settings-card notify-card">
@@ -450,7 +350,7 @@
                             <p class="notify-desc">Receive notifications when bank statement OCR &amp; transaction parsing completes.</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="ntCompleted" checked onchange="notifyFieldChange('nt_statement_completed', this.checked)">
+                            <input type="checkbox" id="ntCompleted" checked onchange="markNotificationsChanged()">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -464,7 +364,7 @@
                             <p class="notify-desc">Alerts when Excel ledgers or PDF reports finish exporting to disk.</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="ntExport" checked onchange="notifyFieldChange('nt_export_completed', this.checked)">
+                            <input type="checkbox" id="ntExport" checked onchange="markNotificationsChanged()">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -478,7 +378,7 @@
                             <p class="notify-desc">Instant alerts when statement ingestion or OCR validation fails.</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="ntErrors" checked onchange="notifyFieldChange('nt_errors', this.checked)">
+                            <input type="checkbox" id="ntErrors" checked onchange="markNotificationsChanged()">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -492,7 +392,7 @@
                             <p class="notify-desc">Notifications for automated email dispatch confirmations to recipients.</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="ntEmail" checked onchange="notifyFieldChange('nt_email_sent', this.checked)">
+                            <input type="checkbox" id="ntEmail" checked onchange="markNotificationsChanged()">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -506,7 +406,7 @@
                             <p class="notify-desc">Alerts when Gemini AI finishes executive financial summary analysis.</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="ntAi" checked onchange="notifyFieldChange('nt_ai_finished', this.checked)">
+                            <input type="checkbox" id="ntAi" checked onchange="markNotificationsChanged()">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -520,7 +420,7 @@
                             <p class="notify-desc">Notifications when new StatementForge software updates are released.</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="ntUpdates" checked onchange="notifyFieldChange('nt_updates_available', this.checked)">
+                            <input type="checkbox" id="ntUpdates" checked onchange="markNotificationsChanged()">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -528,74 +428,117 @@
             </section>
 
 
-            <!-- TAB 5: ABOUT PAGE -->
+            <!-- TAB 5: ABOUT PAGE (PROFESSIONAL ENTERPRISE BLUEPRINT) -->
             <section class="tab-panel" id="panel-about">
                 <header class="panel-header">
                     <h2 class="panel-title">About StatementForge</h2>
-                    <p class="panel-subtitle">Application specifications, architectural components, and system credits.</p>
+                    <p class="panel-subtitle">Product information, platform capabilities, and system specifications.</p>
                 </header>
 
-                <div class="settings-card about-hero-card">
-                    <div class="about-hero-header">
-                        <div class="about-logo-icon">⚡</div>
-                        <div class="about-hero-details">
-                            <h3 class="about-app-name">StatementForge AI Platform</h3>
-                            <div class="about-badges">
-                                <span class="badge badge-enterprise">v2.4 Enterprise Edition</span>
-                                <span class="badge badge-build">Build 2026.07.28</span>
-                                <span class="badge badge-active">● Systems Normal</span>
+                <!-- 1. PRODUCT IDENTITY & EXECUTIVE SUMMARY CARD -->
+                <div class="settings-card" style="margin-bottom: 16px;">
+                    <div>
+                        <h3 class="card-section-title" style="font-size: 18px; margin-bottom: 0;">StatementForge</h3>
+                        <p class="card-section-subtitle" style="margin-top: 2px;">Automated Bank Statement Parser &amp; Accounting Hub</p>
+                    </div>
+                    <p class="about-short-desc mt-14" style="margin-bottom: 12px;">
+                        StatementForge is an enterprise-grade financial automation platform engineered to ingest, validate, analyze, and process multi-page bank statements into structured, accounting-ready data workflows.
+                    </p>
+                    <div class="about-built-row">
+                        <span class="built-tag">Financial Operations</span>
+                        <span class="built-tag">Bank Statement Extraction</span>
+                        <span class="built-tag">GST &amp; Accounting Compliance</span>
+                        <span class="built-tag">Audit &amp; Analytics</span>
+                    </div>
+                </div>
+
+                <!-- 2. SYSTEM & ENGINE ENVIRONMENT (2-COLUMN GRID) -->
+                <div class="settings-card" style="margin-bottom: 16px;">
+                    <h3 class="card-section-title">System &amp; Engine Specifications</h3>
+                    <p class="card-section-subtitle">Core runtime architecture, processing engines, and security standards.</p>
+                    
+                    <div class="about-split-grid mt-14">
+                        <div class="sys-info-grid">
+                            <div class="sys-info-row">
+                                <span class="sys-label">Application Version</span>
+                                <span class="sys-val">v2.4 Enterprise</span>
+                            </div>
+                            <div class="sys-info-row">
+                                <span class="sys-label">Build Number</span>
+                                <span class="sys-val">2026.07.28</span>
+                            </div>
+                            <div class="sys-info-row">
+                                <span class="sys-label">Platform</span>
+                                <span class="sys-val">Desktop App (Windows / macOS)</span>
+                            </div>
+                            <div class="sys-info-row">
+                                <span class="sys-label">Database Sync</span>
+                                <span class="sys-val">MongoDB Atlas Cloud</span>
+                            </div>
+                        </div>
+
+                        <div class="sys-info-grid">
+                            <div class="sys-info-row">
+                                <span class="sys-label">AI &amp; Vision Engine</span>
+                                <span class="sys-val">Google Gemini AI</span>
+                            </div>
+                            <div class="sys-info-row">
+                                <span class="sys-label">OCR Text Extraction</span>
+                                <span class="sys-val">Tesseract OCR Core</span>
+                            </div>
+                            <div class="sys-info-row">
+                                <span class="sys-label">Data Encryption</span>
+                                <span class="sys-val">AES-256 / TLS 1.3</span>
+                            </div>
+                            <div class="sys-info-row">
+                                <span class="sys-label">Processing Mode</span>
+                                <span class="sys-val text-green">● Local &amp; Secure Cloud</span>
                             </div>
                         </div>
                     </div>
-                    <p class="about-description">
-                        StatementForge is an enterprise-grade financial statement parser, GST auditor, and AI Business Advisor suite designed to ingest multi-page digital and scanned PDF statements with 99.8% extraction accuracy.
-                    </p>
                 </div>
 
-                <div class="settings-card">
-                    <h3 class="card-section-title">Core Technology Stack</h3>
-                    <p class="card-section-subtitle">Powered by modern high-performance libraries and AI frameworks.</p>
-                    
-                    <div class="tech-chips-grid mt-14">
-                        <div class="tech-chip"><span class="chip-dot blue-dot"></span> Python 3.11</div>
-                        <div class="tech-chip"><span class="chip-dot purple-dot"></span> PyQt6 GUI Framework</div>
-                        <div class="tech-chip"><span class="chip-dot green-dot"></span> MongoDB Atlas Engine</div>
-                        <div class="tech-chip"><span class="chip-dot amber-dot"></span> Gemini AI Vision</div>
-                        <div class="tech-chip"><span class="chip-dot red-dot"></span> OpenCV Vision Engine</div>
-                        <div class="tech-chip"><span class="chip-dot indigo-dot"></span> Tesseract OCR Core</div>
+                <!-- 3. CORE PLATFORM CAPABILITIES -->
+                <div class="settings-card" style="margin-bottom: 16px;">
+                    <h3 class="card-section-title">Core Platform Capabilities</h3>
+                    <div class="what-it-does-grid mt-14">
+                        <div class="feature-block-item">
+                            <div class="feature-item-content">
+                                <div class="feature-item-title">Structured Statement Parsing</div>
+                                <div class="feature-item-desc">Extract high-precision transaction data from multi-page digital and scanned PDF statements.</div>
+                            </div>
+                        </div>
+                        <div class="feature-block-item">
+                            <div class="feature-item-content">
+                                <div class="feature-item-title">AI Financial Auditing</div>
+                                <div class="feature-item-desc">Detect duplicate entries, audit GST compliance, and analyze transaction trends automatically.</div>
+                            </div>
+                        </div>
+                        <div class="feature-block-item">
+                            <div class="feature-item-content">
+                                <div class="feature-item-title">Accounting Workflows</div>
+                                <div class="feature-item-desc">Organize processed statement data and export structured reports into Excel &amp; accounting software.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="settings-card">
-                    <div class="about-footer-row">
+                <!-- 4. LICENSE & ENTERPRISE FOOTER -->
+                <div class="settings-card about-license-card">
+                    <div class="license-footer-grid">
                         <div>
-                            <span class="about-license-title">Licensed to Enterprise Org</span>
-                            <span class="form-hint">Copyright © 2026 StatementForge Inc. All rights reserved.</span>
+                            <div class="license-org">Licensed to Enterprise Organization</div>
+                            <div class="license-copy">© 2026 StatementForge Inc. All rights reserved.</div>
                         </div>
-                        <button type="button" class="btn btn-secondary" onclick="triggerCheckUpdates()">Check for Updates</button>
+                        <div class="license-actions">
+                            <span class="version-meta">v2.4 • Build 2026.07.28</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="triggerCheckUpdates()">Check for Updates</button>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Bottom Blank Spacer Element to Prevent Footer Overlap -->
-            <div class="footer-spacer"></div>
         </main>
-
-
-        <!-- 3. SHARED SINGLE STICKY FOOTER ACTION BAR -->
-        <footer class="settings-sticky-footer">
-            <div class="settings-footer-container">
-                <div class="footer-status-info">
-                    <span class="status-dot-indicator" id="footerDot"></span>
-                    <span class="footer-status-text" id="footerStatusText">All settings synced with cloud database.</span>
-                </div>
-                <div class="footer-actions-group">
-                    <button type="button" class="btn btn-ghost" onclick="triggerCancel()">Cancel</button>
-                    <button type="button" class="btn btn-secondary" onclick="triggerRestoreDefaults()">Restore Defaults</button>
-                    <button type="button" class="btn btn-primary" id="btnSave" onclick="triggerSaveSettings()">Save Changes</button>
-                </div>
-            </div>
-        </footer>
 
     </div>
 
@@ -654,6 +597,92 @@
                 initials = parts[0][0].toUpperCase();
             }
             circle.innerText = initials;
+        }
+
+        function showToastNotification(title, message, type) {
+            if (!type) type = 'success';
+            if (!message && title) {
+                message = title;
+                title = type === 'success' ? 'Changes saved' : (type === 'error' ? 'Error' : 'Notice');
+            }
+
+            let container = document.getElementById('toast-container-right');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container-right';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = 'enterprise-toast-card';
+
+            let iconSymbol = '✓';
+            let iconClass = 'toast-icon-success';
+            if (type === 'info') {
+                iconSymbol = 'ℹ';
+                iconClass = 'toast-icon-info';
+            } else if (type === 'warning') {
+                iconSymbol = '⚠';
+                iconClass = 'toast-icon-warning';
+            } else if (type === 'error') {
+                iconSymbol = '✕';
+                iconClass = 'toast-icon-error';
+            }
+
+            toast.innerHTML = `
+                <div class="toast-icon-circle ${iconClass}">${iconSymbol}</div>
+                <div class="toast-content-body">
+                    <div class="toast-card-title">${title || 'Changes saved'}</div>
+                    <div class="toast-card-desc">${message || 'Your notification settings have been saved successfully.'}</div>
+                </div>
+                <button type="button" class="toast-close-btn" onclick="dismissEnterpriseToast(this.parentElement)" title="Dismiss">×</button>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                dismissEnterpriseToast(toast);
+            }, 3500);
+        }
+
+        function dismissEnterpriseToast(toastEl) {
+            if (!toastEl || toastEl.classList.contains('toast-leaving')) return;
+            toastEl.classList.add('toast-leaving');
+            setTimeout(() => {
+                if (toastEl.parentElement) toastEl.parentElement.removeChild(toastEl);
+            }, 280);
+        }
+
+        function markNotificationsChanged() {
+            const btn = document.getElementById('btnSaveNotifications');
+            if (btn) {
+                btn.style.boxShadow = '0 0 14px rgba(37, 99, 235, 0.4)';
+            }
+        }
+
+        function saveNotificationSettings() {
+            const data = {
+                nt_statement_completed: document.getElementById('ntCompleted') ? document.getElementById('ntCompleted').checked : true,
+                nt_export_completed: document.getElementById('ntExport') ? document.getElementById('ntExport').checked : true,
+                nt_errors: document.getElementById('ntErrors') ? document.getElementById('ntErrors').checked : true,
+                nt_email_sent: document.getElementById('ntEmail') ? document.getElementById('ntEmail').checked : true,
+                nt_ai_finished: document.getElementById('ntAi') ? document.getElementById('ntAi').checked : true,
+                nt_updates_available: document.getElementById('ntUpdates') ? document.getElementById('ntUpdates').checked : true
+            };
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('settings_save_notifications', data);
+            }
+            const btn = document.getElementById('btnSaveNotifications');
+            if (btn) {
+                btn.style.boxShadow = '';
+                const origText = btn.innerText;
+                btn.innerText = 'Saved ✓';
+                btn.style.background = '#10B981';
+                setTimeout(() => {
+                    btn.innerText = 'Save Changes';
+                    btn.style.background = '';
+                }, 2000);
+            }
         }
 
         function notifyFieldChange(fieldName, value) {

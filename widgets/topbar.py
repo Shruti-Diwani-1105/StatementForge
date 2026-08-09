@@ -109,16 +109,29 @@ class TopBar(QFrame):
         """
         self.web_view.page().runJavaScript(script)
 
-    def update_profile(self, full_name):
-        """Updates the active user's avatar letter and name details in HTML."""
+    def update_profile(self, full_name, profile_color=None):
+        """Updates the active user's avatar letter, background color, and name details in HTML."""
         self.profile_name = full_name
+        if profile_color:
+            self.profile_color = profile_color
+        elif not hasattr(self, "profile_color"):
+            from utils.user_session import UserSession
+            user = UserSession.get_current_user()
+            if user:
+                self.profile_color = user.get("profile_color", "#0037b0")
+
         name = full_name.strip() if full_name and full_name.strip() else "User"
         initial = name[0].upper() if name else "U"
         escaped_name = name.replace("'", "\\'")
+        color = getattr(self, "profile_color", "#0037b0") or "#0037b0"
+
         script = f"""
         var nameEl = document.getElementById('user-name');
         var avatarEl = document.getElementById('user-avatar');
         if (nameEl) nameEl.textContent = '{escaped_name}';
-        if (avatarEl) avatarEl.textContent = '{initial}';
+        if (avatarEl) {{
+            avatarEl.textContent = '{initial}';
+            avatarEl.style.backgroundColor = '{color}';
+        }}
         """
         self.web_view.page().runJavaScript(script)

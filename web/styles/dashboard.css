@@ -360,6 +360,63 @@ body.dark-mode .activity-sub {
     color: #94A3B8;
 }
 
+/* Clear All & Individual Delete Buttons */
+.btn-clear-all {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-clear-all:hover {
+    background: #FEF2F2;
+    border-color: #FCA5A5;
+    color: #EF4444;
+}
+
+body.dark-mode .btn-clear-all:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #FCA5A5;
+}
+
+.btn-delete-activity {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #94A3B8;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.activity-item:hover .btn-delete-activity {
+    opacity: 1;
+}
+
+.btn-delete-activity:hover {
+    background: #FEF2F2;
+    color: #EF4444;
+}
+
+body.dark-mode .btn-delete-activity:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #FCA5A5;
+}
+
 .activity-empty {
     text-align: center;
     font-size: 13px;

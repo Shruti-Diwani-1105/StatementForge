@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge - Edit Profile</title>
+    <link rel="stylesheet" href="styles/profile.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body class="profile-page">
+    <div class="profile-container">
+        
+        <header class="profile-top-bar">
+            <button type="button" class="btn-back-dashboard" onclick="sendAppCommand('profile_back', '')">
+                ← Back to Dashboard
+            </button>
+        </header>
+
+        <div class="page-title-row">
+            <h1 class="page-title">Edit Profile</h1>
+            <p class="page-subtitle">Update display details, contact information, and avatar customization.</p>
+        </div>
+
+        <main class="edit-form-panel active">
+            <div class="card-panel">
+                
+                <!-- Avatar & Color Picker Bar -->
+                <div class="avatar-edit-container">
+                    <div class="avatar-circle-large" id="edit-avatar-circle">U</div>
+                    <div class="avatar-picker-controls">
+                        <label class="form-label">Profile Accent Color</label>
+                        <p class="card-subtitle" style="margin-bottom: 8px;">Select a preset accent color for your avatar badge:</p>
+                        <div class="color-presets-row">
+                            <button type="button" class="color-preset-btn active" style="background:#0037b0;" onclick="selectColorPreset('#0037b0', this)" title="Blue"></button>
+                            <button type="button" class="color-preset-btn" style="background:#7C3AED;" onclick="selectColorPreset('#7C3AED', this)" title="Purple"></button>
+                            <button type="button" class="color-preset-btn" style="background:#10B981;" onclick="selectColorPreset('#10B981', this)" title="Green"></button>
+                            <button type="button" class="color-preset-btn" style="background:#06B6D4;" onclick="selectColorPreset('#06B6D4', this)" title="Cyan"></button>
+                            <button type="button" class="color-preset-btn" style="background:#F97316;" onclick="selectColorPreset('#F97316', this)" title="Orange"></button>
+                            <button type="button" class="color-preset-btn" style="background:#EC4899;" onclick="selectColorPreset('#EC4899', this)" title="Pink"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Editable Form Fields -->
+                <form id="standalone-edit-form" onsubmit="handleSaveProfile(event)">
+                    <div class="form-grid-2col">
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="input-name">Display Name *</label>
+                            <input type="text" id="input-name" class="form-control" placeholder="Enter full name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="input-phone">Phone Number</label>
+                            <input type="tel" id="input-phone" class="form-control" placeholder="+1 (555) 000-0000">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="input-job">Job Title</label>
+                            <input type="text" id="input-job" class="form-control" placeholder="e.g. Software Developer">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="input-dept">Department</label>
+                            <input type="text" id="input-dept" class="form-control" placeholder="e.g. Engineering">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="input-timezone">Timezone</label>
+                            <select id="input-timezone" class="form-control">
+                                <option value="UTC (Coordinated Universal Time)">UTC (Coordinated Universal Time)</option>
+                                <option value="Asia/Kolkata (IST +5:30)">Asia/Kolkata (IST +5:30)</option>
+                                <option value="America/New_York (EST -5:00)">America/New_York (EST -5:00)</option>
+                                <option value="America/Los_Angeles (PST -8:00)">America/Los_Angeles (PST -8:00)</option>
+                                <option value="Europe/London (GMT +0:00)">Europe/London (GMT +0:00)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Email Address (Read Only)</label>
+                            <input type="text" id="input-email-readonly" class="form-control" disabled>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label" for="input-bio">Biography</label>
+                            <textarea id="input-bio" class="form-control" placeholder="Write a short summary about yourself..."></textarea>
+                        </div>
+
+                    </div>
+
+                    <div class="form-actions-bar">
+                        <button type="button" class="btn-cancel" onclick="sendAppCommand('profile_back', '')">Cancel</button>
+                        <button type="submit" class="btn-save-submit">Save Profile</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        var selectedColor = "#0037b0";
+
+        function loadUserProfileData(userObj) {
+            if (!userObj) return;
+            const nameStr = userObj.name || userObj.full_name || "User";
+            const initial = nameStr.trim().charAt(0).toUpperCase() || "U";
+            selectedColor = userObj.profile_color || "#0037b0";
+
+            document.getElementById('edit-avatar-circle').innerText = initial;
+            document.getElementById('edit-avatar-circle').style.backgroundColor = selectedColor;
+            document.getElementById('input-name').value = nameStr;
+            document.getElementById('input-phone').value = userObj.phone || "";
+            document.getElementById('input-job').value = userObj.job_title || "";
+            document.getElementById('input-dept').value = userObj.department || "";
+            document.getElementById('input-timezone').value = userObj.timezone || "UTC (Coordinated Universal Time)";
+            document.getElementById('input-email-readonly').value = userObj.email || "";
+            document.getElementById('input-bio').value = userObj.bio || "";
+        }
+
+        function selectColorPreset(colorHex, btnEl) {
+            selectedColor = colorHex;
+            document.querySelectorAll('.color-preset-btn').forEach(btn => btn.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+            document.getElementById('edit-avatar-circle').style.backgroundColor = selectedColor;
+        }
+
+        function handleSaveProfile(event) {
+            event.preventDefault();
+            const payload = {
+                name: document.getElementById('input-name').value.trim(),
+                phone: document.getElementById('input-phone').value.trim(),
+                job_title: document.getElementById('input-job').value.trim(),
+                department: document.getElementById('input-dept').value.trim(),
+                timezone: document.getElementById('input-timezone').value,
+                bio: document.getElementById('input-bio').value.trim(),
+                profile_color: selectedColor
+            };
+            sendAppCommand('profile_save', payload);
+        }
+
+        window.addEventListener("pybridgeReady", function() {
+            sendAppCommand('profile_request_data', '');
+        });
+    </script>
+</body>
+</html>

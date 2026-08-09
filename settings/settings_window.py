@@ -196,7 +196,7 @@ class SettingsWindow(QWidget):
         self.update_theme_style(ThemeManager.get_theme())
 
     def sync_user_profile_directly(self):
-        """Directly injects active user session details into HTML DOM elements for guaranteed consistency."""
+        """Directly injects active user session details into HTML DOM elements for read-only account tab."""
         from utils.user_session import UserSession
         user = UserSession.get_current_user()
         if not user:
@@ -205,8 +205,16 @@ class SettingsWindow(QWidget):
         name = user.get("name") or user.get("full_name") or "User"
         email = user.get("email") or ""
         username = user.get("username") or (email.split("@")[0] if email else "")
-        phone = user.get("phone") or ""
+        phone = user.get("phone") or "Not specified"
+        job_title = user.get("job_title") or "Not specified"
+        department = user.get("department") or "Not specified"
+        timezone = user.get("timezone") or "UTC (Coordinated Universal Time)"
+        bio = user.get("bio") or "No biography added yet."
+        profile_color = user.get("profile_color") or "#0037b0"
         role = user.get("role") or "User"
+        google_id = user.get("google_id")
+        google_status = "Connected via Google OAuth" if google_id else "Not connected"
+
         created_at = user.get("created_at") or ""
         if hasattr(created_at, "isoformat"):
             created_at = created_at.isoformat()
@@ -215,18 +223,20 @@ class SettingsWindow(QWidget):
 
         created_str = str(created_at)[:10] if len(str(created_at)) >= 10 else str(created_at)
 
-        parts = name.strip().split(" ")
-        initials = "U"
-        if len(parts) >= 2 and parts[0] and parts[1]:
-            initials = (parts[0][0] + parts[1][0]).upper()
-        elif len(parts) >= 1 and parts[0]:
-            initials = parts[0][0].upper()
+        name_str = name.strip() if name and name.strip() else "User"
+        initials = name_str[0].upper() if name_str else "U"
 
         name_js = json.dumps(str(name))
         email_js = json.dumps(str(email))
         username_js = json.dumps(str(username))
         phone_js = json.dumps(str(phone))
+        job_js = json.dumps(str(job_title))
+        dept_js = json.dumps(str(department))
+        timezone_js = json.dumps(str(timezone))
+        bio_js = json.dumps(str(bio))
+        color_js = json.dumps(str(profile_color))
         role_js = json.dumps(str(role))
+        google_js = json.dumps(str(google_status))
         date_js = json.dumps(f"📅 Member since: {created_str}" if created_str else "📅 Member since: Active")
         initials_js = json.dumps(str(initials))
 
@@ -239,7 +249,10 @@ class SettingsWindow(QWidget):
             if (accEmailDisp) accEmailDisp.innerText = {email_js};
             
             var accAvatar = document.getElementById('accAvatarCircle');
-            if (accAvatar) accAvatar.innerText = {initials_js};
+            if (accAvatar) {{
+                accAvatar.innerText = {initials_js};
+                accAvatar.style.backgroundColor = {color_js};
+            }}
             
             var accRole = document.getElementById('accRoleLbl');
             if (accRole) accRole.innerText = {role_js};
@@ -247,17 +260,32 @@ class SettingsWindow(QWidget):
             var accDate = document.getElementById('accDateLbl');
             if (accDate) accDate.innerText = {date_js};
             
-            var accNameInp = document.getElementById('accName');
-            if (accNameInp) accNameInp.value = {name_js};
+            var vName = document.getElementById('accValName');
+            if (vName) vName.innerText = {name_js};
             
-            var accEmailInp = document.getElementById('accEmail');
-            if (accEmailInp) accEmailInp.value = {email_js};
+            var vUser = document.getElementById('accValUsername');
+            if (vUser) vUser.innerText = {username_js};
             
-            var accUserInp = document.getElementById('accUsername');
-            if (accUserInp) accUserInp.value = {username_js};
+            var vEmail = document.getElementById('accValEmail');
+            if (vEmail) vEmail.innerText = {email_js};
             
-            var accPhoneInp = document.getElementById('accPhone');
-            if (accPhoneInp) accPhoneInp.value = {phone_js};
+            var vPhone = document.getElementById('accValPhone');
+            if (vPhone) vPhone.innerText = {phone_js};
+
+            var vJob = document.getElementById('accValJob');
+            if (vJob) vJob.innerText = {job_js};
+
+            var vDept = document.getElementById('accValDept');
+            if (vDept) vDept.innerText = {dept_js};
+
+            var vTz = document.getElementById('accValTimezone');
+            if (vTz) vTz.innerText = {timezone_js};
+
+            var vBio = document.getElementById('accValBio');
+            if (vBio) vBio.innerText = {bio_js};
+
+            var vGoogle = document.getElementById('accValGoogleStatus');
+            if (vGoogle) vGoogle.innerText = {google_js};
         }})();
         """
         self.html_wrapper.eval_js(js)
@@ -285,7 +313,11 @@ class SettingsWindow(QWidget):
         cmd = parts[1] if len(parts) > 1 else ""
         raw_payload = parts[2] if len(parts) > 2 else ""
 
-        if cmd == "settings_field_change":
+        if cmd in ["settings_open_profile", "open_profile"]:
+            win = self.window()
+            if win and hasattr(win, "open_profile_window"):
+                win.open_profile_window()
+        elif cmd == "settings_field_change":
             try:
                 data = json.loads(raw_payload)
                 field = data.get("field")
@@ -303,6 +335,15 @@ class SettingsWindow(QWidget):
                 self.change_password_clicked.emit(old_p, new_p)
             except Exception:
                 pass
+        elif cmd == "settings_save_notifications":
+            try:
+                data = json.loads(raw_payload)
+                for field, val in data.items():
+                    self.handle_field_update(field, val)
+                if hasattr(self, "controller") and self.controller:
+                    self.controller.save_notification_settings_directly()
+            except Exception as e:
+                print(f"Error saving notification settings: {e}")
         elif cmd == "settings_check_updates":
             self.check_updates_clicked.emit()
         elif cmd == "settings_save":

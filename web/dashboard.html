@@ -136,7 +136,12 @@
             <!-- Right: Recent Activity Container -->
             <aside class="activity-section">
                 <div class="activity-card-container">
-                    <h2 class="section-title activity-header-title">Recent Activity</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <h2 class="section-title activity-header-title" style="margin-bottom: 0;">Recent Activity</h2>
+                        <button type="button" class="btn-clear-all" id="btn-clear-all-activity" onclick="sendAppCommand('dash_clear_all_activity', '')" title="Clear all recent activity" style="display: none;">
+                            Clear All
+                        </button>
+                    </div>
                     <div class="activity-list" id="activity-list">
                         <!-- Activity items rendered here -->
                     </div>

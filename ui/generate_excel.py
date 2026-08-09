@@ -66,7 +66,7 @@ class GenerateExcelWidget(QWidget):
         left_layout.setSpacing(16)
 
         left_title = QLabel("Convert PDF Statement")
-        left_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
+        left_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
         left_layout.addWidget(left_title)
 
         # Drag & Drop Box inside Left Panel
@@ -102,7 +102,7 @@ class GenerateExcelWidget(QWidget):
         drop_lay.addWidget(up_icon, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.prompt_lbl = QLabel("Drag & Drop PDF Statement")
-        self.prompt_lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #1E293B; font-family: 'Times New Roman';")
+        self.prompt_lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #1E293B; font-family: 'Inter', sans-serif;")
         drop_lay.addWidget(self.prompt_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.browse_btn = QPushButton("Select File")
@@ -116,7 +116,7 @@ class GenerateExcelWidget(QWidget):
                 border-radius: 6px;
                 font-weight: 600;
                 font-size: 11px;
-                font-family: 'Times New Roman';
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #1d4ed8; }
         """)
@@ -135,9 +135,9 @@ class GenerateExcelWidget(QWidget):
 
         def make_row(grid_w, r_idx, label, attr):
             lbl = QLabel(label)
-            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Times New Roman';")
+            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Inter', sans-serif;")
             val = QLabel("-")
-            val.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
+            val.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
             setattr(self, attr, val)
             grid_w.addWidget(lbl, r_idx, 0)
             grid_w.addWidget(val, r_idx, 1)
@@ -158,15 +158,15 @@ class GenerateExcelWidget(QWidget):
 
         def make_quality_row(grid_w, r_idx, label, attr):
             lbl = QLabel(label)
-            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Times New Roman';")
+            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Inter', sans-serif;")
             val = QLabel("-")
-            val.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
+            val.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
             setattr(self, attr, val)
             grid_w.addWidget(lbl, r_idx, 0)
             grid_w.addWidget(val, r_idx, 1)
 
         quality_title = QLabel("EXTRACTION QUALITY")
-        quality_title.setStyleSheet("font-size: 11px; font-weight: bold; color: #1E3A8A; font-family: 'Times New Roman';")
+        quality_title.setStyleSheet("font-size: 11px; font-weight: bold; color: #1E3A8A; font-family: 'Inter', sans-serif;")
         quality_grid.addWidget(quality_title, 0, 0, 1, 2, Qt.AlignmentFlag.AlignLeft)
 
         make_quality_row(quality_grid, 1, "Detected Cols:", "lbl_quality_cols")
@@ -207,7 +207,7 @@ class GenerateExcelWidget(QWidget):
         # Right Header & Actions
         top_bar = QHBoxLayout()
         right_title = QLabel("Conversion Monitor & Excel Preview")
-        right_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
+        right_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
         top_bar.addWidget(right_title)
         top_bar.addStretch()
 
@@ -223,7 +223,7 @@ class GenerateExcelWidget(QWidget):
                 padding: 10px 18px;
                 font-weight: bold;
                 font-size: 13px;
-                font-family: 'Times New Roman';
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #15803d; }
             QPushButton:disabled { background-color: #E2E8F0; color: #94A3B8; }
@@ -243,7 +243,7 @@ class GenerateExcelWidget(QWidget):
                 padding: 10px 18px;
                 font-weight: bold;
                 font-size: 13px;
-                font-family: 'Times New Roman';
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #1d4ed8; }
             QPushButton:disabled { background-color: #E2E8F0; color: #94A3B8; }
@@ -263,7 +263,7 @@ class GenerateExcelWidget(QWidget):
                 padding: 10px 18px;
                 font-weight: bold;
                 font-size: 13px;
-                font-family: 'Times New Roman';
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #6D28D9; }
             QPushButton:disabled { background-color: #E2E8F0; color: #94A3B8; }
@@ -282,12 +282,12 @@ class GenerateExcelWidget(QWidget):
 
         prog_status_row = QHBoxLayout()
         self.lbl_status = QLabel("Status: Waiting for Statement PDF...")
-        self.lbl_status.setStyleSheet("font-size: 12px; font-weight: bold; color: #475569; font-family: 'Times New Roman';")
+        self.lbl_status.setStyleSheet("font-size: 12px; font-weight: bold; color: #475569; font-family: 'Inter', sans-serif;")
         prog_status_row.addWidget(self.lbl_status)
         prog_status_row.addStretch()
 
         self.lbl_tx_count = QLabel("Transactions: 0")
-        self.lbl_tx_count.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
+        self.lbl_tx_count.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
         prog_status_row.addWidget(self.lbl_tx_count)
         prog_lay.addLayout(prog_status_row)
 
@@ -329,7 +329,7 @@ class GenerateExcelWidget(QWidget):
         recent_box.setSpacing(12)
         
         recent_lbl = QLabel("Recent Generated Sheets:")
-        recent_lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Times New Roman';")
+        recent_lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Inter', sans-serif;")
         recent_box.addWidget(recent_lbl)
 
         self.recent_list = QComboBox()
@@ -543,14 +543,14 @@ class GenerateExcelWidget(QWidget):
                 
                 if review_count > 0:
                     self.quality_card.setStyleSheet("background-color: #FFFBEB; border: 2px solid #D97706; border-radius: 12px;")
-                    self.lbl_quality_review.setStyleSheet("font-size: 12px; font-weight: bold; color: #D97706; font-family: 'Times New Roman';")
+                    self.lbl_quality_review.setStyleSheet("font-size: 12px; font-weight: bold; color: #D97706; font-family: 'Inter', sans-serif;")
                 else:
                     theme = getattr(self, "current_theme", "light")
                     if theme == "dark":
                         self.quality_card.setStyleSheet("background-color: #334155; border: 1px solid #475569; border-radius: 12px;")
                     else:
                         self.quality_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
-                    self.lbl_quality_review.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
+                    self.lbl_quality_review.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
 
             # Start Excel write step
             self.start_excel_generation(user_id)

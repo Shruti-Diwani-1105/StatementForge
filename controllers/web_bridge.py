@@ -22,6 +22,10 @@ class WebBridge(QObject):
     openForgotPasswordDialog = pyqtSignal()
     triggerGoogleLogin = pyqtSignal()
 
+    # Profile signals
+    profileUpdated = pyqtSignal(dict)
+    backToDashboardRequested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -79,3 +83,33 @@ class WebBridge(QObject):
     def forgotPassword(self):
         """Called from JavaScript when Forgot Password link is clicked."""
         self.openForgotPasswordDialog.emit()
+
+    @pyqtSlot(result=dict)
+    def getProfileData(self):
+        """Returns the active authenticated user profile dictionary from ProfileService."""
+        from utils.user_session import UserSession
+        from utils.profile_service import ProfileService
+        user = UserSession.get_current_user()
+        email = user.get("email", "") if user else ""
+        return ProfileService.get_profile(email)
+
+    @pyqtSlot(str, str, str, str, str, str, str, result=bool)
+    def saveProfileData(self, name, phone, job_title, department, timezone, bio, color):
+        """Saves updated profile fields in DB, updates session, and emits signal."""
+        from utils.user_session import UserSession
+        from utils.profile_service import ProfileService
+        user = UserSession.get_current_user()
+        if not user:
+            return False
+
+        success, msg = ProfileService.update_profile(
+            user["email"], name, phone, user.get("username", user["email"].split('@')[0]),
+            job_title=job_title, department=department, bio=bio,
+            profile_picture="", profile_color=color, timezone=timezone
+        )
+        if success:
+            updated_profile = ProfileService.get_profile(user["email"])
+            self.profileUpdated.emit(updated_profile)
+            return True
+        return False
+

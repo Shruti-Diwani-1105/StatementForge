@@ -27,7 +27,7 @@ class ToastNotification(QWidget):
         container_layout.setContentsMargins(14, 8, 14, 8)
         
         self.label = QLabel(text)
-        self.label.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 600; font-family: 'Times New Roman'; border: none; background: transparent;")
+        self.label.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; border: none; background: transparent;")
         container_layout.addWidget(self.label)
         
         layout.addWidget(self.container)
@@ -90,7 +90,7 @@ class PasswordRequirementsWidget(QWidget):
         self.labels = {}
         for idx, req in enumerate(self.reqs):
             lbl = QLabel(f"✓ {req['text']}")
-            lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 600; font-family: 'Times New Roman';")
+            lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif;")
             row = idx // 3
             col = idx % 3
             layout.addWidget(lbl, row, col)
@@ -107,9 +107,9 @@ class PasswordRequirementsWidget(QWidget):
         for req in self.reqs:
             lbl = self.labels[req["id"]]
             if req["valid"]:
-                lbl.setStyleSheet("color: #10B981; font-size: 11px; font-weight: 600; font-family: 'Times New Roman';")
+                lbl.setStyleSheet("color: #10B981; font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif;")
             else:
-                lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 600; font-family: 'Times New Roman';")
+                lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif;")
 
 
 class PremiumInputGroup(QWidget):
@@ -129,7 +129,7 @@ class PremiumInputGroup(QWidget):
 
         self.label = QLabel(label_text)
         self.label.setObjectName("FormLabel")
-        self.label.setStyleSheet("font-weight: bold; font-size: 12px; color: #191c1e; font-family: 'Times New Roman'; border: none;")
+        self.label.setStyleSheet("font-weight: bold; font-size: 12px; color: #191c1e; font-family: 'Inter', sans-serif; border: none;")
         layout.addWidget(self.label)
 
         self.container = QFrame()
@@ -151,7 +151,7 @@ class PremiumInputGroup(QWidget):
 
         self.line_edit = QLineEdit()
         self.line_edit.setPlaceholderText(placeholder)
-        self.line_edit.setStyleSheet("background: transparent; border: none; padding: 0; font-size: 13px; font-family: 'Times New Roman';")
+        self.line_edit.setStyleSheet("background: transparent; border: none; padding: 0; font-size: 13px; font-family: 'Inter', sans-serif;")
         if is_password:
             self.line_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.line_edit.textChanged.connect(self.textChanged.emit)
@@ -177,7 +177,7 @@ class PremiumInputGroup(QWidget):
 
         self.error_label = QLabel(" ")
         self.error_label.setFixedHeight(18)
-        self.error_label.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: 500; font-family: 'Times New Roman';")
+        self.error_label.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: 500; font-family: 'Inter', sans-serif;")
         layout.addWidget(self.error_label)
         
         self.set_container_style(focused=False)

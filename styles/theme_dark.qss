@@ -3,7 +3,7 @@
    ========================================================================= */
 
 QWidget {
-    font-family: "Times New Roman", Times, Georgia, serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 13px;
     color: #F8FAFC; /* Slate 50 */
 }

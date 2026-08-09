@@ -75,20 +75,20 @@ class ValidationService:
     @staticmethod
     def validate_name(name):
         """Validates account full name."""
-        if not name or not name.strip():
-            return False, "Name is required."
-        if len(name.strip()) < 3:
-            return False, "Name must be at least 3 characters."
+        if not name or not name.strip() or name.strip() == "User":
+            return True, ""
+        if len(name.strip()) < 2:
+            return False, "Name must be at least 2 characters."
         return True, ""
         
     @staticmethod
     def validate_phone(phone):
-        """Validates account phone format (Indian 10-digit format)."""
-        if not phone or not phone.strip():
-            return False, "Phone number is required."
-        phone_clean = phone.strip()
+        """Validates account phone format gracefully."""
+        if not phone or not phone.strip() or phone.strip() == "Not specified":
+            return True, ""
+        phone_clean = re.sub(r"[\s\+\-\(\)]", "", phone.strip())
         if not phone_clean.isdigit():
             return False, "Phone number must contain digits only."
-        if len(phone_clean) != 10:
-            return False, "Phone number must contain exactly 10 digits."
+        if len(phone_clean) < 7 or len(phone_clean) > 15:
+            return False, "Invalid phone number length."
         return True, ""

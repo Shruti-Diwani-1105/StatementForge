@@ -51,14 +51,14 @@ class ForgotPasswordDialog(QDialog):
         layout_email.setSpacing(20)
 
         title_email = QLabel("Forgot Password")
-        title_email.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Times New Roman';")
+        title_email.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Manrope', sans-serif;")
         
         desc_email = QLabel(
             "Enter your registered email address below. We'll send you a 6-digit "
             "verification code to reset your password."
         )
         desc_email.setWordWrap(True)
-        desc_email.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Times New Roman';")
+        desc_email.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Inter', sans-serif;")
 
         self.email_input = PremiumInputGroup("Email Address", "alex@example.com", "assets/icons/email.png", is_password=False, parent=self)
         self.email_input.textChanged.connect(self.clear_email_errors)
@@ -87,11 +87,11 @@ class ForgotPasswordDialog(QDialog):
         layout_code.setSpacing(8)
 
         title_code = QLabel("Verify Identity")
-        title_code.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Times New Roman';")
+        title_code.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Inter', sans-serif;")
         
         self.desc_code = QLabel("")
         self.desc_code.setWordWrap(True)
-        self.desc_code.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Times New Roman';")
+        self.desc_code.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Inter', sans-serif;")
 
         self.code_input = PremiumInputGroup("Verification Code", "Enter 6-digit code", "assets/icons/lock.png", is_password=False, parent=self)
         self.code_input.textChanged.connect(self.clear_code_errors)
@@ -101,10 +101,10 @@ class ForgotPasswordDialog(QDialog):
         resend_layout.setContentsMargins(0, 0, 0, 0)
         resend_layout.setSpacing(6)
         resend_lbl = QLabel("Didn't receive the code?")
-        resend_lbl.setStyleSheet("font-size: 13px; color: #64748B; font-family: 'Times New Roman';")
+        resend_lbl.setStyleSheet("font-size: 13px; color: #64748B; font-family: 'Inter', sans-serif;")
         
         self.resend_btn = LinkButton("Resend Code")
-        self.resend_btn.setStyleSheet("font-weight: bold; border: none; padding: 0px; color: #0037b0; font-family: 'Times New Roman'; background: transparent; font-size: 13px;")
+        self.resend_btn.setStyleSheet("font-weight: bold; border: none; padding: 0px; color: #0037b0; font-family: 'Inter', sans-serif; background: transparent; font-size: 13px;")
         self.resend_btn.clicked.connect(self.resend_otp_code)
         
         resend_layout.addWidget(resend_lbl)
@@ -137,9 +137,9 @@ class ForgotPasswordDialog(QDialog):
         layout_reset.setSpacing(14)
 
         title_reset = QLabel("Create New Password")
-        title_reset.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Times New Roman';")
+        title_reset.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Inter', sans-serif;")
         desc_reset = QLabel("Your password must meet security requirements below.")
-        desc_reset.setStyleSheet("font-size: 13px; color: #64748B; font-family: 'Times New Roman';")
+        desc_reset.setStyleSheet("font-size: 13px; color: #64748B; font-family: 'Inter', sans-serif;")
 
         self.pass_input = PremiumInputGroup("New Password", "••••••••", "assets/icons/lock.png", is_password=True, parent=self)
         self.pass_input.textChanged.connect(self.on_pass_changed)
@@ -189,12 +189,12 @@ class ForgotPasswordDialog(QDialog):
 
         success_title = QLabel("✓ Password Reset Complete")
         success_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        success_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #10B981; font-family: 'Times New Roman';")
+        success_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #10B981; font-family: 'Inter', sans-serif;")
 
         success_desc = QLabel("Your account password has been updated. You can now login with your new password.")
         success_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         success_desc.setWordWrap(True)
-        success_desc.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Times New Roman';")
+        success_desc.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Inter', sans-serif;")
 
         self.btn_success_done = PrimaryButton("Back to Login")
         self.btn_success_done.setFixedHeight(40)
@@ -206,7 +206,7 @@ class ForgotPasswordDialog(QDialog):
                 border-radius: 6px;
                 font-weight: bold;
                 font-size: 13px;
-                font-family: 'Times New Roman';
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover {
                 background-color: #1d4ed8;

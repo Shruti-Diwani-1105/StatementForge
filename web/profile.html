@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge - Profile & Security</title>
+    <link rel="stylesheet" href="styles/profile.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body class="profile-page">
+    <div class="profile-container">
+
+        <!-- Top Header Navigation -->
+        <header class="profile-top-bar">
+            <button type="button" class="btn-back-dashboard" id="btn-back-dashboard" onclick="sendAppCommand('profile_back', '')">
+                ← Back to Dashboard
+            </button>
+            
+            <div class="header-action-group">
+                <button type="button" class="btn-edit-toggle" id="btn-toggle-edit" onclick="toggleEditView(true)">
+                    ✏️ Edit Profile
+                </button>
+            </div>
+        </header>
+
+        <!-- Page Heading -->
+        <div class="page-title-row">
+            <h1 class="page-title" id="page-heading-title">My Profile</h1>
+            <p class="page-subtitle">Manage your personal information, security credentials, and account settings.</p>
+        </div>
+
+        <!-- Toast Notification Alert -->
+        <div class="toast-msg" id="profile-toast"></div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW PROFILE MODE (DISPLAY CARDS) -->
+        <!-- ============================================================== -->
+        <main class="view-profile-panel" id="view-profile-panel">
+            <div class="profile-grid-2col">
+                
+                <!-- Left Panel: Main Profile Card -->
+                <div class="card-panel profile-hero-card">
+                    <div class="avatar-wrapper">
+                        <div class="avatar-circle-large" id="view-avatar-circle">U</div>
+                    </div>
+
+                    <h2 class="user-full-name" id="view-name">User Name</h2>
+                    <span class="role-badge" id="view-role-badge">Administrator</span>
+
+                    <div class="job-dept-text" id="view-job-dept">Software Developer • Engineering</div>
+
+                    <div class="user-bio-box" id="view-bio">
+                        "Real biography stored in database..."
+                    </div>
+
+                    <div class="divider-line"></div>
+
+                    <!-- Quick Meta List -->
+                    <div class="quick-meta-list">
+                        <div class="quick-meta-item">
+                            <span class="meta-label">Account Status:</span>
+                            <span class="status-badge status-enabled" id="view-status-badge">● Active</span>
+                        </div>
+                        <div class="quick-meta-item">
+                            <span class="meta-label">Joined:</span>
+                            <span class="meta-value" id="view-created-at">March 14, 2026</span>
+                        </div>
+                        <div class="quick-meta-item">
+                            <span class="meta-label">Last Login:</span>
+                            <span class="meta-value" id="view-last-login">Just now</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Information Cards -->
+                <div class="right-info-stack">
+                    
+                    <!-- 1. Contact Information Card -->
+                    <div class="card-panel">
+                        <h3 class="card-title">
+                            Contact Information
+                            <span class="status-badge status-enabled">Verified Account</span>
+                        </h3>
+                        <p class="card-subtitle">Real authenticated user details stored in StatementForge database.</p>
+
+                        <div class="info-row-grid">
+                            <div class="info-item">
+                                <span class="info-item-label">Email Address</span>
+                                <span class="info-item-value" id="view-email">user@statementforge.com</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">Phone Number</span>
+                                <span class="info-item-value" id="view-phone">Not specified</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">Timezone</span>
+                                <span class="info-item-value" id="view-timezone">UTC (Coordinated Universal Time)</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-item-label">Date Joined</span>
+                                <span class="info-item-value" id="view-joined-date">March 14, 2026</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Notification Channels Card -->
+                    <div class="card-panel">
+                        <h3 class="card-title">Notification Channels</h3>
+                        <p class="card-subtitle">Manage automated alert dispatches and processing notifications.</p>
+
+                        <div class="notification-list">
+                            <div class="notification-item">
+                                <div class="notification-meta">
+                                    <span class="notification-title">Email Alerts</span>
+                                    <span class="notification-desc">Receive statement parsing and financial digest summaries via email.</span>
+                                </div>
+                                <span class="status-badge status-enabled" id="badge-email-notif" onclick="toggleNotification('email')">Enabled</span>
+                            </div>
+
+                            <div class="notification-item">
+                                <div class="notification-meta">
+                                    <span class="notification-title">Desktop Notifications</span>
+                                    <span class="notification-desc">Show OS desktop popups when background processing finishes.</span>
+                                </div>
+                                <span class="status-badge status-enabled" id="badge-desktop-notif" onclick="toggleNotification('desktop')">Enabled</span>
+                            </div>
+
+                            <div class="notification-item">
+                                <div class="notification-meta">
+                                    <span class="notification-title">Statement Processing Notifications</span>
+                                    <span class="notification-desc">Get notified when multi-page PDF transaction extraction completes.</span>
+                                </div>
+                                <span class="status-badge status-enabled" id="badge-statement-notif" onclick="toggleNotification('statement')">Enabled</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Connected Accounts & Security Card -->
+                    <div class="card-panel">
+                        <h3 class="card-title">Connected Accounts & Security</h3>
+                        <p class="card-subtitle">Manage OAuth single sign-on connections and password credentials.</p>
+
+                        <!-- Google OAuth Row -->
+                        <div class="account-row">
+                            <div class="account-info">
+                                <div class="account-icon-box">🌐</div>
+                                <div class="account-details">
+                                    <h4>Google Authentication</h4>
+                                    <p id="google-status-text">Connected via Google OAuth</p>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-secondary-action" id="btn-google-action" onclick="handleGoogleAction()">
+                                Disconnect
+                            </button>
+                        </div>
+
+                        <!-- Standard Login Row -->
+                        <div class="account-row">
+                            <div class="account-info">
+                                <div class="account-icon-box">🔑</div>
+                                <div class="account-details">
+                                    <h4>Standard Login</h4>
+                                    <p id="password-status-text">Password set. You can sign in using your email and password.</p>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-secondary-action" id="btn-password-action" onclick="handleResetPassword()">
+                                Reset Password
+                            </button>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </main>
+
+
+        <!-- ============================================================== -->
+        <!-- EDIT PROFILE MODE (FORM PANEL) -->
+        <!-- ============================================================== -->
+        <main class="edit-form-panel" id="edit-form-panel">
+            <div class="card-panel">
+                <h3 class="card-title">Edit Profile Information</h3>
+                <p class="card-subtitle">Update display details, contact information, and avatar customization.</p>
+
+                <!-- Avatar & Color Picker Bar -->
+                <div class="avatar-edit-container">
+                    <div class="avatar-circle-large" id="edit-avatar-circle">U</div>
+                    <div class="avatar-picker-controls">
+                        <label class="form-label">Profile Accent Color</label>
+                        <p class="card-subtitle" style="margin-bottom: 8px;">Select a preset accent color for your avatar badge:</p>
+                        <div class="color-presets-row">
+                            <button type="button" class="color-preset-btn active" style="background:#0037b0;" onclick="selectColorPreset('#0037b0', this)" title="Blue"></button>
+                            <button type="button" class="color-preset-btn" style="background:#7C3AED;" onclick="selectColorPreset('#7C3AED', this)" title="Purple"></button>
+                            <button type="button" class="color-preset-btn" style="background:#10B981;" onclick="selectColorPreset('#10B981', this)" title="Green"></button>
+                            <button type="button" class="color-preset-btn" style="background:#06B6D4;" onclick="selectColorPreset('#06B6D4', this)" title="Cyan"></button>
+                            <button type="button" class="color-preset-btn" style="background:#F97316;" onclick="selectColorPreset('#F97316', this)" title="Orange"></button>
+                            <button type="button" class="color-preset-btn" style="background:#EC4899;" onclick="selectColorPreset('#EC4899', this)" title="Pink"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Editable Form Fields -->
+                <form id="edit-profile-form" onsubmit="handleSaveProfile(event)">
+                    <div class="form-grid-2col">
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="input-name">Display Name *</label>
+                            <input type="text" id="input-name" class="form-control" placeholder="Enter full name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="input-phone">Phone Number</label>
+                            <input type="tel" id="input-phone" class="form-control" placeholder="+1 (555) 000-0000">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="input-job">Job Title</label>
+                            <input type="text" id="input-job" class="form-control" placeholder="e.g. Software Developer">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="input-dept">Department</label>
+                            <input type="text" id="input-dept" class="form-control" placeholder="e.g. Engineering">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="input-timezone">Timezone</label>
+                            <select id="input-timezone" class="form-control">
+                                <option value="UTC (Coordinated Universal Time)">UTC (Coordinated Universal Time)</option>
+                                <option value="Asia/Kolkata (IST +5:30)">Asia/Kolkata (IST +5:30)</option>
+                                <option value="America/New_York (EST -5:00)">America/New_York (EST -5:00)</option>
+                                <option value="America/Los_Angeles (PST -8:00)">America/Los_Angeles (PST -8:00)</option>
+                                <option value="Europe/London (GMT +0:00)">Europe/London (GMT +0:00)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Email Address (Read Only)</label>
+                            <input type="text" id="input-email-readonly" class="form-control" disabled>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="form-label" for="input-bio">Biography</label>
+                            <textarea id="input-bio" class="form-control" placeholder="Write a short summary about yourself..."></textarea>
+                        </div>
+
+                    </div>
+
+                    <div class="form-actions-bar">
+                        <button type="button" class="btn-cancel" onclick="toggleEditView(false)">Cancel</button>
+                        <button type="submit" class="btn-save-submit">Save Profile</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+
+
+        <!-- ============================================================== -->
+        <!-- PASSWORD MANAGEMENT MODAL DIALOG -->
+        <!-- ============================================================== -->
+        <div class="modal-overlay" id="password-modal">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="modal-pwd-title">Change Password</h3>
+                    <button type="button" class="btn-close-modal" onclick="closePasswordModal()">✕</button>
+                </div>
+
+                <form id="password-form" onsubmit="handlePasswordSubmit(event)">
+                    
+                    <div class="form-group" id="group-old-pwd">
+                        <label class="form-label" for="input-old-pwd">Current Password</label>
+                        <input type="password" id="input-old-pwd" class="form-control" placeholder="Enter current password">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="input-new-pwd">New Password</label>
+                        <input type="password" id="input-new-pwd" class="form-control" placeholder="Enter new password" required oninput="validatePwdReqs(this.value)">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="input-confirm-pwd">Confirm New Password</label>
+                        <input type="password" id="input-confirm-pwd" class="form-control" placeholder="Confirm new password" required>
+                    </div>
+
+                    <p id="pwd-error-msg" style="color:#ef4444; font-size:12px; margin-bottom:12px; display:none;"></p>
+
+                    <div class="form-actions-bar">
+                        <button type="button" class="btn-cancel" onclick="closePasswordModal()">Cancel</button>
+                        <button type="submit" class="btn-save-submit" id="btn-pwd-submit">Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Page Logic Script -->
+    <script>
+        var currentProfile = null;
+        var selectedColor = "#0037b0";
+
+        // Receive User Profile Data from Python Backend
+        function loadUserProfileData(userObj) {
+            if (!userObj) return;
+            currentProfile = userObj;
+
+            // 1. Populate View Profile Cards
+            const nameStr = userObj.name || userObj.full_name || "User";
+            const initial = nameStr.trim().charAt(0).toUpperCase() || "U";
+            selectedColor = userObj.profile_color || "#0037b0";
+
+            document.getElementById('view-avatar-circle').innerText = initial;
+            document.getElementById('view-avatar-circle').style.backgroundColor = selectedColor;
+            
+            document.getElementById('view-name').innerText = nameStr;
+            document.getElementById('view-role-badge').innerText = userObj.role || "User";
+            
+            let jobDept = [];
+            if (userObj.job_title) jobDept.push(userObj.job_title);
+            if (userObj.department) jobDept.push(userObj.department);
+            document.getElementById('view-job-dept').innerText = jobDept.length > 0 ? jobDept.join(' • ') : "Not specified";
+
+            document.getElementById('view-bio').innerText = userObj.bio ? `"${userObj.bio}"` : "No biography added yet.";
+
+            document.getElementById('view-email').innerText = userObj.email || "Not specified";
+            document.getElementById('view-phone').innerText = userObj.phone || "Not specified";
+            document.getElementById('view-timezone').innerText = userObj.timezone || "UTC (Coordinated Universal Time)";
+            
+            let joinedStr = "Not specified";
+            if (userObj.created_at) {
+                let dt = new Date(userObj.created_at);
+                if (!isNaN(dt.getTime())) {
+                    joinedStr = dt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                } else {
+                    joinedStr = String(userObj.created_at);
+                }
+            }
+            document.getElementById('view-created-at').innerText = joinedStr;
+            document.getElementById('view-joined-date').innerText = joinedStr;
+
+            // 2. Notification Badges
+            updateNotifBadge('badge-email-notif', userObj.email_notifications !== false);
+            updateNotifBadge('badge-desktop-notif', userObj.desktop_notifications !== false);
+            updateNotifBadge('badge-statement-notif', userObj.statement_notifications !== false);
+
+            // 3. Security & Connected Accounts
+            const hasGoogle = !!userObj.google_id;
+            const googleText = document.getElementById('google-status-text');
+            const googleBtn = document.getElementById('btn-google-action');
+            if (hasGoogle) {
+                googleText.innerText = "Connected via Google OAuth";
+                googleBtn.innerText = "Disconnect";
+            } else {
+                googleText.innerText = "Not connected to a Google account";
+                googleBtn.innerText = "Connect Google";
+            }
+
+            const hasPwd = !!userObj.has_password;
+            const pwdText = document.getElementById('password-status-text');
+            const pwdBtn = document.getElementById('btn-password-action');
+            if (pwdBtn) pwdBtn.innerText = "Reset Password";
+            if (hasPwd) {
+                pwdText.innerText = "Password set. You can sign in using your email and password.";
+            } else {
+                pwdText.innerText = "No local password is currently configured.";
+            }
+
+            // 4. Pre-fill Edit Form Inputs
+            document.getElementById('edit-avatar-circle').innerText = initial;
+            document.getElementById('edit-avatar-circle').style.backgroundColor = selectedColor;
+            document.querySelectorAll('.color-preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+                const onclickAttr = btn.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.toLowerCase().includes(selectedColor.toLowerCase())) {
+                    btn.classList.add('active');
+                }
+            });
+
+            document.getElementById('input-name').value = nameStr;
+            document.getElementById('input-phone').value = userObj.phone || "";
+            document.getElementById('input-job').value = userObj.job_title || "";
+            document.getElementById('input-dept').value = userObj.department || "";
+            document.getElementById('input-timezone').value = userObj.timezone || "UTC (Coordinated Universal Time)";
+            document.getElementById('input-email-readonly').value = userObj.email || "";
+            document.getElementById('input-bio').value = userObj.bio || "";
+        }
+
+        function updateNotifBadge(elementId, isEnabled) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            if (isEnabled) {
+                el.className = "status-badge status-enabled";
+                el.innerText = "Enabled";
+            } else {
+                el.className = "status-badge status-disabled";
+                el.innerText = "Disabled";
+            }
+        }
+
+        function toggleEditView(showEdit) {
+            const viewPanel = document.getElementById('view-profile-panel');
+            const editPanel = document.getElementById('edit-form-panel');
+            const headingTitle = document.getElementById('page-heading-title');
+            const toggleBtn = document.getElementById('btn-toggle-edit');
+
+            if (showEdit) {
+                viewPanel.className = "view-profile-panel hidden";
+                editPanel.className = "edit-form-panel active";
+                headingTitle.innerText = "Edit Profile";
+                toggleBtn.style.display = "none";
+            } else {
+                viewPanel.className = "view-profile-panel";
+                editPanel.className = "edit-form-panel";
+                headingTitle.innerText = "My Profile";
+                toggleBtn.style.display = "inline-flex";
+            }
+        }
+
+        function selectColorPreset(colorHex, btnEl) {
+            selectedColor = colorHex;
+            document.querySelectorAll('.color-preset-btn').forEach(btn => btn.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+
+            document.getElementById('edit-avatar-circle').style.backgroundColor = selectedColor;
+            document.getElementById('view-avatar-circle').style.backgroundColor = selectedColor;
+        }
+
+        function handleSaveProfile(event) {
+            event.preventDefault();
+            const payload = {
+                name: document.getElementById('input-name').value.trim(),
+                phone: document.getElementById('input-phone').value.trim(),
+                job_title: document.getElementById('input-job').value.trim(),
+                department: document.getElementById('input-dept').value.trim(),
+                timezone: document.getElementById('input-timezone').value,
+                bio: document.getElementById('input-bio').value.trim(),
+                profile_color: selectedColor
+            };
+
+            sendAppCommand('profile_save', payload);
+        }
+
+        function toggleNotification(type) {
+            if (!currentProfile) return;
+            let payload = {
+                email_notifications: currentProfile.email_notifications !== false,
+                desktop_notifications: currentProfile.desktop_notifications !== false,
+                statement_notifications: currentProfile.statement_notifications !== false
+            };
+
+            if (type === 'email') payload.email_notifications = !payload.email_notifications;
+            if (type === 'desktop') payload.desktop_notifications = !payload.desktop_notifications;
+            if (type === 'statement') payload.statement_notifications = !payload.statement_notifications;
+
+            sendAppCommand('profile_update_notifications', payload);
+        }
+
+        function openPasswordModal() {
+            const hasPwd = currentProfile && !!currentProfile.has_password;
+            const modalTitle = document.getElementById('modal-pwd-title');
+            const groupOld = document.getElementById('group-old-pwd');
+            const btnSubmit = document.getElementById('btn-pwd-submit');
+
+            if (hasPwd) {
+                modalTitle.innerText = "Change Password";
+                groupOld.style.display = "flex";
+                btnSubmit.innerText = "Update Password";
+            } else {
+                modalTitle.innerText = "Set Password";
+                groupOld.style.display = "none";
+                btnSubmit.innerText = "Set Password";
+            }
+
+            document.getElementById('password-form').reset();
+            document.getElementById('pwd-error-msg').style.display = "none";
+            document.getElementById('password-modal').className = "modal-overlay active";
+        }
+
+        function closePasswordModal() {
+            document.getElementById('password-modal').className = "modal-overlay";
+        }
+
+        function handlePasswordSubmit(event) {
+            event.preventDefault();
+            const hasPwd = currentProfile && !!currentProfile.has_password;
+            const oldP = document.getElementById('input-old-pwd').value;
+            const newP = document.getElementById('input-new-pwd').value;
+            const confP = document.getElementById('input-confirm-pwd').value;
+            const errEl = document.getElementById('pwd-error-msg');
+
+            errEl.style.display = "none";
+
+            if (hasPwd && !oldP) {
+                errEl.innerText = "Current password is required.";
+                errEl.style.display = "block";
+                return;
+            }
+            if (!newP || newP.length < 8) {
+                errEl.innerText = "New password must be at least 8 characters.";
+                errEl.style.display = "block";
+                return;
+            }
+            if (newP !== confP) {
+                errEl.innerText = "Passwords do not match.";
+                errEl.style.display = "block";
+                return;
+            }
+
+            if (hasPwd) {
+                sendAppCommand('profile_change_password', { old_password: oldP, new_password: newP });
+            } else {
+                sendAppCommand('profile_set_password', { new_password: newP });
+            }
+        }
+
+        function handleResetPassword() {
+            sendAppCommand('profile_reset_password', '');
+        }
+
+        function handleGoogleAction() {
+            const hasGoogle = currentProfile && !!currentProfile.google_id;
+            if (hasGoogle) {
+                sendAppCommand('profile_disconnect_google', {});
+            } else {
+                sendAppCommand('profile_connect_google', {});
+            }
+        }
+
+        function showToast(message, isError) {
+            const toast = document.getElementById('profile-toast');
+            toast.innerText = message;
+            toast.className = isError ? "toast-msg toast-error" : "toast-msg toast-success";
+            toast.style.display = "block";
+            setTimeout(() => {
+                toast.style.display = "none";
+            }, 3500);
+        }
+
+        // Initialize Theme Mode & Bridge Listeners
+        window.addEventListener("pybridgeReady", function() {
+            console.log("Profile HTML bridge ready.");
+            sendAppCommand('profile_request_data', '');
+        });
+    </script>
+</body>
+</html>

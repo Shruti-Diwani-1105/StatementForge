@@ -592,7 +592,7 @@ class AIAuditorWidget(QWidget):
             return
 
         self.html_wrapper.eval_js("setLoading(true, 'AI is analyzing transaction data...');")
-        self.html_wrapper.eval_js(f"setReportHtml('<div style=\"color:#3B82F6; font-family: Times New Roman, Times, serif; font-size:14px; text-align:center; padding-top:40px;\"><b>AI is analyzing transactions...</b><br>Please hold, compiling executive auditing sheets...</div>');")
+        self.html_wrapper.eval_js(f"setReportHtml('<div style=\"color:#3B82F6; font-family: 'Inter', sans-serif; font-size:14px; text-align:center; padding-top:40px;\"><b>AI is analyzing transactions...</b><br>Please hold, compiling executive auditing sheets...</div>');")
         
         # Build worker parameters
         kwargs = {

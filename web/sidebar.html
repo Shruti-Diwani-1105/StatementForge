@@ -12,20 +12,27 @@
     <aside class="sidebar-container" id="sidebar-app">
         <!-- Sidebar Header / Branding -->
         <div class="sidebar-header">
-            <div class="brand-logo-wrapper">
-                <img src="../assets/logo.png" alt="StatementForge Logo" class="brand-logo">
+            <div class="brand-wrapper">
+                <div class="brand-logo-wrapper">
+                    <img src="../assets/logo.png" alt="StatementForge Logo" class="brand-logo">
+                </div>
+                <div class="brand-info">
+                    <h1 class="brand-title">StatementForge</h1>
+                </div>
             </div>
-            <div class="brand-info">
-                <h1 class="brand-title">StatementForge</h1>
-                <span class="brand-version">v1.0</span>
-            </div>
+            <button type="button" class="sidebar-toggle-btn" id="btn-toggle-sidebar" onclick="toggleSidebarState()" title="Collapse Sidebar">
+                <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path class="chevron-left" d="M15 18l-6-6 6-6"/>
+                    <path class="chevron-right" d="M9 18l6-6-6-6" style="display:none;"/>
+                </svg>
+            </button>
         </div>
 
         <!-- Navigation Menu -->
         <nav class="sidebar-nav">
             <ul class="nav-list">
                 <li class="nav-item">
-                    <button type="button" class="nav-button active" id="nav-dashboard" onclick="sendAppCommand('nav', 'dashboard')">
+                    <button type="button" class="nav-button active" id="nav-dashboard" data-tooltip="Dashboard" onclick="sendAppCommand('nav', 'dashboard')">
                         <span class="icon-container">
                             <img src="../assets/icons/dashboard.png" alt="Dashboard" class="nav-icon">
                         </span>
@@ -33,7 +40,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-upload" onclick="sendAppCommand('nav', 'upload')">
+                    <button type="button" class="nav-button" id="nav-upload" data-tooltip="Upload Statement" onclick="sendAppCommand('nav', 'upload')">
                         <span class="icon-container">
                             <img src="../assets/icons/upload.png" alt="Upload Statement" class="nav-icon">
                         </span>
@@ -41,7 +48,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-ai_auditor" onclick="sendAppCommand('nav', 'ai_auditor')">
+                    <button type="button" class="nav-button" id="nav-ai_auditor" data-tooltip="AI Auditor" onclick="sendAppCommand('nav', 'ai_auditor')">
                         <span class="icon-container">
                             <img src="../assets/icons/ai.png" alt="AI Auditor" class="nav-icon">
                         </span>
@@ -49,7 +56,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-duplicate_finder" onclick="sendAppCommand('nav', 'duplicate_finder')">
+                    <button type="button" class="nav-button" id="nav-duplicate_finder" data-tooltip="Duplicate Finder" onclick="sendAppCommand('nav', 'duplicate_finder')">
                         <span class="icon-container">
                             <img src="../assets/icons/duplicate.png" alt="Duplicate Finder" class="nav-icon">
                         </span>
@@ -57,7 +64,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-history" onclick="sendAppCommand('nav', 'history')">
+                    <button type="button" class="nav-button" id="nav-history" data-tooltip="Statement History" onclick="sendAppCommand('nav', 'history')">
                         <span class="icon-container">
                             <img src="../assets/icons/history.png" alt="Statement History" class="nav-icon">
                         </span>
@@ -65,7 +72,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-email_history" onclick="sendAppCommand('nav', 'email_history')">
+                    <button type="button" class="nav-button" id="nav-email_history" data-tooltip="Email Center" onclick="sendAppCommand('nav', 'email_history')">
                         <span class="icon-container">
                             <img src="../assets/icons/email.png" alt="Email Center" class="nav-icon">
                         </span>
@@ -73,7 +80,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-reports" onclick="sendAppCommand('nav', 'reports')">
+                    <button type="button" class="nav-button" id="nav-reports" data-tooltip="Reports" onclick="sendAppCommand('nav', 'reports')">
                         <span class="icon-container">
                             <img src="../assets/icons/reports.png" alt="Reports" class="nav-icon">
                         </span>
@@ -81,7 +88,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-settings" onclick="sendAppCommand('nav', 'settings')">
+                    <button type="button" class="nav-button" id="nav-settings" data-tooltip="Settings" onclick="sendAppCommand('nav', 'settings')">
                         <span class="icon-container">
                             <img src="../assets/icons/settings.png" alt="Settings" class="nav-icon">
                         </span>
@@ -93,7 +100,7 @@
 
         <!-- Sidebar Footer / Logout -->
         <div class="sidebar-footer">
-            <button type="button" class="nav-button logout-button" id="btn-logout" onclick="sendAppCommand('logout', '')">
+            <button type="button" class="nav-button logout-button" id="btn-logout" data-tooltip="Logout" onclick="sendAppCommand('logout', '')">
                 <span class="icon-container">
                     <img src="../assets/icons/logout.png" alt="Logout" class="nav-icon">
                 </span>
@@ -101,5 +108,41 @@
             </button>
         </div>
     </aside>
+
+    <script>
+        function toggleSidebarState() {
+            const isCollapsed = document.body.classList.toggle('collapsed');
+            updateToggleUI(isCollapsed);
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('toggle_sidebar', isCollapsed ? 'collapsed' : 'expanded');
+            }
+        }
+
+        function setCollapsedState(collapsed) {
+            if (collapsed) {
+                document.body.classList.add('collapsed');
+            } else {
+                document.body.classList.remove('collapsed');
+            }
+            updateToggleUI(collapsed);
+        }
+
+        function updateToggleUI(collapsed) {
+            const btn = document.getElementById('btn-toggle-sidebar');
+            const pathLeft = btn ? btn.querySelector('.chevron-left') : null;
+            const pathRight = btn ? btn.querySelector('.chevron-right') : null;
+            if (pathLeft && pathRight) {
+                if (collapsed) {
+                    pathLeft.style.display = 'none';
+                    pathRight.style.display = 'block';
+                    if (btn) btn.title = 'Expand Sidebar';
+                } else {
+                    pathLeft.style.display = 'block';
+                    pathRight.style.display = 'none';
+                    if (btn) btn.title = 'Collapse Sidebar';
+                }
+            }
+        }
+    </script>
 </body>
 </html>

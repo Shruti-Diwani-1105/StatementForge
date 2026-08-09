@@ -34,14 +34,14 @@ class LoginOTPDialog(QDialog):
         main_layout.setSpacing(20)
 
         title = QLabel("Login Verification")
-        title.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Times New Roman';")
+        title.setStyleSheet("font-size: 22px; font-weight: bold; color: #0037b0; font-family: 'Manrope', sans-serif;")
         
         self.desc = QLabel(
             f"We have sent a 6-digit verification code to <b>{self.email_address}</b>.<br><br>"
             "Please check your inbox and enter the code below to complete your login."
         )
         self.desc.setWordWrap(True)
-        self.desc.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Times New Roman';")
+        self.desc.setStyleSheet("font-size: 13px; color: #64748B; line-height: 18px; font-family: 'Inter', sans-serif;")
 
         self.code_input = PremiumInputGroup("Verification Code", "Enter 6-digit code", "assets/icons/lock.png", is_password=False, parent=self)
         self.code_input.textChanged.connect(self.clear_errors)
@@ -51,10 +51,10 @@ class LoginOTPDialog(QDialog):
         resend_layout.setContentsMargins(0, 0, 0, 0)
         resend_layout.setSpacing(6)
         resend_lbl = QLabel("Didn't receive the code?")
-        resend_lbl.setStyleSheet("font-size: 13px; color: #64748B; font-family: 'Times New Roman';")
+        resend_lbl.setStyleSheet("font-size: 13px; color: #64748B; font-family: 'Inter', sans-serif;")
         
         self.resend_btn = QPushButton("Resend Code")
-        self.resend_btn.setStyleSheet("font-weight: bold; border: none; padding: 0px; color: #0037b0; font-family: 'Times New Roman'; background: transparent; font-size: 13px;")
+        self.resend_btn.setStyleSheet("font-weight: bold; border: none; padding: 0px; color: #0037b0; font-family: 'Inter', sans-serif; background: transparent; font-size: 13px;")
         self.resend_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.resend_btn.clicked.connect(self.send_verification_code)
         

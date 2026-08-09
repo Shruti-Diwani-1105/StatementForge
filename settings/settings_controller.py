@@ -409,6 +409,17 @@ class SettingsController(QObject):
         else:
             Toast.error(self.view, f"❌ Save Failed: {message}")
 
+    def save_notification_settings_directly(self):
+        """Persists notification preferences directly without blocking on account profile validations."""
+        user = UserSession.get_current_user()
+        success, message = SettingsService.save_settings(user, self.model.to_dict())
+        if success:
+            self.model.commit_changes()
+            Toast.success(self.view, "Changes saved successfully", title="Changes saved successfully")
+            SettingsService.apply_settings_instantly(self.model.to_dict())
+        else:
+            Toast.error(self.view, f"❌ Save Failed: {message}")
+
     def handle_cancel(self):
         """Rollbacks any dirty inputs to their original saved values."""
         self.model.rollback_changes()

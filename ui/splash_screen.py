@@ -258,7 +258,7 @@ class SplashScreen(QWidget):
             font-size: 34px; 
             font-weight: bold; 
             color: #FFFFFF; 
-            font-family: "Playfair Display", "Georgia", "Times New Roman", serif; 
+            font-family: "Manrope", "Inter", sans-serif; 
             letter-spacing: 0.5px;
             background: transparent;
             border: none;

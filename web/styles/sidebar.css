@@ -81,10 +81,18 @@ html, body {
 .sidebar-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 10px 20px 10px;
+    justify-content: space-between;
+    padding: 6px 4px 18px 4px;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 16px;
+    position: relative;
+}
+
+.brand-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
 }
 
 .brand-logo-wrapper {
@@ -96,6 +104,7 @@ html, body {
     border-radius: var(--radius-md);
     background: #FFFFFF;
     box-shadow: var(--shadow-soft);
+    flex-shrink: 0;
 }
 
 .brand-logo {
@@ -117,10 +126,102 @@ html, body {
     line-height: 1.2;
 }
 
-.brand-version {
-    font-size: 11px;
+/* Sidebar Collapse Toggle Button */
+.sidebar-toggle-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+    outline: none;
+}
+
+.sidebar-toggle-btn:hover {
+    background-color: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--active-border);
+}
+
+.toggle-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* ==========================================================================
+   COLLAPSED SIDEBAR RULES (body.collapsed)
+   ========================================================================== */
+body.collapsed .sidebar-container {
+    padding: 16px 6px;
+}
+
+body.collapsed .sidebar-header {
+    justify-content: center;
+    padding: 6px 0 16px 0;
+    gap: 0;
+}
+
+body.collapsed .brand-wrapper {
+    display: none;
+}
+
+body.collapsed .sidebar-toggle-btn {
+    margin: 0 auto;
+}
+
+body.collapsed .nav-button {
+    padding: 0;
+    justify-content: center;
+    height: 44px;
+}
+
+body.collapsed .text-container {
+    display: none;
+}
+
+body.collapsed .nav-button.active::before {
+    left: -6px;
+}
+
+/* Tooltips in Collapsed Mode */
+body.collapsed .nav-button[data-tooltip] {
+    position: relative;
+}
+
+body.collapsed .nav-button[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: fixed;
+    left: 88px;
+    background: #0F172A;
+    color: #F8FAFC;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text-version);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 99999;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    border: 1px solid #334155;
+    animation: tooltipFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.collapsed.dark-mode .nav-button[data-tooltip]:hover::after {
+    background: #F8FAFC;
+    color: #0F172A;
+    border-color: #E2E8F0;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+@keyframes tooltipFadeIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 /* Navigation List */
