@@ -578,3 +578,9 @@ class StatementHistoryPage(QWidget):
                     QMessageBox.warning(self, "Error", "Failed to clear statement history.")
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Could not clear history: {e}")
+
+    def apply_theme(self, theme):
+        """Applies light/dark theme to the history page elements."""
+        self.current_theme = theme.lower().strip() if isinstance(theme, str) else "light"
+        self.apply_table_style()
+
