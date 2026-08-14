@@ -146,7 +146,7 @@ class NotificationsPageWidget(QWidget):
             if (document.getElementById('cnt-ai_risk')) document.getElementById('cnt-ai_risk').innerText = '{cnt_ai}';
             if (document.getElementById('cnt-parsing_export')) document.getElementById('cnt-parsing_export').innerText = '{cnt_parse}';
             if (document.getElementById('cnt-system_security')) document.getElementById('cnt-system_security').innerText = '{cnt_sec}';
-            setCategoryFilter('{self.active_category}');
+            if (typeof setCategoryFilter === 'function') setCategoryFilter('{self.active_category}');
         """
         self.html_wrapper.eval_js(js_counts)
 

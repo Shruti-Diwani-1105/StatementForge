@@ -66,15 +66,17 @@
     </div>
 
     <script>
-        function sendAppCommand(cmd, payload) {
+        window.sendAppCommand = function(cmd, payload) {
             document.title = "app-cmd:" + cmd + ":" + (payload || "");
-        }
+        };
 
-        function setCategoryFilter(category) {
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            const activeBtn = document.getElementById('flt-' + category);
+        window.setCategoryFilter = function(category) {
+            document.querySelectorAll('.filter-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            var activeBtn = document.getElementById('flt-' + category);
             if (activeBtn) activeBtn.classList.add('active');
-        }
+        };
     </script>
 </body>
 </html>
