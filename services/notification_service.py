@@ -51,12 +51,18 @@ class NotificationService:
             print(f"NotificationService: Error saving fallback preferences: {e}")
 
     @classmethod
+    def _get_collection(cls, collection_name="notifications"):
+        """Returns requested MongoDB collection or None if unavailable."""
+        db = MongoDBService.get_db()
+        return db[collection_name] if db is not None else None
+
+    @classmethod
     def get_notification_preferences(cls, user_id="guest"):
         """Returns notification settings toggles for the specified user."""
         cls._load_local_fallback()
         
         # 1. MongoDB Check
-        col = MongoDBService.get_collection("notification_preferences")
+        col = cls._get_collection("notification_preferences")
         if col is not None:
             try:
                 doc = col.find_one({"user_id": str(user_id)})
@@ -85,7 +91,7 @@ class NotificationService:
         cls._load_local_fallback()
         user_id_str = str(user_id)
         
-        col = MongoDBService.get_collection("notification_preferences")
+        col = cls._get_collection("notification_preferences")
         if col is not None:
             try:
                 col.update_one(
@@ -145,7 +151,7 @@ class NotificationService:
         }
 
         # 1. MongoDB Save
-        col = MongoDBService.get_collection("notifications")
+        col = cls._get_collection("notifications")
         if col is not None:
             try:
                 mongo_doc = doc.copy()
@@ -169,7 +175,7 @@ class NotificationService:
         user_id_str = str(user_id)
         
         # 1. MongoDB Query
-        col = MongoDBService.get_collection("notifications")
+        col = cls._get_collection("notifications")
         if col is not None:
             try:
                 query = {"user_id": user_id_str}
@@ -208,7 +214,7 @@ class NotificationService:
         cls._load_local_fallback()
         user_id_str = str(user_id)
         
-        col = MongoDBService.get_collection("notifications")
+        col = cls._get_collection("notifications")
         if col is not None:
             try:
                 return col.count_documents({
@@ -231,7 +237,7 @@ class NotificationService:
         cls._load_local_fallback()
         user_id_str = str(user_id)
 
-        col = MongoDBService.get_collection("notifications")
+        col = cls._get_collection("notifications")
         if col is not None:
             try:
                 try:
@@ -255,7 +261,7 @@ class NotificationService:
         cls._load_local_fallback()
         user_id_str = str(user_id)
 
-        col = MongoDBService.get_collection("notifications")
+        col = cls._get_collection("notifications")
         if col is not None:
             try:
                 col.update_many({"user_id": user_id_str, "is_dismissed": {"$ne": True}}, {"$set": {"is_read": True}})
@@ -274,7 +280,7 @@ class NotificationService:
         cls._load_local_fallback()
         user_id_str = str(user_id)
 
-        col = MongoDBService.get_collection("notifications")
+        col = cls._get_collection("notifications")
         if col is not None:
             try:
                 try:
@@ -298,7 +304,7 @@ class NotificationService:
         cls._load_local_fallback()
         user_id_str = str(user_id)
 
-        col = MongoDBService.get_collection("notifications")
+        col = cls._get_collection("notifications")
         if col is not None:
             try:
                 col.update_many({"user_id": user_id_str}, {"$set": {"is_dismissed": True}})

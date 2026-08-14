@@ -22,7 +22,7 @@ class NotificationsPageWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         
         self.html_wrapper = HtmlScreenWrapper("web/notifications.html", self)
-        self.html_wrapper.commandReceived.connect(self.handle_app_command)
+        self.html_wrapper.web_view.titleChanged.connect(self.handle_web_commands)
         layout.addWidget(self.html_wrapper)
         
         # Load user notifications after web view initializes
@@ -31,6 +31,16 @@ class NotificationsPageWidget(QWidget):
     def get_current_user_id(self):
         user = UserSession.get_current_user()
         return str(user["id"]) if user and "id" in user else "guest"
+
+    def handle_web_commands(self, title: str):
+        """Processes document.title IPC commands sent from web view."""
+        if not title or not title.startswith("app-cmd:"):
+            return
+        parts = title.split(":", 2)
+        cmd = parts[1] if len(parts) > 1 else ""
+        payload = parts[2] if len(parts) > 2 else ""
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(0, lambda: self.handle_app_command(cmd, payload))
 
     def handle_app_command(self, cmd: str, payload: str):
         user_id = self.get_current_user_id()
