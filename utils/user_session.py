@@ -12,6 +12,19 @@ class UserSession:
         """Starts a session with user details dict."""
         cls._current_user = user_data
         cls.save_session(user_data)
+        
+        # Trigger Login Activity notification
+        try:
+            from services.notification_service import NotificationService
+            u_id = user_data.get("id") if user_data else "guest"
+            NotificationService.create_notification(
+                user_id=u_id,
+                category="system_security",
+                title="Login Activity",
+                message="New login detected from Windows 11."
+            )
+        except Exception as e:
+            print(f"UserSession: Notification error: {e}")
 
     @classmethod
     def get_current_user(cls):

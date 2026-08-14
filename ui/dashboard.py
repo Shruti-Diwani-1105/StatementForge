@@ -68,8 +68,8 @@ class DashboardScreen(QWidget):
         # Create the main dashboard overview page immediately (index 0)
         self.create_main_dashboard_page()
         
-        # Add placeholders for the other 10 pages
-        for _ in range(10):
+        # Add placeholders for the other 11 pages
+        for _ in range(11):
             placeholder = QWidget()
             placeholder.setProperty("is_placeholder", True)
             self.page_stack.addWidget(placeholder)
@@ -90,7 +90,8 @@ class DashboardScreen(QWidget):
             "generate_excel": 6,
             "duplicate_finder": 8,
             "email_history": 9,
-            "ai_chatbot": 10
+            "ai_chatbot": 10,
+            "notifications": 11
         }
         if key not in mapping:
             return
@@ -137,6 +138,10 @@ class DashboardScreen(QWidget):
                 from ui.email_history_page import EmailHistoryPage
                 self.email_history_widget = EmailHistoryPage(self)
                 new_widget = self.email_history_widget
+            elif key == "notifications":
+                from ui.notifications_page import NotificationsPageWidget
+                self.notifications_page_widget = NotificationsPageWidget(self)
+                new_widget = self.notifications_page_widget
             else:
                 return
             
@@ -158,7 +163,8 @@ class DashboardScreen(QWidget):
             "generate_excel": 6,
             "duplicate_finder": 8,
             "email_history": 9,
-            "ai_chatbot": 10
+            "ai_chatbot": 10,
+            "notifications": 11
         }
         if key in mapping:
             self.ensure_page_loaded(key)
@@ -181,6 +187,9 @@ class DashboardScreen(QWidget):
                 self.duplicate_finder_widget.load_history_dropdown()
             elif key == "email_history":
                 self.email_history_widget.load_email_history()
+            elif key == "notifications":
+                if hasattr(self, "notifications_page_widget") and self.notifications_page_widget:
+                    self.notifications_page_widget.load_user_notifications()
             elif key == "settings":
                 if hasattr(self, "settings_window") and self.settings_window:
                     self.settings_window.sync_user_profile_directly()
@@ -411,7 +420,7 @@ class DashboardScreen(QWidget):
             key = payload.strip().lower()
             if key == "upload":
                 self.switch_to_upload_with_preset("excel")
-            elif key in ["generate_excel", "ai_auditor", "ai_report", "ai_chatbot", "duplicate_finder", "history", "email_history"]:
+            elif key in ["generate_excel", "ai_auditor", "ai_report", "ai_chatbot", "duplicate_finder", "history", "email_history", "notifications"]:
                 self.switch_dashboard_page(key)
             elif key in ["tally", "gst", "gst_report"]:
                 self.show_coming_soon("Export")
@@ -728,6 +737,14 @@ class DashboardScreen(QWidget):
 
         if hasattr(self, "email_history_widget") and self.email_history_widget is not None:
             self.email_history_widget.apply_theme(theme_clean)
+
+        if hasattr(self, "notifications_page_widget") and self.notifications_page_widget is not None:
+            self.notifications_page_widget.update_theme_style(theme)
+
+    def update_notification_badge(self):
+        """Updates the TopBar unread badge count."""
+        if hasattr(self, "topbar") and self.topbar is not None:
+            self.topbar.update_notification_badge()
 
     def reset_screen_data(self):
         """Purges cached dashboard metrics, tables, and HTML elements on user logout."""

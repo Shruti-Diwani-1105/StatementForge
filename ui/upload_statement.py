@@ -243,8 +243,37 @@ class UploadStatementWidget(QWidget):
             file_name = os.path.basename(self.file_path).replace("'", "\\'")
             bank_name = self.detected_bank.replace("'", "\\'")
             
+            # Auto-create Parsing Completed & Excel Export Notifications
+            try:
+                from services.notification_service import NotificationService
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="parsing_export",
+                    title="Statement Parsing Completed",
+                    message=f"Your statement '{file_name}' ({bank_name}, {tx_len} transactions) was parsed successfully.",
+                    action_type="view_statement"
+                )
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="parsing_export",
+                    title="Excel Export Completed",
+                    message=f"Excel workbook generated successfully: {os.path.basename(excel_path)}",
+                    action_type="view_statement"
+                )
+            except Exception as e:
+                print(f"UploadStatementWidget: Notification trigger error: {e}")
+
             self.html_wrapper.eval_js(f"addRecentActivity('{bank_name}', '{file_name}', {tx_len}, '{time_str}', 'Completed');")
             self.processingCompleted.emit()
+            
+            # Sync TopBar Badge
+            p = self.parent()
+            while p:
+                if hasattr(p, "update_notification_badge"):
+                    p.update_notification_badge()
+                    break
+                p = p.parent()
+                
             self.reset_to_upload()
 
         def on_error(err):
@@ -252,6 +281,16 @@ class UploadStatementWidget(QWidget):
             if hasattr(self, "history_record_id"):
                 HistoryService.update_record_status(self.history_record_id, status="Failed")
             escaped_err = str(err).replace("'", "\\'").replace("\n", " ")
+            try:
+                from services.notification_service import NotificationService
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="parsing_export",
+                    title="Parsing Error",
+                    message=f"Failed to extract transactions from '{os.path.basename(self.file_path)}'. Error: {escaped_err}"
+                )
+            except Exception:
+                pass
             self.html_wrapper.eval_js(f"alert('{escaped_err}');")
 
         self.active_thread = StatementService.start_generate_excel(

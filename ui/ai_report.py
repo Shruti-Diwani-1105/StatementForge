@@ -521,7 +521,55 @@ class AIReportWidget(QWidget):
                 score_val = match.group(1)
                 self.html_wrapper.eval_js(f"document.getElementById('lblScore').innerText = {json.dumps(score_val)};")
                 
+            # Trigger AI Risk Notification if risks are analyzed
+            try:
+                from services.notification_service import NotificationService
+                user = UserSession.get_current_user()
+                user_id = user["id"] if user else "guest"
+                
+                if action_key in ["risk", "report"] and self.active_transactions:
+                    # Scan active transactions for risk indicators
+                    for tx in self.active_transactions:
+                        debit = tx.get("debit", 0.0) or 0.0
+                        narr = str(tx.get("narration", "")).lower()
+                        tx_date = tx.get("date", "recent date")
+                        
+                        if debit >= 50000.0:
+                            NotificationService.create_notification(
+                                user_id=user_id,
+                                category="ai_risk",
+                                title="Large Outflow Alert",
+                                message=f"A single high-value outflow transaction of ₹{debit:,.2f} was detected on {tx_date}.",
+                                action_type="view_report"
+                            )
+                            break
+                    
+                    # Scan for subscriptions
+                    for tx in self.active_transactions:
+                        narr = str(tx.get("narration", "")).lower()
+                        debit = tx.get("debit", 0.0) or 0.0
+                        if any(sub in narr for sub in ["netflix", "swiggy", "spotify", "prime", "youtube", "hotstar", "saas"]):
+                            NotificationService.create_notification(
+                                user_id=user_id,
+                                category="ai_risk",
+                                title="Subscription Burden Detected",
+                                message=f"Active recurring expense detected: {tx.get('narration')} (₹{debit:,.2f}).",
+                                action_type="view_report"
+                            )
+                            break
+                            
+            except Exception as e:
+                print(f"AIReportWidget: Notification trigger error: {e}")
+
             Toast.success(self, "✓ Report generated successfully!")
+            
+            # Sync TopBar Badge
+            p = self.parent()
+            while p:
+                if hasattr(p, "update_notification_badge"):
+                    p.update_notification_badge()
+                    break
+                p = p.parent()
 
         def handle_error(err_msg):
             self.html_wrapper.eval_js("setLoading(false);")
@@ -529,7 +577,7 @@ class AIReportWidget(QWidget):
             self.active_thread = None
             
             error_html = f"<div style='color:#EF4444; font-family: \"Inter\", sans-serif; font-size:14px; padding:20px;'><b>AI Report Generation Failed</b><br><br>{err_msg}</div>"
-            self.html_wrapper.eval_js(f"setReportHtml({json.dumps(error_html)});")
+            self.html_wrapper.eval_js(f"setReportHtml({json.dumps(error_html)} );")
             QMessageBox.critical(self, "AI Connection Failed", f"An error occurred while compiling AI report:\n\n{err_msg}")
 
         self.active_thread.finished.connect(handle_finished)
@@ -564,6 +612,27 @@ class AIReportWidget(QWidget):
             
             Toast.success(self, "✓ PDF Report exported successfully!")
             
+            # Auto-create PDF Export Notification
+            try:
+                from services.notification_service import NotificationService
+                user = UserSession.get_current_user()
+                user_id = user["id"] if user else "guest"
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="parsing_export",
+                    title="PDF Export Completed",
+                    message=f"PDF report exported successfully: {os.path.basename(filepath)}",
+                    action_type="view_report"
+                )
+                p = self.parent()
+                while p:
+                    if hasattr(p, "update_notification_badge"):
+                        p.update_notification_badge()
+                        break
+                    p = p.parent()
+            except Exception:
+                pass
+
             if os.path.exists(filepath):
                 if os.name == 'nt':
                     os.startfile(filepath)

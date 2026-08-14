@@ -256,6 +256,7 @@ body.dark-mode .moon-svg,
     height: 18px;
     object-fit: contain;
     opacity: 0.85;
+    pointer-events: none;
 }
 
 .icon-button:hover .btn-icon-img {
@@ -265,13 +266,21 @@ body.dark-mode .moon-svg,
 /* Notification Badge Dot */
 .notification-badge-dot {
     position: absolute;
-    top: 7px;
-    right: 7px;
-    width: 8px;
-    height: 8px;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
     background-color: #EF4444;
-    border-radius: var(--radius-full);
-    border: 2px solid #FFFFFF;
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 8px;
+    border: 1.5px solid #FFFFFF;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
 }
 
 body.dark-mode .notification-badge-dot {

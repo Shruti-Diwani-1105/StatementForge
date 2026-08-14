@@ -578,6 +578,28 @@ class EmailComposerDialog(QDialog):
         if success:
             self.is_sent = True
             self.show_status_banner("✓ Report sent successfully!", is_error=False)
+            
+            # Auto-create Email Sent Successfully Notification
+            try:
+                from services.notification_service import NotificationService
+                user = UserSession.get_current_user()
+                u_id = user["id"] if user else "guest"
+                NotificationService.create_notification(
+                    user_id=u_id,
+                    category="parsing_export",
+                    title="Email Sent Successfully",
+                    message=f"Financial Report dispatched to '{meta['recipient']}'.",
+                    action_type="email_history"
+                )
+                p = self.parent()
+                while p:
+                    if hasattr(p, "update_notification_badge"):
+                        p.update_notification_badge()
+                        break
+                    p = p.parent()
+            except Exception as e:
+                print(f"EmailComposerDialog: Notification error: {e}")
+
             QMessageBox.information(
                 self,
                 "Success",
@@ -587,6 +609,19 @@ class EmailComposerDialog(QDialog):
             self.accept()
         else:
             self.show_status_banner(message, is_error=True)
+            try:
+                from services.notification_service import NotificationService
+                user = UserSession.get_current_user()
+                u_id = user["id"] if user else "guest"
+                NotificationService.create_notification(
+                    user_id=u_id,
+                    category="parsing_export",
+                    title="Email Delivery Failed",
+                    message=f"Email delivery failed to '{meta.get('recipient')}': {message}",
+                    action_type="email_history"
+                )
+            except Exception:
+                pass
 
     def show_status_banner(self, text, is_error=False):
         """Displays status message in the dialog."""

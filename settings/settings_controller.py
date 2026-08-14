@@ -392,6 +392,22 @@ class SettingsController(QObject):
             
             self.model.commit_changes()
             self.view.set_buttons_dirty(False)
+            
+            # Sync notification service preferences
+            try:
+                from services.notification_service import NotificationService
+                u_id = user["id"] if user else "guest"
+                NotificationService.save_notification_preferences(u_id, {
+                    "ntCompleted": self.model.get("nt_statement_completed"),
+                    "ntExport": self.model.get("nt_export_completed"),
+                    "ntErrors": self.model.get("nt_errors"),
+                    "ntEmail": self.model.get("nt_email_sent"),
+                    "ntAi": self.model.get("nt_ai_finished"),
+                    "ntUpdates": self.model.get("nt_updates_available")
+                })
+            except Exception as e:
+                print(f"SettingsController: Notification prefs save error: {e}")
+
             Toast.success(self.view, "✓ Settings Saved Successfully")
             
             # Apply layout/visual properties instantly
@@ -415,6 +431,20 @@ class SettingsController(QObject):
         success, message = SettingsService.save_settings(user, self.model.to_dict())
         if success:
             self.model.commit_changes()
+            try:
+                from services.notification_service import NotificationService
+                u_id = user["id"] if user else "guest"
+                NotificationService.save_notification_preferences(u_id, {
+                    "ntCompleted": self.model.get("nt_statement_completed"),
+                    "ntExport": self.model.get("nt_export_completed"),
+                    "ntErrors": self.model.get("nt_errors"),
+                    "ntEmail": self.model.get("nt_email_sent"),
+                    "ntAi": self.model.get("nt_ai_finished"),
+                    "ntUpdates": self.model.get("nt_updates_available")
+                })
+            except Exception as e:
+                print(f"SettingsController: Notification prefs save error: {e}")
+
             Toast.success(self.view, "Changes saved successfully", title="Changes saved successfully")
             SettingsService.apply_settings_instantly(self.model.to_dict())
         else:

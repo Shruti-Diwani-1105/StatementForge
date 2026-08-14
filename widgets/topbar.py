@@ -79,9 +79,37 @@ class TopBar(QFrame):
         elif cmd == "topbar_search_submit":
             self.search_submitted.emit(payload)
         elif cmd == "topbar_notification":
-            win = self.window()
-            if hasattr(win, "show_coming_soon"):
-                win.show_coming_soon("Notifications")
+            p = self.parent()
+            while p:
+                if hasattr(p, "switch_dashboard_page"):
+                    p.switch_dashboard_page("notifications")
+                    break
+                p = p.parent()
+
+    def update_notification_badge(self):
+        """Calculates active unread count for current user and updates TopBar bell badge."""
+        try:
+            from services.notification_service import NotificationService
+            from utils.user_session import UserSession
+            user = UserSession.get_current_user()
+            user_id = user["id"] if user else "guest"
+            count = NotificationService.get_unread_count(user_id)
+            
+            badge_text = str(count) if count > 0 else ""
+            display_style = "flex" if count > 0 else "none"
+            
+            js = f"""
+            (function(){{
+                var badge = document.querySelector('.notification-badge-dot');
+                if (badge) {{
+                    badge.innerText = '{badge_text}';
+                    badge.style.display = '{display_style}';
+                }}
+            }})();
+            """
+            self.web_view.page().runJavaScript(js)
+        except Exception as e:
+            print(f"TopBar: Error updating notification badge: {e}")
 
     def toggle_theme(self):
         """Toggles the current application theme and updates the HTML icon."""

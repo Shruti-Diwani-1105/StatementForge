@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Center - StatementForge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/notifications.css">
+</head>
+<body>
+    <div class="notifications-container">
+        
+        <!-- Header -->
+        <div class="page-header">
+            <div class="header-title-block">
+                <h1>🔔 Notification Center</h1>
+                <p>Stay updated with statement processing, financial risks, exports, and account activity.</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" class="btn-header-action" onclick="sendAppCommand('notifications_mark_all_read', '')">Mark All as Read</button>
+                <button type="button" class="btn-header-action btn-dismiss-all" onclick="sendAppCommand('notifications_dismiss_all', '')">Dismiss All</button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <button type="button" class="filter-btn active" id="flt-all" onclick="sendAppCommand('notifications_filter', 'all')">
+                All <span class="badge-count" id="cnt-all">0</span>
+            </button>
+            <button type="button" class="filter-btn" id="flt-ai_risk" onclick="sendAppCommand('notifications_filter', 'ai_risk')">
+                🔴 AI Risk Flags <span class="badge-count" id="cnt-ai_risk">0</span>
+            </button>
+            <button type="button" class="filter-btn" id="flt-parsing_export" onclick="sendAppCommand('notifications_filter', 'parsing_export')">
+                📄 Parsing &amp; Exports <span class="badge-count" id="cnt-parsing_export">0</span>
+            </button>
+            <button type="button" class="filter-btn" id="flt-system_security" onclick="sendAppCommand('notifications_filter', 'system_security')">
+                🔒 System &amp; Security <span class="badge-count" id="cnt-system_security">0</span>
+            </button>
+        </div>
+
+        <!-- Notification List Grid -->
+        <div class="notifications-list" id="notificationsList">
+            <!-- Rendered dynamically by Python backend -->
+        </div>
+
+    </div>
+
+    <script>
+        function sendAppCommand(cmd, payload) {
+            document.title = "app-cmd:" + cmd + ":" + (payload || "");
+        }
+
+        function setCategoryFilter(category) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('flt-' + category);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+    </script>
+</body>
+</html>
