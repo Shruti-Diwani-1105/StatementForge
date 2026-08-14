@@ -127,8 +127,8 @@ class UploadStatementWidget(QWidget):
 
     def handle_module_selection(self, module_key):
         """Handles choice card button actions."""
-        if module_key in ["excel", "gst"]:
-            self.start_processing_flow(target_flow=module_key)
+        if module_key == "excel":
+            self.start_processing_flow(target_flow="excel")
         elif module_key == "ai_report":
             self.post_process_action = "ai_report"
             self.start_processing_flow(target_flow="excel")
@@ -190,26 +190,23 @@ class UploadStatementWidget(QWidget):
                 self.html_wrapper.eval_js("alert('No transactions could be extracted from this PDF statement.');")
                 return
 
-            if self.target_flow == "gst":
-                self.generate_gst_report_flow()
+            action = getattr(self, "post_process_action", "excel")
+            if action == "ai_report":
+                self.generate_excel_in_background(payload)
+                p = self.parent()
+                dashboard = None
+                while p:
+                    if hasattr(p, "page_stack") and hasattr(p, "ai_auditor_widget"):
+                        dashboard = p
+                        break
+                    p = p.parent()
+                if dashboard:
+                    dashboard.ai_auditor_widget.set_active_statement(payload)
+                    dashboard.switch_dashboard_page("ai_auditor")
+                    dashboard.ai_auditor_widget.run_ai_task("report")
+                self.reset_to_upload()
             else:
-                action = getattr(self, "post_process_action", "excel")
-                if action == "ai_report":
-                    self.generate_excel_in_background(payload)
-                    p = self.parent()
-                    dashboard = None
-                    while p:
-                        if hasattr(p, "page_stack") and hasattr(p, "ai_auditor_widget"):
-                            dashboard = p
-                            break
-                        p = p.parent()
-                    if dashboard:
-                        dashboard.ai_auditor_widget.set_active_statement(payload)
-                        dashboard.switch_dashboard_page("ai_auditor")
-                        dashboard.ai_auditor_widget.run_ai_task("report")
-                    self.reset_to_upload()
-                else:
-                    self.generate_excel_flow()
+                self.generate_excel_flow()
 
         def on_error(err):
             self.reset_to_upload()
@@ -269,41 +266,6 @@ class UploadStatementWidget(QWidget):
             user_id, payload, record_id, lambda: None, lambda i: None, lambda i, s: None, lambda path: None, lambda err: None
         )
 
-    def generate_gst_report_flow(self):
-        """Generates GST Tax Report."""
-        user = UserSession.get_current_user()
-        user_id = user["id"] if user else "guest"
-
-        def on_started():
-            pass
-
-        def on_finished(excel_path):
-            if hasattr(self, "history_record_id"):
-                HistoryService.update_record_status(self.history_record_id, status="Completed")
-            p = self.parent()
-            dashboard = None
-            while p:
-                if hasattr(p, "page_stack") and hasattr(p, "gst_report_widget"):
-                    dashboard = p
-                    break
-                p = p.parent()
-            if dashboard:
-                dashboard.gst_report_widget.set_active_report(self.parsed_payload, excel_path)
-                dashboard.switch_dashboard_page("gst_report")
-            self.processingCompleted.emit()
-            self.reset_to_upload()
-
-        def on_error(err):
-            self.reset_to_upload()
-            if hasattr(self, "history_record_id"):
-                HistoryService.update_record_status(self.history_record_id, status="Failed")
-            escaped_err = str(err).replace("'", "\\'").replace("\n", " ")
-            self.html_wrapper.eval_js(f"alert('{escaped_err}');")
-
-        record_id = getattr(self, "history_record_id", None)
-        self.active_thread = StatementService.start_generate_excel(
-            user_id, self.parsed_payload, record_id, on_started, lambda i: None, lambda i, s: None, on_finished, on_error
-        )
 
     def cancel_processing(self):
         """Terminates active parsing thread and updates record status."""

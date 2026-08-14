@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatementForge - AI Financial Report</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="styles/ai_auditor.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+</head>
+<body>
+    <div class="auditor-app-container fade-in" id="report-app">
+
+        <!-- Main Container Area -->
+        <div class="auditor-main-left" style="width: 100%;">
+
+            <!-- 1. Page Header -->
+            <header class="dashboard-header">
+                <h1 class="header-title">AI Financial Report</h1>
+                <p class="header-subtitle">Comprehensive Financial Summary, Spending Insights, Risk Analysis &amp; Executive Reports powered by AI.</p>
+            </header>
+
+            <!-- 2. Statement Selection & Summary Metrics Card -->
+            <section class="card-panel preview-card">
+                <!-- Selection Row -->
+                <div class="selection-row">
+                    <label for="statementCb" class="select-label">Statement:</label>
+                    <select id="statementCb" class="custom-select" onchange="onStatementChanged(this)">
+                        <option value="">Select from parsed statement history...</option>
+                    </select>
+                    <button type="button" class="btn btn-secondary refresh-btn" onclick="triggerRefreshHistory()">
+                        <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        Refresh List
+                    </button>
+                </div>
+
+                <!-- Integrated Summary Metrics Grid Row (6 Aligned Cards) -->
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <span class="metric-label">Bank Name</span>
+                        <span class="metric-value" id="lblBank">-</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Statement Period</span>
+                        <span class="metric-value" id="lblPeriod">-</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Total Credits</span>
+                        <span class="metric-value text-green" id="lblCredits">-</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Total Debits</span>
+                        <span class="metric-value text-red" id="lblDebits">-</span>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Net Savings</span>
+                        <span class="metric-value" id="lblSavings">-</span>
+                    </div>
+                    <div class="metric-box score-metric-box">
+                        <span class="metric-label">Audit Score</span>
+                        <span class="metric-value text-purple" id="lblScore">-</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Action Segmented Tab Bar -->
+            <nav class="action-tab-bar">
+                <button type="button" class="tab-btn active" id="tabSummary" onclick="triggerTask('summary')">
+                    Financial Summary
+                </button>
+                <button type="button" class="tab-btn" id="tabSpending" onclick="triggerTask('spending')">
+                    Spending Insights
+                </button>
+                <button type="button" class="tab-btn" id="tabRisk" onclick="triggerTask('risk')">
+                    Risk Analysis
+                </button>
+                <button type="button" class="tab-btn btn-highlight" id="tabReport" onclick="triggerTask('report')">
+                    Generate AI Report
+                </button>
+            </nav>
+
+            <!-- Progress / Loading Bar Container -->
+            <div class="loading-box" id="loadingBox" style="display: none;">
+                <div class="loading-spinner"></div>
+                <span class="loading-text" id="loadingText">AI is analyzing transaction data...</span>
+            </div>
+
+            <!-- 4. Report Viewer Card -->
+            <section class="card-panel viewer-card">
+                <div class="viewer-header">
+                    <h2 class="viewer-title">Audit Report Viewer</h2>
+                    <div class="viewer-actions">
+                        <button type="button" class="btn btn-purple" onclick="triggerSendEmail()">
+                            ✉ Send via Email
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="triggerExportPdf()">
+                            📥 Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="report-content-area" id="reportViewer">
+                    <div class="empty-placeholder">
+                        <svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        <p class="placeholder-text">Select a statement above and click an analysis button to generate a report.</p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+    </div>
+
+    <!-- UI IPC Controller JS -->
+    <script>
+        function triggerRefreshHistory() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_refresh_history', {});
+            }
+        }
+
+        function onStatementChanged(selectEl) {
+            const path = selectEl.value;
+            if (path && typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_select_statement', { path: path });
+            }
+        }
+
+        function triggerTask(actionKey) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const clickedBtn = document.getElementById('tab' + actionKey.charAt(0).toUpperCase() + actionKey.slice(1));
+            if (clickedBtn) clickedBtn.classList.add('active');
+
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_run_task', { action: actionKey });
+            }
+        }
+
+        function triggerSendEmail() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_send_email', {});
+            }
+        }
+
+        function triggerExportPdf() {
+            if (typeof sendAppCommand === 'function') {
+                sendAppCommand('auditor_export_pdf', {});
+            }
+        }
+
+        function setMetrics(bank, period, credits, debits, savings, score, isPositive) {
+            const els = [
+                { id: 'lblBank', val: bank },
+                { id: 'lblPeriod', val: period },
+                { id: 'lblCredits', val: credits },
+                { id: 'lblDebits', val: debits },
+                { id: 'lblSavings', val: savings },
+                { id: 'lblScore', val: score }
+            ];
+            
+            const savEl = document.getElementById('lblSavings');
+            if (savEl) {
+                savEl.className = 'metric-value ' + (isPositive ? 'text-green' : 'text-red');
+            }
+            
+            els.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (el) {
+                    el.innerText = item.val || '-';
+                    const len = (item.val || '').length;
+                    if (len > 22) {
+                        el.style.fontSize = '9px';
+                    } else if (len > 18) {
+                        el.style.fontSize = '10px';
+                    } else if (len > 14) {
+                        el.style.fontSize = '11px';
+                    } else if (len > 11) {
+                        el.style.fontSize = '13px';
+                    } else {
+                        el.style.fontSize = '15px';
+                    }
+                }
+            });
+        }
+
+        function setReportHtml(html) {
+            const viewer = document.getElementById('reportViewer');
+            if (viewer) viewer.innerHTML = html;
+        }
+
+        function setLoading(show, text) {
+            const box = document.getElementById('loadingBox');
+            if (box) {
+                box.style.display = show ? 'flex' : 'none';
+                if (text) document.getElementById('loadingText').innerText = text;
+            }
+        }
+    </script>
+</body>
+</html>

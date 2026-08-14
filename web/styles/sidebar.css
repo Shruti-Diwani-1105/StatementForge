@@ -274,8 +274,8 @@ body.collapsed.dark-mode .nav-button[data-tooltip]:hover::after {
 
 /* Icon Styling */
 .icon-container {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -283,11 +283,11 @@ body.collapsed.dark-mode .nav-button[data-tooltip]:hover::after {
 }
 
 .nav-icon {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     object-fit: contain;
     transition: var(--transition-fast);
-    opacity: 0.8;
+    opacity: 0.95;
 }
 
 .text-container {

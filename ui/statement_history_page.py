@@ -198,6 +198,15 @@ class StatementHistoryPage(QWidget):
         if hasattr(self, 'empty_state_lbl') and self.empty_state_lbl:
             self.empty_state_lbl.setGeometry(self.table_container.rect())
 
+    def apply_theme(self, theme):
+        """Applies theme ('light' or 'dark') to the statement history page."""
+        self.current_theme = theme.lower().strip() if isinstance(theme, str) else "light"
+        self.apply_table_style()
+
+    def update_theme_style(self, theme):
+        """Alias for apply_theme to ensure consistent UI updates."""
+        self.apply_theme(theme)
+
     def apply_table_style(self):
         if self.current_theme == "dark":
             self.header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #F8FAFC; font-family: 'Manrope', sans-serif;")
@@ -578,9 +587,4 @@ class StatementHistoryPage(QWidget):
                     QMessageBox.warning(self, "Error", "Failed to clear statement history.")
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Could not clear history: {e}")
-
-    def apply_theme(self, theme):
-        """Applies light/dark theme to the history page elements."""
-        self.current_theme = theme.lower().strip() if isinstance(theme, str) else "light"
-        self.apply_table_style()
 

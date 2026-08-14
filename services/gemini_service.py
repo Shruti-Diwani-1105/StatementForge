@@ -1234,7 +1234,7 @@ Format in Markdown.
             tx_text = cls._format_transactions(transactions, currency)
             prompt = f"""
 You are a senior forensic auditor at a Big-4 accounting firm (PwC/EY).
-Audit the statement transactions for risk detection and generate a premium, executive-level **Forensic Audit & Risk Analysis Report** in HTML.
+Audit the statement transactions for risk detection and generate a concise, executive-level **Risk Analysis Report** in HTML.
 
 Statement Details:
 - Bank: {bank_name}
@@ -1247,18 +1247,14 @@ Transactions:
 Requirements:
 1. Return a **completely self-contained HTML document** (starting with `<html>` and ending with `</html>`).
 2. Do NOT wrap the HTML in backticks or markdown formatting.
-3. Include:
-   - **Auditor Header**: Title, badge ('Forensic Risk Analysis'), metadata block.
-   - **Executive Risk Score Card**: Display a colored score badge (e.g. Risk Level: Medium, score: 35/100).
-   - **Identified Risk Factors Table/List**: Check and list indicators with severity badges (High/Medium/Low), explanations, and recommendations:
-     - Subscription Burdens & Recurring Outflows
-     - Duplicate payment checks (double entry anomalies)
-     - Suspicious amount detection (round figures, rapid consecutive transfers)
-     - Large transaction warnings (above threshold)
-     - Running balance integrity & low liquidity checks
-     - Unusual transaction timing
-   - **AML / compliance notes** and money flow analysis.
-   - **Final Audit Opinion** and advisory action steps.
+3. Keep the Risk Analysis short and focused (approximately **5-6 concise lines/bullets** in total).
+4. Clearly highlight key risk categories:
+   - Unusually high spending or sudden expense spikes
+   - Duplicate transactions or double entries
+   - Frequent large withdrawals/transfers
+   - Low savings margin or low balance drops
+   - Suspicious or unusual transaction patterns
+5. Include an Executive Risk Score Badge (e.g. Risk Level: Low/Medium/High).
 
 Use the following CSS style block:
 {cls._get_report_styles()}

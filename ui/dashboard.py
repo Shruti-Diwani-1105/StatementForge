@@ -68,8 +68,8 @@ class DashboardScreen(QWidget):
         # Create the main dashboard overview page immediately (index 0)
         self.create_main_dashboard_page()
         
-        # Add placeholders for the other 9 pages
-        for _ in range(9):
+        # Add placeholders for the other 10 pages
+        for _ in range(10):
             placeholder = QWidget()
             placeholder.setProperty("is_placeholder", True)
             self.page_stack.addWidget(placeholder)
@@ -83,13 +83,14 @@ class DashboardScreen(QWidget):
             "dashboard": 0,
             "upload": 1,
             "ai_auditor": 2,
+            "ai_report": 2,
             "history": 3,
             "reports": 4,
             "settings": 5,
             "generate_excel": 6,
-            "gst_report": 7,
             "duplicate_finder": 8,
-            "email_history": 9
+            "email_history": 9,
+            "ai_chatbot": 10
         }
         if key not in mapping:
             return
@@ -104,10 +105,15 @@ class DashboardScreen(QWidget):
                 self.upload_widget = UploadStatementWidget(self)
                 self.upload_widget.processingCompleted.connect(self.update_dashboard_stats)
                 new_widget = self.upload_widget
-            elif key == "ai_auditor":
-                from ui.ai_auditor import AIAuditorWidget
-                self.ai_auditor_widget = AIAuditorWidget(self)
-                new_widget = self.ai_auditor_widget
+            elif key in ["ai_auditor", "ai_report"]:
+                from ui.ai_report import AIReportWidget
+                self.ai_report_widget = AIReportWidget(self)
+                self.ai_auditor_widget = self.ai_report_widget
+                new_widget = self.ai_report_widget
+            elif key == "ai_chatbot":
+                from ui.ai_chatbot import AIChatbotWidget
+                self.ai_chatbot_widget = AIChatbotWidget(self)
+                new_widget = self.ai_chatbot_widget
             elif key == "history":
                 new_widget = self.instantiate_history_page()
             elif key == "reports":
@@ -122,10 +128,6 @@ class DashboardScreen(QWidget):
                 from ui.generate_excel import GenerateExcelWidget
                 self.generate_excel_widget = GenerateExcelWidget(self)
                 new_widget = self.generate_excel_widget
-            elif key == "gst_report":
-                from ui.gst_report import GSTReportWidget
-                self.gst_report_widget = GSTReportWidget(self)
-                new_widget = self.gst_report_widget
             elif key == "duplicate_finder":
                 from ui.duplicate_finder import DuplicateFinderWidget
                 self.duplicate_finder_widget = DuplicateFinderWidget(self)
@@ -149,13 +151,14 @@ class DashboardScreen(QWidget):
             "dashboard": 0,
             "upload": 1,
             "ai_auditor": 2,
+            "ai_report": 2,
             "history": 3,
             "reports": 4,
             "settings": 5,
             "generate_excel": 6,
-            "gst_report": 7,
             "duplicate_finder": 8,
-            "email_history": 9
+            "email_history": 9,
+            "ai_chatbot": 10
         }
         if key in mapping:
             self.ensure_page_loaded(key)
@@ -166,10 +169,12 @@ class DashboardScreen(QWidget):
 
             if key == "history":
                 self.load_history_table()
-            elif key == "ai_auditor":
-                self.ai_auditor_widget.load_history_dropdown()
-            elif key == "gst_report":
-                self.gst_report_widget.load_statements_dropdown()
+            elif key in ["ai_auditor", "ai_report"]:
+                if hasattr(self, "ai_report_widget") and self.ai_report_widget:
+                    self.ai_report_widget.load_history_dropdown()
+            elif key == "ai_chatbot":
+                if hasattr(self, "ai_chatbot_widget") and self.ai_chatbot_widget:
+                    self.ai_chatbot_widget.load_history_dropdown()
             elif key == "generate_excel":
                 self.generate_excel_widget.load_recent_generated_sheets()
             elif key == "duplicate_finder":
@@ -187,8 +192,6 @@ class DashboardScreen(QWidget):
         self.ensure_page_loaded("upload")
         if hasattr(self, "upload_widget"):
             self.upload_widget.target_flow_preset = flow
-            if hasattr(self.upload_widget, "format_combo"):
-                self.upload_widget.format_combo.setCurrentIndex(1 if flow == "gst" else 0)
         self.switch_dashboard_page("upload")
 
     def set_user_profile(self, user_details):
@@ -408,12 +411,10 @@ class DashboardScreen(QWidget):
             key = payload.strip().lower()
             if key == "upload":
                 self.switch_to_upload_with_preset("excel")
-            elif key in ["gst", "gst_report"]:
-                self.switch_dashboard_page("gst_report")
-            elif key in ["generate_excel", "ai_auditor", "duplicate_finder", "history", "email_history"]:
+            elif key in ["generate_excel", "ai_auditor", "ai_report", "ai_chatbot", "duplicate_finder", "history", "email_history"]:
                 self.switch_dashboard_page(key)
-            elif key == "tally":
-                self.show_coming_soon("Tally Export")
+            elif key in ["tally", "gst", "gst_report"]:
+                self.show_coming_soon("Export")
             else:
                 self.show_coming_soon(payload)
         elif cmd == "dash_clear_activity_item":
@@ -548,7 +549,6 @@ class DashboardScreen(QWidget):
         
         reports_data = [
             ("Profit & Loss Statement", "Detailed revenue vs expenditure breakdown.", "assets/icons/reports.png", "Download PDF", "#EFF6FF", "#2563EB"),
-            ("GST Tax Ledger", "Clean spreadsheet formatting ready for tax filing.", "assets/icons/excel.png", "Export Excel", "#F0FDF4", "#16A34A"),
             ("Duplicate Transaction Log", "Flagged entries audit summary sheet.", "assets/icons/duplicate.png", "View Audit", "#FEF2F2", "#EF4444")
         ]
         
@@ -598,9 +598,7 @@ class DashboardScreen(QWidget):
                     background-color: {txt_col}22;
                 }}
             """)
-            if r_title == "GST Tax Ledger":
-                dl_btn.clicked.connect(lambda checked: self.export_gst_ledger_action())
-            elif r_title == "Duplicate Transaction Log":
+            if r_title == "Duplicate Transaction Log":
                 dl_btn.clicked.connect(lambda checked: self.switch_dashboard_page("duplicate_finder"))
             else:
                 dl_btn.clicked.connect(lambda checked, t=r_title: self.show_coming_soon(t))
@@ -631,14 +629,7 @@ class DashboardScreen(QWidget):
         page_layout.addWidget(reports_list)
         return page
 
-    def export_gst_ledger_action(self):
-        """Guides the user to the statement upload screen to parse and generate a GST report."""
-        self.switch_to_upload_with_preset("gst")
-        QMessageBox.information(
-            self,
-            "GST Tax Ledger Export Mode",
-            "Please upload your bank statement PDF. The app is set to automatically extract transactions and calculate the GST Tax Ledger report for this upload."
-        )
+
 
     def open_email_composer_for_report(self, report_title):
         """Opens Email Composer dialog for reports page cards."""
@@ -720,14 +711,17 @@ class DashboardScreen(QWidget):
         if hasattr(self, "upload_widget") and self.upload_widget is not None:
             self.upload_widget.update_theme_style(theme)
 
-        if hasattr(self, "ai_auditor_widget") and self.ai_auditor_widget is not None:
+        if hasattr(self, "ai_report_widget") and self.ai_report_widget is not None:
+            self.ai_report_widget.update_theme_style(theme)
+
+        if hasattr(self, "ai_chatbot_widget") and self.ai_chatbot_widget is not None:
+            self.ai_chatbot_widget.update_theme_style(theme)
+
+        if hasattr(self, "ai_auditor_widget") and self.ai_auditor_widget is not None and self.ai_auditor_widget != getattr(self, "ai_report_widget", None):
             self.ai_auditor_widget.update_theme_style(theme)
 
         if hasattr(self, "generate_excel_widget") and self.generate_excel_widget is not None:
             self.generate_excel_widget.update_theme_style(theme)
-
-        if hasattr(self, "gst_report_widget") and self.gst_report_widget is not None:
-            self.gst_report_widget.update_theme_style(theme)
 
         if hasattr(self, "statement_history_widget") and self.statement_history_widget is not None:
             self.statement_history_widget.apply_theme(theme_clean)
