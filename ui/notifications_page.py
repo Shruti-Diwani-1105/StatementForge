@@ -159,8 +159,10 @@ class NotificationsPageWidget(QWidget):
         if not notifications:
             empty_html = """
             <div class="empty-state-box">
-                <div class="empty-icon">🔔</div>
-                <div class="empty-title">You're all caught up!</div>
+                <div class="empty-icon-circle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                </div>
+                <div class="empty-title">All Caught Up!</div>
                 <div class="empty-subtitle">There are no notifications in this category at the moment.</div>
             </div>
             """
@@ -180,15 +182,16 @@ class NotificationsPageWidget(QWidget):
             action_type = n.get("action_type", "")
             action_url = n.get("action_url", "")
 
-            # Icon mapping
-            icon_symbol = "📄"
+            # SVG Icon mapping
             if category == "ai_risk":
-                icon_symbol = "🔴"
+                icon_svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
             elif category == "system_security":
-                icon_symbol = "🔒"
+                icon_svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>'
+            else:
+                icon_svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>'
 
             unread_class = "unread" if not is_read else ""
-            unread_dot_html = '<span class="unread-dot"></span>' if not is_read else ''
+            unread_dot_html = '<span class="unread-dot-badge"></span>' if not is_read else ''
 
             # Action buttons
             actions_html = ""
@@ -209,7 +212,7 @@ class NotificationsPageWidget(QWidget):
             card_item = f"""
             <div class="notification-card {unread_class}">
                 <div class="card-icon-box cat-{category}">
-                    {icon_symbol}
+                    {icon_svg}
                 </div>
                 <div class="card-body">
                     <div class="card-title-row">
