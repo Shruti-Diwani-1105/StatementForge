@@ -68,8 +68,8 @@ class DashboardScreen(QWidget):
         # Create the main dashboard overview page immediately (index 0)
         self.create_main_dashboard_page()
         
-        # Add placeholders for the other 11 pages
-        for _ in range(11):
+        # Add placeholders for the other 12 pages
+        for _ in range(12):
             placeholder = QWidget()
             placeholder.setProperty("is_placeholder", True)
             self.page_stack.addWidget(placeholder)
@@ -91,7 +91,8 @@ class DashboardScreen(QWidget):
             "duplicate_finder": 8,
             "email_history": 9,
             "ai_chatbot": 10,
-            "notifications": 11
+            "notifications": 11,
+            "tally": 12
         }
         if key not in mapping:
             return
@@ -142,6 +143,10 @@ class DashboardScreen(QWidget):
                 from ui.notifications_page import NotificationsPageWidget
                 self.notifications_page_widget = NotificationsPageWidget(self)
                 new_widget = self.notifications_page_widget
+            elif key == "tally":
+                from ui.tally_export import TallyExportWidget
+                self.tally_export_widget = TallyExportWidget(self)
+                new_widget = self.tally_export_widget
             else:
                 return
             
@@ -164,7 +169,8 @@ class DashboardScreen(QWidget):
             "duplicate_finder": 8,
             "email_history": 9,
             "ai_chatbot": 10,
-            "notifications": 11
+            "notifications": 11,
+            "tally": 12
         }
         if key in mapping:
             self.ensure_page_loaded(key)
@@ -190,6 +196,8 @@ class DashboardScreen(QWidget):
             elif key == "notifications":
                 if hasattr(self, "notifications_page_widget") and self.notifications_page_widget:
                     self.notifications_page_widget.load_user_notifications()
+            elif key == "tally":
+                self.tally_export_widget.load_statements_dropdown()
             elif key == "settings":
                 if hasattr(self, "settings_window") and self.settings_window:
                     self.settings_window.sync_user_profile_directly()
@@ -420,10 +428,10 @@ class DashboardScreen(QWidget):
             key = payload.strip().lower()
             if key == "upload":
                 self.switch_to_upload_with_preset("excel")
-            elif key in ["generate_excel", "ai_auditor", "ai_report", "ai_chatbot", "duplicate_finder", "history", "email_history", "notifications"]:
+            elif key in ["generate_excel", "ai_auditor", "ai_report", "ai_chatbot", "duplicate_finder", "history", "email_history", "notifications", "tally"]:
                 self.switch_dashboard_page(key)
-            elif key in ["tally", "gst", "gst_report"]:
-                self.show_coming_soon("Export")
+            elif key in ["gst", "gst_report"]:
+                self.show_coming_soon("GST Report")
             else:
                 self.show_coming_soon(payload)
         elif cmd == "dash_clear_activity_item":
@@ -732,6 +740,8 @@ class DashboardScreen(QWidget):
         if hasattr(self, "generate_excel_widget") and self.generate_excel_widget is not None:
             self.generate_excel_widget.update_theme_style(theme)
 
+        if hasattr(self, "tally_export_widget") and self.tally_export_widget is not None:
+            self.tally_export_widget.update_theme_style(theme)
         if hasattr(self, "statement_history_widget") and self.statement_history_widget is not None:
             self.statement_history_widget.apply_theme(theme_clean)
 

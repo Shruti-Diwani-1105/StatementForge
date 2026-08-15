@@ -127,7 +127,10 @@ class UploadStatementWidget(QWidget):
 
     def handle_module_selection(self, module_key):
         """Handles choice card button actions."""
-        if module_key == "excel":
+        if module_key in ["excel", "gst"]:
+            self.start_processing_flow(target_flow=module_key)
+        elif module_key == "tally":
+            self.post_process_action = "tally"
             self.start_processing_flow(target_flow="excel")
         elif module_key == "ai_report":
             self.post_process_action = "ai_report"
@@ -274,7 +277,20 @@ class UploadStatementWidget(QWidget):
                     break
                 p = p.parent()
                 
+            action = getattr(self, "post_process_action", "excel")
             self.reset_to_upload()
+            
+            if action == "tally":
+                p = self.parent()
+                dashboard = None
+                while p:
+                    if hasattr(p, "page_stack") and hasattr(p, "tally_export_widget"):
+                        dashboard = p
+                        break
+                    p = p.parent()
+                if dashboard:
+                    dashboard.switch_dashboard_page("tally")
+                    dashboard.tally_export_widget.on_statement_selected_by_path(excel_path)
 
         def on_error(err):
             self.reset_to_upload()
