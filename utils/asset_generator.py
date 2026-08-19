@@ -32,7 +32,8 @@ def generate_assets():
         "bell": draw_bell_icon,
         "profile": draw_profile_icon,
         "duplicate": draw_duplicate_icon,
-        "email": draw_email_icon
+        "email": draw_email_icon,
+        "budget": draw_budget_icon
     }
     
     for name, func in icons.items():
@@ -349,6 +350,24 @@ def draw_email_icon(painter, primary, accent, gray):
     # Fold lines
     painter.drawLine(8, 16, 32, 34)
     painter.drawLine(56, 16, 32, 34)
+
+def draw_budget_icon(painter, primary, accent, gray):
+    # Wallet / Budget ledger icon
+    green_color = QColor("#10B981")
+    painter.setPen(QPen(primary, 4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    
+    # Outer wallet rectangle
+    painter.drawRoundedRect(QRectF(8, 14, 48, 36), 6, 6)
+    
+    # Wallet clasp / coin flap
+    painter.setBrush(QBrush(green_color))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawRoundedRect(QRectF(38, 26, 16, 12), 3, 3)
+    
+    # Currency symbol (Rupee/Dollar stroke) in center
+    painter.setPen(QPen(QColor("#FFFFFF"), 2, Qt.PenStyle.SolidLine))
+    painter.drawEllipse(QRectF(43, 30, 4, 4))
 
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication

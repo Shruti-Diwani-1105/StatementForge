@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Salary & Budget Planner - StatementForge</title>
+    <link rel="stylesheet" href="styles/budget_planner.css">
+    <script src="js/qwebchannel.js"></script>
+    <script src="js/bridge.js"></script>
+    <script src="js/budget_planner.js" defer></script>
+</head>
+<body>
+    <div class="budget-planner-container fade-in">
+
+        <!-- Top Header & Controls -->
+        <header class="bp-header">
+            <div class="bp-title-group">
+                <h1>
+                    <span>💼</span> Monthly Salary & Budget Planner
+                </h1>
+                <p>Plan monthly income, track actual spending, analyze variances, and optimize savings.</p>
+            </div>
+            <div class="bp-header-controls">
+                <select id="selectMonth" class="bp-select-month" onchange="onMonthChanged()">
+                    <!-- Options populated dynamically from user records -->
+                </select>
+                <button type="button" class="btn btn-primary" onclick="createNextMonthBudget()">
+                    ➕ Create Next Month Budget
+                </button>
+                <div id="lockPill" class="bp-lock-pill unlocked">
+                    🟢 Planning Window Active (1st–7th)
+                </div>
+                <button type="button" id="btnToggleEdit" class="btn btn-outline" onclick="toggleEditBudget()">
+                    Edit Budget
+                </button>
+            </div>
+        </header>
+
+        <!-- Top Metric Summary Cards -->
+        <div class="bp-metrics-grid">
+            <div class="bp-metric-card card-income">
+                <span class="bp-metric-label">Total Monthly Income</span>
+                <span class="bp-metric-value" id="valIncome">₹0</span>
+                <span class="bp-metric-sub">Salary + Other Income</span>
+            </div>
+            <div class="bp-metric-card card-planned">
+                <span class="bp-metric-label">Planned Expenses</span>
+                <span class="bp-metric-value" id="valPlanned">₹0</span>
+                <span class="bp-metric-sub">Fixed + Family + Categories</span>
+            </div>
+            <div class="bp-metric-card card-actual">
+                <span class="bp-metric-label">Actual Spent</span>
+                <span class="bp-metric-value" id="valActual">₹0</span>
+                <span class="bp-metric-sub">Real recorded spending</span>
+            </div>
+            <div class="bp-metric-card card-savings">
+                <span class="bp-metric-label">Planned Savings</span>
+                <span class="bp-metric-value" id="valSavings">₹0</span>
+                <span class="bp-metric-sub">Separated from spend budget</span>
+            </div>
+            <div class="bp-metric-card card-remaining">
+                <span class="bp-metric-label">Remaining Monthly Budget</span>
+                <span class="bp-metric-value" id="valRemaining">₹0</span>
+                <span class="bp-metric-sub">Available cash buffer</span>
+            </div>
+        </div>
+
+        <!-- Overall Summary Alert Banner -->
+        <div id="summaryAlertBanner" class="bp-summary-alert-banner alert-success">
+            🟢 Enter your income and spending budget to start tracking.
+        </div>
+
+        <!-- Main Budget Setup Grid (Columns) -->
+        <div class="bp-main-grid">
+
+            <!-- Left Column: Income, Fixed Expenses & Family Payments -->
+            <div style="display:flex; flex-direction:column; gap:24px;">
+
+                <!-- 1. Monthly Budget Setup (Income) -->
+                <div class="bp-section-card">
+                    <div class="bp-section-header">
+                        <span class="bp-section-title">📅 1. Monthly Income Setup</span>
+                        <span id="txtTotalIncome" style="font-weight:700; color:var(--bp-primary);">Total: ₹0</span>
+                    </div>
+                    <div class="bp-form-row">
+                        <div class="bp-field-group">
+                            <label class="bp-field-label">Salary (₹)</label>
+                            <input type="number" id="inputSalary" class="bp-input-text bp-input-editable" value="0" placeholder="0" onchange="onBudgetFormChanged()">
+                        </div>
+                        <div class="bp-field-group">
+                            <label class="bp-field-label">Other Income (₹)</label>
+                            <input type="number" id="inputOtherIncome" class="bp-input-text bp-input-editable" value="0" placeholder="0" onchange="onBudgetFormChanged()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Add Fixed Expenses -->
+                <div class="bp-section-card">
+                    <div class="bp-section-header">
+                        <span class="bp-section-title">🏠 2. Fixed Expenses</span>
+                        <span id="txtTotalFixed" style="font-weight:700; color:var(--bp-text-sub);">Total: ₹0</span>
+                    </div>
+                    <div class="bp-form-row">
+                        <div class="bp-field-group" style="flex:2;">
+                            <label class="bp-field-label">Expense Name</label>
+                            <input type="text" id="inputFixName" class="bp-input-text bp-input-editable" placeholder="e.g. House Rent">
+                        </div>
+                        <div class="bp-field-group" style="flex:1;">
+                            <label class="bp-field-label">Amount (₹)</label>
+                            <input type="number" id="inputFixAmount" class="bp-input-text bp-input-editable" placeholder="12000">
+                        </div>
+                        <button type="button" class="btn btn-primary bp-input-editable" onclick="addFixedExpense()">+ Add</button>
+                    </div>
+                    <table class="bp-table">
+                        <thead>
+                            <tr>
+                                <th>Expense Name</th>
+                                <th>Amount</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyFixedExpenses">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 3. Add Family Payments & Savings -->
+                <div class="bp-section-card">
+                    <div class="bp-section-header">
+                        <span class="bp-section-title">👨‍gsub 3. Family Payments & Savings</span>
+                    </div>
+                    <div class="bp-form-row">
+                        <div class="bp-field-group" style="flex:1.5;">
+                            <label class="bp-field-label">Family Member</label>
+                            <input type="text" id="inputFamMember" class="bp-input-text bp-input-editable" placeholder="e.g. Mother">
+                        </div>
+                        <div class="bp-field-group" style="flex:1;">
+                            <label class="bp-field-label">Amount (₹)</label>
+                            <input type="number" id="inputFamAmount" class="bp-input-text bp-input-editable" placeholder="5000">
+                        </div>
+                        <div class="bp-field-group" style="flex:1.5;">
+                            <label class="bp-field-label">Reason / Note</label>
+                            <input type="text" id="inputFamReason" class="bp-input-text bp-input-editable" placeholder="Allowance">
+                        </div>
+                        <button type="button" class="btn btn-primary bp-input-editable" onclick="addFamilyPayment()">+ Add</button>
+                    </div>
+                    <table class="bp-table">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Amount</th>
+                                <th>Reason</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyFamilyPayments">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+
+                    <div style="border-top:1px solid var(--bp-border); padding-top:16px; margin-top:8px;">
+                        <div class="bp-field-group">
+                            <label class="bp-field-label" style="font-weight:700; color:var(--bp-success);">💰 4. Planned Monthly Savings Goal (₹)</label>
+                            <input type="number" id="inputSavings" class="bp-input-text bp-input-editable" value="0" placeholder="0" onchange="onBudgetFormChanged()">
+                            <small style="color:var(--bp-text-muted);">Kept separate from spending budget.</small>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Category Budgets & Actual Expenses -->
+            <div style="display:flex; flex-direction:column; gap:24px;">
+
+                <!-- 5. Category Budgets -->
+                <div class="bp-section-card">
+                    <div class="bp-section-header">
+                        <span class="bp-section-title">🛒 5. Set Category Budgets</span>
+                        <small style="color:var(--bp-text-muted);">Divide remaining funds across categories</small>
+                    </div>
+                    <div id="categoryBudgetsGrid" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <!-- Category Budget Inputs Rendered Dynamically -->
+                    </div>
+                </div>
+
+                <!-- 6. Add Actual Expenses -->
+                <div class="bp-section-card">
+                    <div class="bp-section-header">
+                        <span class="bp-section-title">💳 6. Add Actual Expenses</span>
+                        <small style="color:var(--bp-text-muted);">Record expenses throughout the month</small>
+                    </div>
+                    <div class="bp-form-row">
+                        <div class="bp-field-group" style="flex:1;">
+                            <label class="bp-field-label">Category</label>
+                            <select id="selectExpCategory" class="bp-input-text">
+                                <option value="Food">Food</option>
+                                <option value="Travel">Travel</option>
+                                <option value="Shopping">Shopping</option>
+                                <option value="Entertainment">Entertainment</option>
+                                <option value="Medical">Medical</option>
+                                <option value="Personal">Personal</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="bp-field-group" style="flex:1;">
+                            <label class="bp-field-label">Amount (₹)</label>
+                            <input type="number" id="inputExpAmount" class="bp-input-text" placeholder="250">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="addActualExpense()">+ Record</button>
+                    </div>
+                    <div class="bp-field-group">
+                        <label class="bp-field-label">Description</label>
+                        <input type="text" id="inputExpDesc" class="bp-input-text" placeholder="e.g. Lunch at Cafe">
+                    </div>
+                    <table class="bp-table" style="margin-top:12px;">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                                <th style="text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyActualExpenses">
+                            <!-- Actual Expenses Populated Dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- 8. Planned vs Actual Comparison & Warnings Table -->
+        <div class="bp-section-card">
+            <div class="bp-section-header">
+                <span class="bp-section-title">📊 8. Planned vs Actual Comparison & Expense Warnings</span>
+                <span id="txtRemainingMonthly" style="font-weight:700; color:var(--bp-primary);">Remaining Monthly Budget: ₹0</span>
+            </div>
+            <table class="bp-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Planned Budget</th>
+                        <th>Actual Spend</th>
+                        <th>Result</th>
+                        <th>Expense Warning / Alert</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyComparison">
+                    <!-- Comparison Rows Populated Dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 11. Financial Graphs & Distribution Charts Section -->
+        <div class="bp-section-card">
+            <div class="bp-section-header">
+                <span class="bp-section-title">📈 11. Financial Graphs & Distribution Charts</span>
+            </div>
+            <div class="bp-charts-grid">
+                <!-- Planned vs Actual Bar Chart -->
+                <div class="bp-chart-card">
+                    <span class="bp-chart-title">Category Planned vs Actual (₹)</span>
+                    <div class="bp-chart-canvas-wrapper">
+                        <canvas id="chartPlannedVsActualCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Expense Distribution Donut Chart -->
+                <div class="bp-chart-card">
+                    <span class="bp-chart-title">Expense Distribution</span>
+                    <div class="bp-chart-canvas-wrapper">
+                        <canvas id="chartExpenseDistCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Salary Distribution Pie Chart -->
+                <div class="bp-chart-card">
+                    <span class="bp-chart-title">Salary & Income Breakdown</span>
+                    <div class="bp-chart-canvas-wrapper">
+                        <canvas id="chartSalaryDistCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 13 & 14. Monthly Performance Score & AI Summary -->
+        <div class="bp-main-grid">
+
+            <!-- Performance Score Box -->
+            <div class="bp-section-card">
+                <div class="bp-section-header">
+                    <span class="bp-section-title">🏆 13. Monthly Budget Performance Score</span>
+                </div>
+                <div class="bp-score-box">
+                    <div class="bp-score-circle">
+                        <span class="bp-score-num" id="scoreNum">100</span>
+                        <span class="bp-score-max">/ 100</span>
+                    </div>
+                    <div class="bp-score-breakdown" id="scoreBreakdownList">
+                        <!-- Score breakdown list dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Monthly Summary (Gemini Integration) -->
+            <div class="bp-section-card bp-ai-card">
+                <div class="bp-section-header">
+                    <span class="bp-section-title">🤖 14. AI Monthly Summary & Advice</span>
+                    <button type="button" class="btn btn-secondary" onclick="generateAISummary()">
+                        ✨ Generate AI Analysis
+                    </button>
+                </div>
+                <div class="bp-ai-content" id="aiSummaryContent">
+                    <p>Click <strong>"Generate AI Analysis"</strong> to analyze your monthly results using Google Gemini AI and get smart financial recommendations.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</body>
+</html>

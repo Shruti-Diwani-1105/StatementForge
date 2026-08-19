@@ -88,6 +88,7 @@ class DashboardScreen(QWidget):
             "reports": 4,
             "settings": 5,
             "generate_excel": 6,
+            "budget_planner": 7,
             "duplicate_finder": 8,
             "email_history": 9,
             "ai_chatbot": 10,
@@ -130,6 +131,10 @@ class DashboardScreen(QWidget):
                 from ui.generate_excel import GenerateExcelWidget
                 self.generate_excel_widget = GenerateExcelWidget(self)
                 new_widget = self.generate_excel_widget
+            elif key == "budget_planner":
+                from ui.budget_planner import BudgetPlannerWidget
+                self.budget_planner_widget = BudgetPlannerWidget(self)
+                new_widget = self.budget_planner_widget
             elif key == "duplicate_finder":
                 from ui.duplicate_finder import DuplicateFinderWidget
                 self.duplicate_finder_widget = DuplicateFinderWidget(self)
@@ -166,6 +171,7 @@ class DashboardScreen(QWidget):
             "reports": 4,
             "settings": 5,
             "generate_excel": 6,
+            "budget_planner": 7,
             "duplicate_finder": 8,
             "email_history": 9,
             "ai_chatbot": 10,
@@ -189,6 +195,9 @@ class DashboardScreen(QWidget):
                     self.ai_chatbot_widget.load_history_dropdown()
             elif key == "generate_excel":
                 self.generate_excel_widget.load_recent_generated_sheets()
+            elif key == "budget_planner":
+                if hasattr(self, "budget_planner_widget") and self.budget_planner_widget:
+                    self.budget_planner_widget.load_budget_data()
             elif key == "duplicate_finder":
                 self.duplicate_finder_widget.load_history_dropdown()
             elif key == "email_history":
@@ -428,7 +437,7 @@ class DashboardScreen(QWidget):
             key = payload.strip().lower()
             if key == "upload":
                 self.switch_to_upload_with_preset("excel")
-            elif key in ["generate_excel", "ai_auditor", "ai_report", "ai_chatbot", "duplicate_finder", "history", "email_history", "notifications", "tally"]:
+            elif key in ["generate_excel", "budget_planner", "ai_auditor", "ai_report", "ai_chatbot", "duplicate_finder", "history", "email_history", "notifications", "tally"]:
                 self.switch_dashboard_page(key)
             elif key in ["gst", "gst_report"]:
                 self.show_coming_soon("GST Report")
@@ -742,6 +751,9 @@ class DashboardScreen(QWidget):
 
         if hasattr(self, "tally_export_widget") and self.tally_export_widget is not None:
             self.tally_export_widget.update_theme_style(theme)
+
+        if hasattr(self, "budget_planner_widget") and self.budget_planner_widget is not None:
+            self.budget_planner_widget.update_theme_style(theme)
         if hasattr(self, "statement_history_widget") and self.statement_history_widget is not None:
             self.statement_history_widget.apply_theme(theme_clean)
 
