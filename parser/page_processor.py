@@ -9,48 +9,86 @@ class PageProcessor:
     def process_page(cls, pdf_path: str, page_num: int, column_mapping: dict = None, logger=None) -> tuple:
         """
         Runs table extraction and row parsing for a page.
-        Tries digital first, falls back to OCR, and then AI Vision.
-        Returns a tuple: (transactions, page_headers, page_mapping, method_used, grid_table, confidence)
+        Tries digital first (if selectable text exists).
+        Falls back to local OCR if digital extraction yields 0 transactions.
+        Falls back to AI Vision page parsing if local OCR yields 0 transactions or is unavailable.
+        Returns a tuple: (list_of_transactions, column_mapping_used, method_used)
         """
-        from parser.table_extractor import TableExtractor
-        from parser.transaction_parser import TransactionParser
-        from parser.utils import ParserUtils, PDF_LOCK
-
-        # 1. Run TableExtractor to get grid and headers
-        struct = TableExtractor.extract_structured_table(pdf_path, page_num, logger)
-        grid_table = struct["raw_grid"]
-        method_used = struct["method"]
-        confidence = struct["confidence"]
-        page_headers = struct["headers"]
-
         transactions = []
         used_mapping = column_mapping
+        is_digital = TableExtractor.has_selectable_text(pdf_path, page_num)
+        method_used = "Digital Parser"
 
-        # 2. Parse rows if grid table exists
-        if grid_table and len(grid_table) >= 2:
-            grid_table = ParserUtils.split_merged_columns(grid_table)
-            
-            # Detect page-specific mapping dynamically
-            temp_mapping = TransactionParser.detect_columns(grid_table)
-            if not temp_mapping and used_mapping:
-                temp_mapping = used_mapping
-            
-            if temp_mapping:
-                used_mapping = temp_mapping
-                transactions = TransactionParser.parse_rows(grid_table, used_mapping)
+        # 1. Try Digital Parse Waterfall
+        if is_digital:
+            with PDF_LOCK:
+                has_explicit_dividers = False
+                try:
+                    from parser.digital_parser import DigitalParser
+                    from parser.bank_detector import BankDetector
+                    import pdfplumber
+                    with pdfplumber.open(pdf_path) as pdf:
+                        page = pdf.pages[page_num]
+                        bank_name = BankDetector.detect_bank(page.extract_text() or "", pdf_path)
+                        dividers = DigitalParser.get_explicit_lines(pdf, pdf_path, bank_name, page.width)
+                        if dividers:
+                            has_explicit_dividers = True
+                except Exception:
+                    pass
 
-        # 3. Fallback to AI Vision last resort if no transactions found
-        if not transactions:
+                strategies = []
+                if has_explicit_dividers:
+                    strategies = [("B", "Digital Parser (Text Fallback)"), ("A", "Digital Parser (Default)")]
+                else:
+                    strategies = [("A", "Digital Parser (Default)"), ("B", "Digital Parser (Text Fallback)")]
+
+                for strategy_type, strategy_name in strategies:
+                    if not transactions:
+                        try:
+                            if strategy_type == "A":
+                                grid_table = TableExtractor.extract_table_digitally_default(pdf_path, page_num, logger)
+                            else:
+                                grid_table = TableExtractor.extract_table_digitally_text_fallback(pdf_path, page_num, logger)
+                                
+                            if grid_table and len(grid_table) >= 2:
+                                grid_table = ParserUtils.split_merged_columns(grid_table)
+                                temp_mapping = used_mapping or TransactionParser.detect_columns(grid_table)
+                                transactions = TransactionParser.parse_rows(grid_table, temp_mapping)
+                                if transactions:
+                                    used_mapping = temp_mapping
+                                    method_used = strategy_name
+                        except Exception as e:
+                            if logger:
+                                logger.log(f"Page {page_num + 1} {strategy_name} strategy error: {e}")
+
+        # 2. Try OCR Fallback (if scanned and digital failed/yielded 0)
+        ocr_failed = False
+        if not transactions and not is_digital:
+            method_used = "OCR Parser"
+            try:
+                grid_table = TableExtractor.extract_table_via_ocr(pdf_path, page_num, logger)
+                if grid_table and len(grid_table) >= 2:
+                    if not used_mapping:
+                        used_mapping = TransactionParser.detect_columns(grid_table)
+                    transactions = TransactionParser.parse_rows(grid_table, used_mapping)
+            except Exception as e:
+                ocr_failed = True
+                if logger:
+                    logger.log(f"Page {page_num + 1} OCR extraction error: {e}")
+
+        # 3. Try AI Vision Last-resort Fallback (if both digital and local OCR failed/yielded 0)
+        if not transactions and not is_digital and ocr_failed:
             method_used = "AI Vision Fallback"
-            confidence = 0.80
             try:
                 if logger:
                     logger.log(f"Page {page_num + 1}: Local engines failed. Running AI Vision last-resort fallback...")
                 
+                # Render page to PIL image
                 from parser.ocr_parser import OCRParser
-                from services.gemini_service import GeminiService
-                
                 pil_image = OCRParser.render_pdf_page_to_pil(pdf_path, page_num)
+                
+                # Call GeminiService
+                from services.gemini_service import GeminiService
                 ai_data = GeminiService.parse_page_image(pil_image)
                 
                 if ai_data and "transactions" in ai_data:
@@ -73,4 +111,4 @@ class PageProcessor:
                 if logger:
                     logger.log(f"Page {page_num + 1} AI Vision fallback failed: {e}")
 
-        return transactions, page_headers, used_mapping, method_used, grid_table, confidence
+        return transactions, used_mapping, method_used

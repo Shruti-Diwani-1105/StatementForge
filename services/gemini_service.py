@@ -1234,7 +1234,7 @@ Format in Markdown.
             tx_text = cls._format_transactions(transactions, currency)
             prompt = f"""
 You are a senior forensic auditor at a Big-4 accounting firm (PwC/EY).
-Audit the statement transactions for risk detection and generate a concise, executive-level **Risk Analysis Report** in HTML.
+Audit the statement transactions for risk detection and generate a premium, executive-level **Forensic Audit & Risk Analysis Report** in HTML.
 
 Statement Details:
 - Bank: {bank_name}
@@ -1247,14 +1247,18 @@ Transactions:
 Requirements:
 1. Return a **completely self-contained HTML document** (starting with `<html>` and ending with `</html>`).
 2. Do NOT wrap the HTML in backticks or markdown formatting.
-3. Keep the Risk Analysis short and focused (approximately **5-6 concise lines/bullets** in total).
-4. Clearly highlight key risk categories:
-   - Unusually high spending or sudden expense spikes
-   - Duplicate transactions or double entries
-   - Frequent large withdrawals/transfers
-   - Low savings margin or low balance drops
-   - Suspicious or unusual transaction patterns
-5. Include an Executive Risk Score Badge (e.g. Risk Level: Low/Medium/High).
+3. Include:
+   - **Auditor Header**: Title, badge ('Forensic Risk Analysis'), metadata block.
+   - **Executive Risk Score Card**: Display a colored score badge (e.g. Risk Level: Medium, score: 35/100).
+   - **Identified Risk Factors Table/List**: Check and list indicators with severity badges (High/Medium/Low), explanations, and recommendations:
+     - Subscription Burdens & Recurring Outflows
+     - Duplicate payment checks (double entry anomalies)
+     - Suspicious amount detection (round figures, rapid consecutive transfers)
+     - Large transaction warnings (above threshold)
+     - Running balance integrity & low liquidity checks
+     - Unusual transaction timing
+   - **AML / compliance notes** and money flow analysis.
+   - **Final Audit Opinion** and advisory action steps.
 
 Use the following CSS style block:
 {cls._get_report_styles()}
@@ -1875,23 +1879,20 @@ Guidelines:
     @classmethod
     def validate_extracted_transactions(cls, raw_text, transactions, currency="INR") -> list:
         """
-        Runs Gemini AI verification on extracted transactions to detect OCR errors and column shifts
-        WITHOUT automatically modifying the authoritative values in-place.
-        Attaches warnings and suggestions to the transaction dictionaries.
+        Bypassed to preserve transaction records exactly as they are extracted from the PDF
+        without any AI modifications, as requested by the user.
         """
-        if not transactions:
-            return transactions
+        return transactions
 
-        # Format first 100 transactions for audit
-        tx_text = cls._format_transactions(transactions[:100], currency)
-        raw_text_sample = str(raw_text)[:4000]
+        # Format transactions for Gemini
+        tx_text = cls._format_transactions(transactions, currency)
+        
+        # Limit raw text to first 3000 chars to avoid token bloat/slowness
+        raw_text_sample = str(raw_text)[:3000]
 
         prompt = f"""
-You are a financial statement auditor. Compare the raw text snippet of a bank statement with the parsed transactions.
-Identify any potential extraction errors, such as:
-1. OCR typos in Date, Reference Number, Debit, Credit, or Balance.
-2. Column alignment shifts (e.g. an amount placed in the wrong column).
-3. Incorrect/fabricated values.
+You are a forensic data clean-up assistant.
+Review the raw text snippet and the locally parsed transaction list. Your job is to improve the accuracy of the transactions by matching them to the raw text snippet.
 
 Raw Text Snippet:
 {raw_text_sample}
@@ -1899,26 +1900,23 @@ Raw Text Snippet:
 Parsed Transactions:
 {tx_text}
 
-For each suspected error, output a JSON object containing:
-- "index": The 0-based index of the transaction in the list.
-- "field": The field name with the error ("date", "narration", "debit", "credit", "balance", "ref_no").
-- "original_value": The value currently parsed.
-- "suggested_value": The correct value according to the raw text.
-- "issue": A brief explanation of why you think it is wrong.
-- "confidence": A float confidence score between 0.0 and 1.0.
+Guidelines:
+1. Reconstruct narrations that were split across multiple lines.
+2. Correct OCR typos in date, narration, and amount fields based on the raw text.
+3. Ensure no transaction is removed.
+4. Align shifted columns (e.g. if a debit was placed in credit, or vice versa, correct it based on standard accounting rules).
+5. Output the corrected transactions in valid JSON format only as a list of objects containing date, narration, debit, credit, and balance.
+6. If the parsed transactions look correct, return them as is.
 
-Format the output as a valid JSON list of objects only. If no errors are found, return an empty list [].
-Do not wrap in markdown and do not write any explanation text.
+Return valid JSON list only. Do not wrap in markdown or write explanation text.
 """
         try:
             client = cls.get_client()
-            import google.genai.types as types
-            import json
-            
             config = types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.1
             )
+            # Use stable fast model
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
                 contents=prompt,
@@ -1932,23 +1930,32 @@ Do not wrap in markdown and do not write any explanation text.
                 response_text = response_text.rsplit("```", 1)[0]
             response_text = response_text.strip()
             
-            errors = json.loads(response_text)
-            if isinstance(errors, list):
-                for err in errors:
-                    idx = err.get("index")
-                    if idx is not None and 0 <= idx < len(transactions):
-                        tx = transactions[idx]
-                        tx["_review_required"] = True
-                        tx["_ai_review"] = {
-                            "field": err.get("field"),
-                            "original_value": err.get("original_value"),
-                            "suggested_correction": err.get("suggested_value"),
-                            "issue": err.get("issue"),
-                            "confidence": int(float(err.get("confidence", 0.8)) * 100)
-                        }
-                        print(f"Gemini Auditing: Flagged transaction {idx} for review: {err.get('issue')}")
+            cleaned = json.loads(response_text)
+            
+            # Map keys back to lowercase
+            result = []
+            for tx in cleaned:
+                # Get fields case-insensitively
+                date_val = tx.get("Date") or tx.get("date") or ""
+                narr_val = tx.get("Narration") or tx.get("narration") or tx.get("Description") or tx.get("description") or ""
+                debit_val = tx.get("Debit") or tx.get("debit") or ""
+                credit_val = tx.get("Credit") or tx.get("credit") or ""
+                bal_val = tx.get("Balance") or tx.get("balance") or ""
+                
+                result.append({
+                    "date": str(date_val),
+                    "narration": str(narr_val),
+                    "debit": str(debit_val),
+                    "credit": str(credit_val),
+                    "balance": str(bal_val)
+                })
+            
+            if len(result) > 0:
+                print(f"GeminiService: Successfully validated and enhanced {len(result)} transactions.")
+                return result
+                
         except Exception as e:
-            print(f"Gemini Auditing error: {e}")
+            print(f"GeminiService: Validation failed, falling back to local result. Error: {e}")
             
         return transactions
 

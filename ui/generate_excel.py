@@ -66,7 +66,7 @@ class GenerateExcelWidget(QWidget):
         left_layout.setSpacing(16)
 
         left_title = QLabel("Convert PDF Statement")
-        left_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
+        left_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
         left_layout.addWidget(left_title)
 
         # Drag & Drop Box inside Left Panel
@@ -102,7 +102,7 @@ class GenerateExcelWidget(QWidget):
         drop_lay.addWidget(up_icon, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.prompt_lbl = QLabel("Drag & Drop PDF Statement")
-        self.prompt_lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #1E293B; font-family: 'Inter', sans-serif;")
+        self.prompt_lbl.setStyleSheet("font-size: 13px; font-weight: bold; color: #1E293B; font-family: 'Times New Roman';")
         drop_lay.addWidget(self.prompt_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.browse_btn = QPushButton("Select File")
@@ -116,7 +116,7 @@ class GenerateExcelWidget(QWidget):
                 border-radius: 6px;
                 font-weight: 600;
                 font-size: 11px;
-                font-family: 'Inter', sans-serif;
+                font-family: 'Times New Roman';
             }
             QPushButton:hover { background-color: #1d4ed8; }
         """)
@@ -135,9 +135,9 @@ class GenerateExcelWidget(QWidget):
 
         def make_row(grid_w, r_idx, label, attr):
             lbl = QLabel(label)
-            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Inter', sans-serif;")
+            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Times New Roman';")
             val = QLabel("-")
-            val.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
+            val.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
             setattr(self, attr, val)
             grid_w.addWidget(lbl, r_idx, 0)
             grid_w.addWidget(val, r_idx, 1)
@@ -148,34 +148,6 @@ class GenerateExcelWidget(QWidget):
         make_row(grid, 3, "Doc Type:", "lbl_doctype")
 
         left_layout.addWidget(self.details_card)
-
-        # Extraction Quality Card
-        self.quality_card = QFrame()
-        self.quality_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
-        quality_grid = QGridLayout(self.quality_card)
-        quality_grid.setContentsMargins(16, 16, 16, 16)
-        quality_grid.setSpacing(12)
-
-        def make_quality_row(grid_w, r_idx, label, attr):
-            lbl = QLabel(label)
-            lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Inter', sans-serif;")
-            val = QLabel("-")
-            val.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
-            setattr(self, attr, val)
-            grid_w.addWidget(lbl, r_idx, 0)
-            grid_w.addWidget(val, r_idx, 1)
-
-        quality_title = QLabel("EXTRACTION QUALITY")
-        quality_title.setStyleSheet("font-size: 11px; font-weight: bold; color: #1E3A8A; font-family: 'Inter', sans-serif;")
-        quality_grid.addWidget(quality_title, 0, 0, 1, 2, Qt.AlignmentFlag.AlignLeft)
-
-        make_quality_row(quality_grid, 1, "Detected Cols:", "lbl_quality_cols")
-        make_quality_row(quality_grid, 2, "Exported Txs:", "lbl_quality_txs")
-        make_quality_row(quality_grid, 3, "Digital/OCR:", "lbl_quality_dig_ocr")
-        make_quality_row(quality_grid, 4, "Review Req:", "lbl_quality_review")
-        make_quality_row(quality_grid, 5, "Data Integrity:", "lbl_quality_integrity")
-
-        left_layout.addWidget(self.quality_card)
         left_layout.addStretch()
 
         main_layout.addWidget(left_panel)
@@ -207,7 +179,7 @@ class GenerateExcelWidget(QWidget):
         # Right Header & Actions
         top_bar = QHBoxLayout()
         right_title = QLabel("Conversion Monitor & Excel Preview")
-        right_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
+        right_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
         top_bar.addWidget(right_title)
         top_bar.addStretch()
 
@@ -223,7 +195,7 @@ class GenerateExcelWidget(QWidget):
                 padding: 10px 18px;
                 font-weight: bold;
                 font-size: 13px;
-                font-family: 'Inter', sans-serif;
+                font-family: 'Times New Roman';
             }
             QPushButton:hover { background-color: #15803d; }
             QPushButton:disabled { background-color: #E2E8F0; color: #94A3B8; }
@@ -243,7 +215,7 @@ class GenerateExcelWidget(QWidget):
                 padding: 10px 18px;
                 font-weight: bold;
                 font-size: 13px;
-                font-family: 'Inter', sans-serif;
+                font-family: 'Times New Roman';
             }
             QPushButton:hover { background-color: #1d4ed8; }
             QPushButton:disabled { background-color: #E2E8F0; color: #94A3B8; }
@@ -263,7 +235,7 @@ class GenerateExcelWidget(QWidget):
                 padding: 10px 18px;
                 font-weight: bold;
                 font-size: 13px;
-                font-family: 'Inter', sans-serif;
+                font-family: 'Times New Roman';
             }
             QPushButton:hover { background-color: #6D28D9; }
             QPushButton:disabled { background-color: #E2E8F0; color: #94A3B8; }
@@ -282,12 +254,12 @@ class GenerateExcelWidget(QWidget):
 
         prog_status_row = QHBoxLayout()
         self.lbl_status = QLabel("Status: Waiting for Statement PDF...")
-        self.lbl_status.setStyleSheet("font-size: 12px; font-weight: bold; color: #475569; font-family: 'Inter', sans-serif;")
+        self.lbl_status.setStyleSheet("font-size: 12px; font-weight: bold; color: #475569; font-family: 'Times New Roman';")
         prog_status_row.addWidget(self.lbl_status)
         prog_status_row.addStretch()
 
         self.lbl_tx_count = QLabel("Transactions: 0")
-        self.lbl_tx_count.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
+        self.lbl_tx_count.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Times New Roman';")
         prog_status_row.addWidget(self.lbl_tx_count)
         prog_lay.addLayout(prog_status_row)
 
@@ -329,7 +301,7 @@ class GenerateExcelWidget(QWidget):
         recent_box.setSpacing(12)
         
         recent_lbl = QLabel("Recent Generated Sheets:")
-        recent_lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Inter', sans-serif;")
+        recent_lbl.setStyleSheet("font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; font-family: 'Times New Roman';")
         recent_box.addWidget(recent_lbl)
 
         self.recent_list = QComboBox()
@@ -528,30 +500,8 @@ class GenerateExcelWidget(QWidget):
             self.lbl_tx_count.setText(f"Transactions: {len(payload['transactions'])}")
             
             # Re-populate the preview grid with parsed rows
-            self.populate_preview_table(payload["transactions"], payload.get("original_headers"), payload.get("raw_rows"))
+            self.populate_preview_table(payload["transactions"])
             
-            # Update quality card details
-            audit = payload.get("extraction_audit", {})
-            if audit:
-                self.lbl_quality_cols.setText(str(len(payload.get("original_headers", []))))
-                self.lbl_quality_txs.setText(f"{audit.get('transactions_exported', 0)}")
-                self.lbl_quality_dig_ocr.setText(f"{audit.get('digital_pages', 0)} D / {audit.get('ocr_pages', 0)} O")
-                
-                review_count = len(payload.get("review_rows", []))
-                self.lbl_quality_review.setText(str(review_count))
-                self.lbl_quality_integrity.setText(f"{audit.get('data_integrity', 100.0)}%")
-                
-                if review_count > 0:
-                    self.quality_card.setStyleSheet("background-color: #FFFBEB; border: 2px solid #D97706; border-radius: 12px;")
-                    self.lbl_quality_review.setStyleSheet("font-size: 12px; font-weight: bold; color: #D97706; font-family: 'Inter', sans-serif;")
-                else:
-                    theme = getattr(self, "current_theme", "light")
-                    if theme == "dark":
-                        self.quality_card.setStyleSheet("background-color: #334155; border: 1px solid #475569; border-radius: 12px;")
-                    else:
-                        self.quality_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
-                    self.lbl_quality_review.setStyleSheet("font-size: 12px; font-weight: bold; color: #0F172A; font-family: 'Inter', sans-serif;")
-
             # Start Excel write step
             self.start_excel_generation(user_id)
 
@@ -582,34 +532,13 @@ class GenerateExcelWidget(QWidget):
 
         def on_finished(excel_path):
             self.excel_output_path = excel_path
-            
-            review_count = len(self.parsed_payload.get("review_rows", []))
-            failed_pages = self.parsed_payload.get("failed_pages", [])
-            
-            if review_count > 0 or len(failed_pages) > 0:
-                self.lbl_status.setText("Status: Conversion completed with review required.")
-                self.pbar.setValue(100)
-                self.download_btn.setEnabled(True)
-                self.email_btn.setEnabled(True)
-                self.generate_btn.setEnabled(True)
-                self.load_recent_generated_sheets()
-                
-                review_pages = set(r.get("page", 1) for r in self.parsed_payload.get("review_rows", []))
-                review_pages_str = ", ".join(str(p) for p in sorted(review_pages))
-                msg = f"Excel compiled successfully, but {review_count} items require manual review.\n"
-                if failed_pages:
-                    msg += f"Failed pages: {', '.join(str(p) for p in failed_pages)}\n"
-                msg += f"Pages requiring review: {review_pages_str or 'None'}\n"
-                msg += f"Please inspect the 'Review Required' and 'Extraction Audit' sheets inside the generated Excel file."
-                QMessageBox.warning(self, "Review Required", msg)
-            else:
-                self.lbl_status.setText("Status: Conversion completed successfully!")
-                self.pbar.setValue(100)
-                self.download_btn.setEnabled(True)
-                self.email_btn.setEnabled(True)
-                self.generate_btn.setEnabled(True)
-                self.load_recent_generated_sheets()
-                Toast.success(self, "✓ Excel workbook compiled successfully!")
+            self.lbl_status.setText("Status: Conversion completed successfully!")
+            self.pbar.setValue(100)
+            self.download_btn.setEnabled(True)
+            self.email_btn.setEnabled(True)
+            self.generate_btn.setEnabled(True)
+            self.load_recent_generated_sheets()
+            Toast.success(self, "✓ Excel workbook compiled successfully!")
 
         def on_error(err):
             self.lbl_status.setText("Status: Excel generation failed.")
@@ -622,26 +551,17 @@ class GenerateExcelWidget(QWidget):
             user_id, self.parsed_payload, record_id, on_started, on_step_started, on_step_completed, on_finished, on_error
         )
 
-    def populate_preview_table(self, transactions, original_headers=None, raw_rows=None):
-        """Populates the QTableWidget with the parsed transaction records using original headers if available."""
+    def populate_preview_table(self, transactions):
+        """Populates the QTableWidget with the parsed transaction records."""
         self.preview_table.setRowCount(0)
-        if original_headers and raw_rows:
-            self.preview_table.setColumnCount(len(original_headers))
-            self.preview_table.setHorizontalHeaderLabels(original_headers)
-            self.preview_table.setRowCount(len(raw_rows))
-            for row_idx, row in enumerate(raw_rows):
-                for col_idx, val in enumerate(row):
-                    self.preview_table.setItem(row_idx, col_idx, QTableWidgetItem(str(val) if val is not None else ""))
-        else:
-            self.preview_table.setColumnCount(5)
-            self.preview_table.setHorizontalHeaderLabels(["Date", "Narration", "Debit", "Credit", "Balance"])
-            self.preview_table.setRowCount(len(transactions))
-            for idx, tx in enumerate(transactions):
-                self.preview_table.setItem(idx, 0, QTableWidgetItem(str(tx.get("date", ""))))
-                self.preview_table.setItem(idx, 1, QTableWidgetItem(str(tx.get("narration", ""))))
-                self.preview_table.setItem(idx, 2, QTableWidgetItem(str(tx.get("debit", ""))))
-                self.preview_table.setItem(idx, 3, QTableWidgetItem(str(tx.get("credit", ""))))
-                self.preview_table.setItem(idx, 4, QTableWidgetItem(str(tx.get("balance", ""))))
+        self.preview_table.setRowCount(len(transactions))
+        
+        for idx, tx in enumerate(transactions):
+            self.preview_table.setItem(idx, 0, QTableWidgetItem(str(tx.get("date", ""))))
+            self.preview_table.setItem(idx, 1, QTableWidgetItem(str(tx.get("narration", ""))))
+            self.preview_table.setItem(idx, 2, QTableWidgetItem(str(tx.get("debit", ""))))
+            self.preview_table.setItem(idx, 3, QTableWidgetItem(str(tx.get("credit", ""))))
+            self.preview_table.setItem(idx, 4, QTableWidgetItem(str(tx.get("balance", ""))))
 
     def open_generated_excel(self):
         if not self.excel_output_path or not os.path.exists(self.excel_output_path):
@@ -727,7 +647,6 @@ class GenerateExcelWidget(QWidget):
                 right_panel.setStyleSheet("QFrame#RightPanel { background-color: #1E293B; border: 1px solid #334155; border-radius: 16px; }")
             
             self.details_card.setStyleSheet("background-color: #334155; border: 1px solid #475569; border-radius: 12px;")
-            self.quality_card.setStyleSheet("background-color: #334155; border: 1px solid #475569; border-radius: 12px;")
             self.progress_card.setStyleSheet("background-color: #334155; border: 1px solid #475569; border-radius: 12px;")
             self.preview_table.setStyleSheet("QTableWidget { background-color: #1E293B; border: none; gridline-color: #334155; color: #F8FAFC; }")
             
@@ -755,7 +674,6 @@ class GenerateExcelWidget(QWidget):
                 right_panel.setStyleSheet("QFrame#RightPanel { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; }")
                 
             self.details_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #EFF6FF; border-radius: 12px;")
-            self.quality_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
             self.progress_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
             self.preview_table.setStyleSheet("QTableWidget { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; color: #0F172A; }")
             

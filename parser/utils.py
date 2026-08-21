@@ -80,14 +80,11 @@ class ParserUtils:
 
     @classmethod
     def clean_amount(cls, val) -> str:
-        """Standardizes debit/credit amounts using Decimal. Returns empty string if zero/blank."""
+        """Standardizes debit/credit amounts. Returns empty string if zero/blank, else float string."""
         if val is None:
             return ""
         
         val_str = str(val).replace('\n', '').replace('\r', '').strip()
-        if re.search(r"[eE][+\-]?\d+", val_str):
-            return ""
-            
         val_str = cls._normalize_ocr_number(val_str)
         
         if val_str == "" or val_str.lower() in ["none", "null", "-", "cr", "dr", "0", "0.0", "0.00"]:
@@ -109,24 +106,20 @@ class ParserUtils:
         if not clean_str or clean_str == "-":
             return ""
         try:
-            from decimal import Decimal
-            val_dec = Decimal(clean_str)
-            if val_dec == Decimal("0"):
+            val_float = float(clean_str)
+            if val_float == 0.0:
                 return ""
-            return f"{val_dec:.2f}"
-        except Exception:
+            return f"{val_float:.2f}"
+        except ValueError:
             return ""
 
     @classmethod
     def clean_balance(cls, val) -> str:
-        """Standardizes running balance fields using Decimal. Returns clean string or original if invalid."""
+        """Standardizes running balance fields. Returns clean float string or original if invalid."""
         if val is None:
             return ""
         
         val_str = str(val).replace('\n', '').replace('\r', '').strip()
-        if re.search(r"[eE][+\-]?\d+", val_str):
-            return ""
-            
         val_str = cls._normalize_ocr_number(val_str)
         
         if val_str == "" or val_str.lower() in ["none", "null", "-"]:
@@ -149,25 +142,21 @@ class ParserUtils:
         if not clean_str:
             return ""
         try:
-            from decimal import Decimal
-            val_dec = Decimal(clean_str)
-            if is_debit and val_dec > 0:
-                val_dec = -val_dec
-            return f"{val_dec:.2f}"
-        except Exception:
+            val_float = float(clean_str)
+            if is_debit and val_float > 0:
+                val_float = -val_float
+            return f"{val_float:.2f}"
+        except ValueError:
             return val_str
 
     @classmethod
     def parse_numeric(cls, val):
-        """Attempts to parse a value to Decimal or int. Returns parsed number, or original string."""
+        """Attempts to parse a value to int or float. Returns parsed number, or original string."""
         if val is None:
             return None
         val_str = str(val).replace('\n', '').replace('\r', '').strip()
         if val_str == "" or val_str.lower() in ["none", "null", "-", "cr", "dr"]:
             return None
-            
-        if re.search(r"[eE][+\-]?\d+", val_str):
-            return val_str
             
         clean_test = val_str.replace(",", "").replace("₹", "").replace("$", "").replace("£", "").replace("€", "").strip()
         clean_test = clean_test.replace(" ", "")
@@ -179,11 +168,10 @@ class ParserUtils:
             
         if re.match(r"^[+\-]?\d+(\.\d+)?$", clean_test):
             try:
-                from decimal import Decimal
                 if "." in clean_test:
-                    return Decimal(clean_test)
+                    return float(clean_test)
                 return int(clean_test)
-            except Exception:
+            except ValueError:
                 pass
         return val_str
 
