@@ -53,10 +53,10 @@ class EmailService:
     def get_webmail_compose_url(sender_email: str = "", recipient: str = "", subject: str = "", body: str = "", cc: str = "", bcc: str = ""):
         """
         Returns (provider_name, compose_url) for Google Mail, Yahoo Mail, Outlook Web, or Default Mail.
-        Auto-detects provider based on sender_email or recipient domain.
+        Auto-detects provider based on recipient or sender_email domain.
         """
         domain = ""
-        email_to_check = (sender_email or recipient or "").strip().lower()
+        email_to_check = (recipient or sender_email or "").strip().lower()
         if "@" in email_to_check:
             domain = email_to_check.split("@")[-1]
 
@@ -76,11 +76,19 @@ class EmailService:
         elif "yahoo" in domain:
             provider = "Yahoo Mail"
             url = f"https://compose.mail.yahoo.com/?to={to_enc}&subject={su_enc}&body={body_enc}"
+            if cc_enc:
+                url += f"&cc={cc_enc}"
+            if bcc_enc:
+                url += f"&bcc={bcc_enc}"
         elif any(d in domain for d in ["outlook", "hotmail", "live", "office365", "microsoft"]):
             provider = "Outlook Web"
             url = f"https://outlook.live.com/mail/0/deeplink/compose?to={to_enc}&subject={su_enc}&body={body_enc}"
+            if cc_enc:
+                url += f"&cc={cc_enc}"
+            if bcc_enc:
+                url += f"&bcc={bcc_enc}"
         else:
-            provider = "Webmail / Default Mail App"
+            provider = "Mail App"
             url = f"mailto:{to_enc}?subject={su_enc}&body={body_enc}"
             if cc_enc:
                 url += f"&cc={cc_enc}"

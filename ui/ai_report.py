@@ -108,6 +108,57 @@ class AIWorker(QThread):
             self.error.emit(str(e))
 
 
+class PrepareAllReportsWorker(QThread):
+    """
+    Background worker thread that renders all 4 financial reports
+    once per statement selection from the single source of truth report_data.
+    """
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+
+    def __init__(self, transactions, currency="INR", **kwargs):
+        super().__init__()
+        self.transactions = transactions
+        self.currency = currency
+        self.kwargs = kwargs
+
+    def run(self):
+        try:
+            if not self.transactions:
+                raise ValueError("No sufficient transaction data available.")
+
+            bank_name = self.kwargs.get("bank_name", "Unknown Bank")
+            period = self.kwargs.get("period", "Unknown Period")
+            holder = self.kwargs.get("holder", "Unknown")
+            acc_num = self.kwargs.get("acc_num", "Unknown")
+
+            report_data = GeminiService.build_report_data(
+                self.transactions,
+                bank_name,
+                period,
+                account_holder=holder,
+                account_number=acc_num,
+                currency=self.currency
+            )
+
+            # Render 4 distinct UI views
+            summary_html = GeminiService._render_financial_summary_view(report_data)
+            spending_html = GeminiService._render_spending_insights_view(report_data)
+            risk_html = GeminiService._render_risk_analysis_view(report_data)
+            full_report_html = GeminiService._render_full_report_view(report_data)
+
+            results = {
+                "summary": summary_html,
+                "spending": spending_html,
+                "risk": risk_html,
+                "report": full_report_html
+            }
+
+            self.finished.emit(results)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 class AIReportWidget(QWidget):
     """
     Main UI section for AI Financial Report feature powered by HTML + CSS presentation layer.
@@ -116,8 +167,9 @@ class AIReportWidget(QWidget):
         super().__init__(parent)
         self.current_theme = "light"
         
-        # State Data
+        # State Data & Single Source of Truth Report Cache
         self.active_transactions = []
+        self.report_data = {}
         self.active_metadata = {
             "bank_name": "Unknown Bank",
             "account_holder": "Unknown",
@@ -127,6 +179,10 @@ class AIReportWidget(QWidget):
             "total_debit": 0.0,
             "net_savings": 0.0
         }
+        self.prepared_reports = {}
+        self.reports_ready = False
+        self.active_action_key = "summary"
+        self.prepare_thread = None
         self.active_thread = None
         self.current_report_html = ""
 
@@ -138,10 +194,7 @@ class AIReportWidget(QWidget):
         self.html_wrapper = HtmlScreenWrapper("web/ai_report.html", self)
         layout.addWidget(self.html_wrapper)
 
-        # Connect document title / WebBridge IPC commands
         self.html_wrapper.web_view.titleChanged.connect(self.handle_web_commands)
-        
-        # Initial dropdown load timer
         QTimer.singleShot(600, self.load_history_dropdown)
 
     def update_theme_style(self, theme: str = "light"):
@@ -191,50 +244,131 @@ class AIReportWidget(QWidget):
         if not payload or not payload.get("transactions"):
             return
 
-        self.active_transactions = payload["transactions"]
+        raw_txs = payload.get("transactions", [])
+        self.active_transactions = GeminiService.normalize_transactions(raw_txs)
+        
+        bank_name = payload.get("bank_name", "Unknown Bank")
+        account_holder = payload.get("account_holder", "Unknown")
+        account_number = payload.get("account_number", "Unknown")
+        period = payload.get("period", "Unknown Period")
+        currency = payload.get("currency", "INR")
+
+        self.report_data = GeminiService.build_report_data(
+            self.active_transactions,
+            bank_name,
+            period,
+            account_holder=account_holder,
+            account_number=account_number,
+            currency=currency
+        )
         
         self.active_metadata = {
-            "bank_name": payload.get("bank_name", "Unknown Bank"),
-            "account_holder": payload.get("account_holder", "Unknown"),
-            "period": payload.get("period", "Unknown Period"),
-            "account_number": payload.get("account_number", "Unknown"),
-            "currency": payload.get("currency", "INR")
+            "bank_name": bank_name,
+            "account_holder": account_holder,
+            "account_number": account_number,
+            "period": period,
+            "currency": currency,
+            "total_credit": self.report_data["total_credits"],
+            "total_debit": self.report_data["total_debits"],
+            "net_savings": self.report_data["net_savings"]
         }
-        
-        credits = 0.0
-        debits = 0.0
-        for tx in self.active_transactions:
-            credits += tx.get("credit") or 0.0
-            debits += tx.get("debit") or 0.0
-            
-        self.active_metadata["total_credit"] = credits
-        self.active_metadata["total_debit"] = debits
-        self.active_metadata["net_savings"] = credits - debits
 
-        # Update metrics preview in HTML
+        # Update metrics preview in HTML top bar
         self.update_metrics_ui()
         
-        # Automatically trigger the Financial Summary report generation
-        self.run_ai_task("summary")
+        # Reset analysis cache for new statement selection
+        self.prepared_reports = {}
+        self.reports_ready = False
+        self.active_action_key = "summary"
+
+        # Prepare all 4 report analysis outputs in background once
+        self.start_prepare_all_reports()
+
+    def start_prepare_all_reports(self):
+        """Prepares and caches all 4 reports once per statement selection in background."""
+        if not self.active_transactions:
+            return
+
+        if hasattr(self, "prepare_thread") and self.prepare_thread is not None:
+            if self.prepare_thread.isRunning():
+                try:
+                    self.prepare_thread.finished.disconnect()
+                    self.prepare_thread.error.disconnect()
+                except Exception:
+                    pass
+                self.prepare_thread.terminate()
+                self.prepare_thread.wait(300)
+            self.prepare_thread = None
+
+        loading_html = "<div style=\"color:#3B82F6; font-family: Inter, sans-serif; font-size:14px; text-align:center; padding-top:40px;\"><b>Preparing financial insights...</b><br>Analyzing transaction data for all 4 report modules...</div>"
+        self.html_wrapper.eval_js("setLoading(true, 'Preparing financial insights...');")
+        self.html_wrapper.eval_js(f"setReportHtml({json.dumps(loading_html)});")
+
+        kwargs = {
+            "bank_name": self.active_metadata.get("bank_name", "Unknown Bank"),
+            "holder": self.active_metadata.get("account_holder", "Unknown"),
+            "acc_num": self.active_metadata.get("account_number", "Unknown"),
+            "period": self.active_metadata.get("period", "Unknown Period")
+        }
+
+        self.prepare_thread = PrepareAllReportsWorker(
+            self.active_transactions,
+            self.active_metadata.get("currency", "INR"),
+            **kwargs
+        )
+
+        def handle_finished(results):
+            self.html_wrapper.eval_js("setLoading(false);")
+            self.prepared_reports = results
+            self.reports_ready = True
+            self.prepare_thread = None
+
+            # Render currently selected tab report instantly
+            active_html = self.prepared_reports.get(self.active_action_key, "")
+            if active_html:
+                active_html = GeminiService.clean_html_response(active_html)
+                self.current_report_html = active_html
+                self.html_wrapper.eval_js(f"setReportHtml({json.dumps(active_html)});")
+                match = re.search(r"(\d{2,3})\s*/\s*100", active_html)
+                if match:
+                    score_val = match.group(1)
+                    self.html_wrapper.eval_js(f"document.getElementById('lblScore').innerText = {json.dumps(score_val)};")
+
+            Toast.success(self, "✓ Analysis Ready")
+
+        def handle_error(err_msg):
+            self.html_wrapper.eval_js("setLoading(false);")
+            self.prepare_thread = None
+            error_html = f"<div style='color:#EF4444; font-family: \"Inter\", sans-serif; font-size:14px; padding:20px;'><b>AI Report Preparation Failed</b><br><br>{err_msg}</div>"
+            self.html_wrapper.eval_js(f"setReportHtml({json.dumps(error_html)});")
+
+        self.prepare_thread.finished.connect(handle_finished)
+        self.prepare_thread.error.connect(handle_error)
+        self.prepare_thread.start()
 
     def update_metrics_ui(self):
-        """Fills UI metric values from active statement details into HTML."""
-        bank = self.active_metadata.get("bank_name", "-")
-        period = self.active_metadata.get("period", "-")
-        
-        credits_str = format_indian_currency(self.active_metadata.get("total_credit", 0.0))
-        debits_str = format_indian_currency(self.active_metadata.get("total_debit", 0.0))
-        net = self.active_metadata.get("net_savings", 0.0)
+        """Fills UI metric values from single source of truth report_data into HTML."""
+        if hasattr(self, "report_data") and self.report_data:
+            bank = self.report_data.get("bank_name", "-")
+            period = self.report_data.get("statement_period", "-")
+            total_credits = self.report_data.get("total_credits", 0.0)
+            total_debits = self.report_data.get("total_debits", 0.0)
+            net = self.report_data.get("net_savings", 0.0)
+            score_num = self.report_data.get("risk_analysis", {}).get("score", 95)
+        else:
+            bank = self.active_metadata.get("bank_name", "-")
+            period = self.active_metadata.get("period", "-")
+            total_credits = self.active_metadata.get("total_credit", 0.0)
+            total_debits = self.active_metadata.get("total_debit", 0.0)
+            net = self.active_metadata.get("net_savings", 0.0)
+            score_num = 95
+
+        credits_str = format_indian_currency(total_credits)
+        debits_str = format_indian_currency(total_debits)
         savings_str = format_indian_currency(net)
         is_positive = net >= 0
-        
-        score = 92
-        if len(self.active_transactions) > 0:
-            score = min(98, max(60, 100 - int(len(self.active_transactions) * 0.15)))
-            score_str = f"{score}%"
-        else:
-            score_str = "-"
-            
+        score_str = f"{score_num}%" if len(self.active_transactions) > 0 else "-"
+
         js_code = (
             f"setMetrics("
             f"{json.dumps(bank)}, "
@@ -316,6 +450,23 @@ class AIReportWidget(QWidget):
             transactions = self.load_transactions_from_excel(excel_path)
             meta = self.load_summary_from_excel(excel_path)
             
+            # Statement Diagnostic Output
+            total_c = sum(t.get("credit", 0.0) for t in transactions)
+            total_d = sum(t.get("debit", 0.0) for t in transactions)
+            print("=== SELECTED STATEMENT DIAGNOSTIC ===")
+            print(f"Statement ID / Path: {excel_path}")
+            print(f"Bank Name: {meta.get('bank_name', 'Unknown Bank')}")
+            print(f"Period: {meta.get('period', 'Unknown Period')}")
+            print(f"Transaction Count: {len(transactions)}")
+            print(f"Total Credits: INR {total_c:,.2f}")
+            print(f"Total Debits: INR {total_d:,.2f}")
+
+            if not transactions:
+                err_html = "<div class='report-container' style='text-align:center; padding:40px; color:#EF4444;'><b>Unable to load transaction data for the selected statement.</b><br>Please refresh the statement list or upload a valid bank statement file.</div>"
+                self.html_wrapper.eval_js(f"setReportHtml({json.dumps(err_html)});")
+                Toast.error(self, "Unable to load transaction data for selected statement.")
+                return
+
             payload = {
                 "transactions": transactions,
                 "bank_name": meta.get("bank_name", "Unknown Bank"),
@@ -335,39 +486,56 @@ class AIReportWidget(QWidget):
         import openpyxl
         wb = openpyxl.load_workbook(excel_path, data_only=True)
         sheet_name = None
-        for name in ["Transactions", "GST Transactions"]:
+        for name in ["Transactions", "GST Transactions", "Ledger", "Statement Ledger"]:
             if name in wb.sheetnames:
                 sheet_name = name
                 break
+
         if not sheet_name:
-            raise ValueError("Spreadsheet does not contain a transaction ledger sheet.")
+            for name in wb.sheetnames:
+                if name not in ["Summary", "GST Summary", "Settings"]:
+                    sheet_name = name
+                    break
+
+        if not sheet_name:
+            sheet_name = wb.sheetnames[0]
             
         ws = wb[sheet_name]
         rows = list(ws.iter_rows(values_only=True))
         if not rows:
             return []
             
-        headers = rows[0]
-        data_rows = rows[1:]
+        # Robust Header Row Detection (scans rows 0..4)
+        header_row_idx = 0
+        for idx, r in enumerate(rows[:5]):
+            if not r:
+                continue
+            r_str = " ".join([str(c or "").lower() for c in r])
+            if any(k in r_str for k in ["date", "debit", "credit", "narration", "description", "particulars"]):
+                header_row_idx = idx
+                break
+
+        headers = rows[header_row_idx]
+        data_rows = rows[header_row_idx + 1:]
         
         col_mapping = {}
         for idx, header in enumerate(headers):
             if header is None:
                 continue
-            h_lower = str(header).lower()
-            if "date" in h_lower and "value" not in h_lower:
+            h_lower = str(header).lower().strip()
+            if "date" in h_lower and "value" not in h_lower and "date" not in col_mapping:
                 col_mapping["date"] = idx
-            elif "description" in h_lower or "narration" in h_lower or "particulars" in h_lower:
+            elif any(k in h_lower for k in ["description", "narration", "particulars", "details", "remark"]) and "narration" not in col_mapping:
                 col_mapping["narration"] = idx
-            elif "debit" in h_lower:
+            elif any(k in h_lower for k in ["debit", "withdrawal", "dr", "outflow"]) and "debit" not in col_mapping:
                 col_mapping["debit"] = idx
-            elif "credit" in h_lower:
+            elif any(k in h_lower for k in ["credit", "deposit", "cr", "inflow"]) and "credit" not in col_mapping:
                 col_mapping["credit"] = idx
-            elif "balance" in h_lower:
+            elif any(k in h_lower for k in ["balance", "running"]) and "balance" not in col_mapping:
                 col_mapping["balance"] = idx
-            elif "type" in h_lower:
+            elif "type" in h_lower and "type" not in col_mapping:
                 col_mapping["type"] = idx
-            elif "total amount" in h_lower or "amount" in h_lower:
+            elif ("amount" in h_lower or "total amount" in h_lower) and "total_amount" not in col_mapping:
                 col_mapping["total_amount"] = idx
                 
         transactions = []
@@ -384,7 +552,7 @@ class AIReportWidget(QWidget):
                             tx[k] = val.strftime("%Y-%m-%d")
                         elif k in ["debit", "credit", "balance", "total_amount"]:
                             try:
-                                clean_val = str(val).replace(",", "").replace("₹", "").strip()
+                                clean_val = str(val).replace(",", "").replace("₹", "").replace("$", "").strip()
                                 if clean_val.endswith("-"):
                                     clean_val = "-" + clean_val[:-1]
                                 tx[k] = float(clean_val)
@@ -437,6 +605,25 @@ class AIReportWidget(QWidget):
             if tx_key not in seen_txs:
                 seen_txs.add(tx_key)
                 unique_transactions.append(tx)
+
+        # Balance Delta Fallback calculation for statements where Debit/Credit cells are blank but Balance is present
+        prev_balance = None
+        for tx in unique_transactions:
+            d = tx.get("debit", 0.0)
+            c = tx.get("credit", 0.0)
+            b = tx.get("balance", 0.0)
+
+            if d == 0.0 and c == 0.0 and b > 0.0 and prev_balance is not None and prev_balance > 0.0:
+                diff = round(b - prev_balance, 2)
+                if diff > 0:
+                    tx["credit"] = diff
+                    tx["transaction_type"] = "Credit"
+                elif diff < 0:
+                    tx["debit"] = abs(diff)
+                    tx["transaction_type"] = "Debit"
+
+            if b > 0.0:
+                prev_balance = b
                 
         return unique_transactions
 
@@ -470,119 +657,33 @@ class AIReportWidget(QWidget):
         return meta
 
     def run_ai_task(self, action_key):
-        """Starts a background thread worker to call Gemini API endpoints."""
+        """Switches the active report view instantly from the pre-generated memory cache."""
+        self.active_action_key = action_key
+
         if not self.active_transactions:
             QMessageBox.warning(self, "No Statement Loaded", "Please upload a statement or select one from history first.")
             return
 
-        api_key = GeminiService.get_api_key()
-        if not api_key or not api_key.strip():
-            QMessageBox.critical(self, "API Key Missing", "AI API Key is missing.\n\nPlease go to Settings and enter a valid API Key first.")
-            return
-
-        self.html_wrapper.eval_js("setLoading(true, 'AI is analyzing transaction data...');")
-        self.html_wrapper.eval_js(f"setReportHtml('<div style=\"color:#3B82F6; font-family: 'Inter', sans-serif; font-size:14px; text-align:center; padding-top:40px;\"><b>AI is analyzing transactions...</b><br>Please hold, compiling financial report...</div>');")
-        
-        kwargs = {
-            "bank_name": self.active_metadata.get("bank_name", "Unknown Bank"),
-            "holder": self.active_metadata.get("account_holder", "Unknown"),
-            "acc_num": self.active_metadata.get("account_number", "Unknown"),
-            "period": self.active_metadata.get("period", "Unknown Period")
-        }
-
-        self.active_thread = AIWorker(
-            action_key, 
-            self.active_transactions, 
-            self.active_metadata.get("currency", "INR"), 
-            **kwargs
-        )
-        
-        def handle_finished(result):
+        # 1. If reports are already prepared, display the view INSTANTLY (0 ms)!
+        if self.reports_ready and action_key in self.prepared_reports:
+            report_html = GeminiService.clean_html_response(self.prepared_reports[action_key])
+            self.current_report_html = report_html
             self.html_wrapper.eval_js("setLoading(false);")
-            self.active_thread.deleteLater()
-            self.active_thread = None
-
-            cleaned_result = result.strip()
-            if cleaned_result.startswith("```"):
-                lines = cleaned_result.splitlines()
-                if len(lines) > 2 and lines[0].startswith("```"):
-                    end_idx = len(lines) - 1
-                    while end_idx > 0 and not lines[end_idx].strip() == "```":
-                        end_idx -= 1
-                    if end_idx > 0:
-                        cleaned_result = "\n".join(lines[1:end_idx]).strip()
-            result = cleaned_result
-            self.current_report_html = result
-
-            self.html_wrapper.eval_js(f"setReportHtml({json.dumps(result)});")
+            self.html_wrapper.eval_js(f"setReportHtml({json.dumps(report_html)});")
             
-            match = re.search(r"(\d{2,3})\s*/\s*100", result)
+            match = re.search(r"(\d{2,3})\s*/\s*100", report_html)
             if match:
                 score_val = match.group(1)
                 self.html_wrapper.eval_js(f"document.getElementById('lblScore').innerText = {json.dumps(score_val)};")
-                
-            # Trigger AI Risk Notification if risks are analyzed
-            try:
-                from services.notification_service import NotificationService
-                user = UserSession.get_current_user()
-                user_id = user["id"] if user else "guest"
-                
-                if action_key in ["risk", "report"] and self.active_transactions:
-                    # Scan active transactions for risk indicators
-                    for tx in self.active_transactions:
-                        debit = tx.get("debit", 0.0) or 0.0
-                        narr = str(tx.get("narration", "")).lower()
-                        tx_date = tx.get("date", "recent date")
-                        
-                        if debit >= 50000.0:
-                            NotificationService.create_notification(
-                                user_id=user_id,
-                                category="ai_risk",
-                                title="Large Outflow Alert",
-                                message=f"A single high-value outflow transaction of ₹{debit:,.2f} was detected on {tx_date}.",
-                                action_type="view_report"
-                            )
-                            break
-                    
-                    # Scan for subscriptions
-                    for tx in self.active_transactions:
-                        narr = str(tx.get("narration", "")).lower()
-                        debit = tx.get("debit", 0.0) or 0.0
-                        if any(sub in narr for sub in ["netflix", "swiggy", "spotify", "prime", "youtube", "hotstar", "saas"]):
-                            NotificationService.create_notification(
-                                user_id=user_id,
-                                category="ai_risk",
-                                title="Subscription Burden Detected",
-                                message=f"Active recurring expense detected: {tx.get('narration')} (₹{debit:,.2f}).",
-                                action_type="view_report"
-                            )
-                            break
-                            
-            except Exception as e:
-                print(f"AIReportWidget: Notification trigger error: {e}")
+            return
 
-            Toast.success(self, "✓ Report generated successfully!")
-            
-            # Sync TopBar Badge
-            p = self.parent()
-            while p:
-                if hasattr(p, "update_notification_badge"):
-                    p.update_notification_badge()
-                    break
-                p = p.parent()
+        # 2. If still preparing, show non-blocking status
+        if not self.reports_ready and hasattr(self, "prepare_thread") and self.prepare_thread is not None and self.prepare_thread.isRunning():
+            self.html_wrapper.eval_js("setLoading(true, 'Preparing financial insights...');")
+            return
 
-        def handle_error(err_msg):
-            self.html_wrapper.eval_js("setLoading(false);")
-            self.active_thread.deleteLater()
-            self.active_thread = None
-            
-            error_html = f"<div style='color:#EF4444; font-family: \"Inter\", sans-serif; font-size:14px; padding:20px;'><b>AI Report Generation Failed</b><br><br>{err_msg}</div>"
-            self.html_wrapper.eval_js(f"setReportHtml({json.dumps(error_html)} );")
-            QMessageBox.critical(self, "AI Connection Failed", f"An error occurred while compiling AI report:\n\n{err_msg}")
-
-        self.active_thread.finished.connect(handle_finished)
-        self.active_thread.error.connect(handle_error)
-        self.active_thread.start()
+        # 3. Fallback: if not yet prepared, trigger prepare pipeline
+        self.start_prepare_all_reports()
 
     def export_pdf_report(self):
         """Prints the report viewer HTML contents into a PDF file."""

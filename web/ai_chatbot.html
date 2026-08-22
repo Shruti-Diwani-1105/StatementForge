@@ -121,6 +121,7 @@
             <!-- Suggestions Panel -->
             <div class="suggestions-row" style="margin-bottom: 12px;">
                 <button type="button" class="chip-btn" onclick="useSuggestion('What are my top expenses?')">Top Expenses</button>
+                <button type="button" class="chip-btn" onclick="useSuggestion('What are my lowest expenses?')">Lowest Expenses</button>
                 <button type="button" class="chip-btn" onclick="useSuggestion('Are there any duplicate UPI transactions?')">Duplicate UPIs</button>
                 <button type="button" class="chip-btn" onclick="useSuggestion('What subscriptions did I pay for?')">Active Subscriptions</button>
                 <button type="button" class="chip-btn" onclick="useSuggestion('Where am I spending the most?')">Where I Spend Most</button>
@@ -189,13 +190,18 @@
             const senderName = sender === 'user' ? 'You' : 'AI Chatbot';
             const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            const formattedText = text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
-                .replace(/\*(.*?)\*/g, "<i>$1</i>")
-                .replace(/\n/g, "<br>");
+            let formattedText = "";
+            if (sender === 'user' || (!text.includes('<div') && !text.includes('<table') && !text.includes('<span') && !text.includes('<ul') && !text.includes('<p'))) {
+                formattedText = text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+                    .replace(/\*(.*?)\*/g, "<i>$1</i>")
+                    .replace(/\n/g, "<br>");
+            } else {
+                formattedText = text;
+            }
 
             bubbleDiv.innerHTML = `
                 <div class="bubble-avatar">${avatar}</div>

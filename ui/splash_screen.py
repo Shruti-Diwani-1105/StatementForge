@@ -22,19 +22,10 @@ class PremiumLogoCard(QWidget):
         if _cached_logo_pixmap is not None:
             self.logo_pixmap = _cached_logo_pixmap
         else:
-            cached_path = os.path.join("assets", "logo_transparent_cache.png")
-            if os.path.exists(cached_path):
-                self.logo_pixmap = QPixmap(cached_path)
-            else:
-                raw_logo = QPixmap("assets/logo.png")
-                if not raw_logo.isNull():
-                    self.logo_pixmap = self.remove_blue_background(raw_logo)
-                    try:
-                        self.logo_pixmap.save(cached_path, "PNG")
-                    except Exception:
-                        pass
-                else:
-                    self.logo_pixmap = raw_logo
+            logo_path = os.path.join("assets", "logo.png")
+            if not os.path.exists(logo_path):
+                logo_path = os.path.join("assets", "icons", "ai.png")
+            self.logo_pixmap = QPixmap(logo_path)
             _cached_logo_pixmap = self.logo_pixmap
             
         # Animation parameters
@@ -48,20 +39,6 @@ class PremiumLogoCard(QWidget):
         self.anim_timer = QTimer(self)
         self.anim_timer.timeout.connect(self.update_animation)
         self.anim_timer.start(16)
-
-    def remove_blue_background(self, pixmap):
-        """
-        Removes the dark blue background square programmatically from the logo,
-        retaining the white temple icon and its smooth antialiased gray edges.
-        """
-        image = pixmap.toImage().convertToFormat(QImage.Format.Format_ARGB32)
-        for y in range(image.height()):
-            for x in range(image.width()):
-                color = image.pixelColor(x, y)
-                # If the blue channel is significantly higher than red, make it transparent
-                if color.blue() - color.red() > 45:
-                    image.setPixelColor(x, y, QColor(0, 0, 0, 0))
-        return QPixmap.fromImage(image)
 
     def update_animation(self):
         self.anim_time += 16
@@ -96,8 +73,8 @@ class PremiumLogoCard(QWidget):
         
         # Draw breathing glow behind the glass card
         glow_grad = QRadialGradient(card_rect.center(), 70)
-        glow_grad.setColorAt(0, QColor(79, 140, 255, int(self.glow_alpha * 0.35)))
-        glow_grad.setColorAt(0.6, QColor(79, 140, 255, int(self.glow_alpha * 0.15)))
+        glow_grad.setColorAt(0, QColor(79, 140, 255, int(self.glow_alpha * 0.45)))
+        glow_grad.setColorAt(0.6, QColor(79, 140, 255, int(self.glow_alpha * 0.20)))
         glow_grad.setColorAt(1, QColor(0, 0, 0, 0))
         
         painter.save()
@@ -107,26 +84,31 @@ class PremiumLogoCard(QWidget):
         # Set animation opacity
         painter.setOpacity(self.opacity)
         
-        # Draw glassmorphism card base (rgba(255, 255, 255, 0.12))
+        # Draw glassmorphism card base
         glass_path = self.get_rounded_rect_path(card_rect, 24)
-        painter.fillPath(glass_path, QColor(255, 255, 255, 30))
+        painter.fillPath(glass_path, QColor(255, 255, 255, 35))
         
         # Draw soft white border with low opacity
-        border_pen = QPen(QColor(255, 255, 255, 60), 1.2)
+        border_pen = QPen(QColor(255, 255, 255, 80), 1.4)
         painter.setPen(border_pen)
         painter.drawPath(glass_path)
         
-        # Draw logo with scale factor applied
+        # Draw project logo with smooth rounded corners & scale factor applied
         if not self.logo_pixmap.isNull():
-            target_w = 64 * self.scale_factor
-            target_h = 64 * self.scale_factor
+            target_w = 92 * self.scale_factor
+            target_h = 92 * self.scale_factor
             logo_rect = QRectF(
                 card_rect.center().x() - target_w / 2,
                 card_rect.center().y() - target_h / 2,
                 target_w,
                 target_h
             )
+            painter.save()
+            clip_path = QPainterPath()
+            clip_path.addRoundedRect(logo_rect, 18, 18)
+            painter.setClipPath(clip_path)
             painter.drawPixmap(logo_rect, self.logo_pixmap, QRectF(self.logo_pixmap.rect()))
+            painter.restore()
 
     def get_rounded_rect_path(self, rect, radius):
         path = QPainterPath()

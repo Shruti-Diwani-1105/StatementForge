@@ -60,12 +60,13 @@ class AIChatWorker(QThread):
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def __init__(self, transactions, chat_history, message, currency="INR"):
+    def __init__(self, transactions, chat_history, message, currency="INR", **kwargs):
         super().__init__()
         self.transactions = transactions
         self.chat_history = chat_history
         self.message = message
         self.currency = currency
+        self.kwargs = kwargs
 
     def run(self):
         try:
@@ -73,7 +74,7 @@ class AIChatWorker(QThread):
                 raise ValueError("No statement loaded. Please select a bank statement first.")
 
             result = GeminiService.chat_with_statement(
-                self.transactions, self.chat_history, self.message, self.currency
+                self.transactions, self.chat_history, self.message, self.currency, **self.kwargs
             )
             self.finished.emit(result)
         except Exception as e:
@@ -160,25 +161,35 @@ class AIChatbotWidget(QWidget):
         if not payload or not payload.get("transactions"):
             return
 
-        self.active_transactions = payload["transactions"]
+        raw_txs = payload.get("transactions", [])
+        bank_name = payload.get("bank_name", "Unknown Bank")
+        account_holder = payload.get("account_holder", "Unknown")
+        account_number = payload.get("account_number", "Unknown")
+        period = payload.get("period", "Unknown Period")
+        currency = payload.get("currency", "INR")
+
+        self.active_transactions = GeminiService.normalize_transactions(raw_txs)
+        
+        self.report_data = GeminiService.build_report_data(
+            self.active_transactions,
+            bank_name,
+            period,
+            account_holder=account_holder,
+            account_number=account_number,
+            currency=currency
+        )
         
         self.active_metadata = {
-            "bank_name": payload.get("bank_name", "Unknown Bank"),
-            "account_holder": payload.get("account_holder", "Unknown"),
-            "period": payload.get("period", "Unknown Period"),
-            "account_number": payload.get("account_number", "Unknown"),
-            "currency": payload.get("currency", "INR")
+            "bank_name": bank_name,
+            "account_holder": account_holder,
+            "account_number": account_number,
+            "period": period,
+            "currency": currency,
+            "total_credit": self.report_data["total_credits"],
+            "total_debit": self.report_data["total_debits"],
+            "net_savings": self.report_data["net_savings"],
+            "audit_score": self.report_data["risk_analysis"]["score"]
         }
-        
-        credits = 0.0
-        debits = 0.0
-        for tx in self.active_transactions:
-            credits += tx.get("credit") or 0.0
-            debits += tx.get("debit") or 0.0
-            
-        self.active_metadata["total_credit"] = credits
-        self.active_metadata["total_debit"] = debits
-        self.active_metadata["net_savings"] = credits - debits
 
         # Reset chat history
         self.chat_history = []
@@ -196,6 +207,7 @@ class AIChatbotWidget(QWidget):
                         <div class="bubble-text">
                             Hello! I am your AI Chatbot. Ask me any questions about this statement like:
                             <br>• What are my top expenses?
+                            <br>• What are my lowest expenses?
                             <br>• Are there any duplicate UPI transactions?
                             <br>• What subscriptions did I pay for?
                             <br>• Where am I spending the most?
@@ -212,22 +224,27 @@ class AIChatbotWidget(QWidget):
 
     def update_metrics_ui(self):
         """Fills UI metric values from active statement details into HTML."""
-        bank = self.active_metadata.get("bank_name", "-")
-        period = self.active_metadata.get("period", "-")
-        
-        credits_str = format_indian_currency(self.active_metadata.get("total_credit", 0.0))
-        debits_str = format_indian_currency(self.active_metadata.get("total_debit", 0.0))
-        net = self.active_metadata.get("net_savings", 0.0)
+        if hasattr(self, "report_data") and self.report_data:
+            bank = self.report_data.get("bank_name", "-")
+            period = self.report_data.get("statement_period", "-")
+            total_credits = self.report_data.get("total_credits", 0.0)
+            total_debits = self.report_data.get("total_debits", 0.0)
+            net = self.report_data.get("net_savings", 0.0)
+            score_num = self.report_data.get("risk_analysis", {}).get("score", 95)
+        else:
+            bank = self.active_metadata.get("bank_name", "-")
+            period = self.active_metadata.get("period", "-")
+            total_credits = self.active_metadata.get("total_credit", 0.0)
+            total_debits = self.active_metadata.get("total_debit", 0.0)
+            net = self.active_metadata.get("net_savings", 0.0)
+            score_num = self.active_metadata.get("audit_score", 95)
+
+        credits_str = format_indian_currency(total_credits)
+        debits_str = format_indian_currency(total_debits)
         savings_str = format_indian_currency(net)
         is_positive = net >= 0
-        
-        score = 92
-        if len(self.active_transactions) > 0:
-            score = min(98, max(60, 100 - int(len(self.active_transactions) * 0.15)))
-            score_str = f"{score}%"
-        else:
-            score_str = "-"
-            
+        score_str = f"{score_num}%" if len(self.active_transactions) > 0 else "-"
+
         js_code = (
             f"setMetrics("
             f"{json.dumps(bank)}, "
@@ -328,39 +345,55 @@ class AIChatbotWidget(QWidget):
         import openpyxl
         wb = openpyxl.load_workbook(excel_path, data_only=True)
         sheet_name = None
-        for name in ["Transactions", "GST Transactions"]:
+        for name in ["Transactions", "GST Transactions", "Ledger", "Statement Ledger"]:
             if name in wb.sheetnames:
                 sheet_name = name
                 break
+
         if not sheet_name:
-            raise ValueError("Spreadsheet does not contain a transaction ledger sheet.")
+            for name in wb.sheetnames:
+                if name not in ["Summary", "GST Summary", "Settings"]:
+                    sheet_name = name
+                    break
+
+        if not sheet_name:
+            sheet_name = wb.sheetnames[0]
             
         ws = wb[sheet_name]
         rows = list(ws.iter_rows(values_only=True))
         if not rows:
             return []
             
-        headers = rows[0]
-        data_rows = rows[1:]
+        header_row_idx = 0
+        for idx, r in enumerate(rows[:5]):
+            if not r:
+                continue
+            r_str = " ".join([str(c or "").lower() for c in r])
+            if any(k in r_str for k in ["date", "debit", "credit", "narration", "description", "particulars"]):
+                header_row_idx = idx
+                break
+
+        headers = rows[header_row_idx]
+        data_rows = rows[header_row_idx + 1:]
         
         col_mapping = {}
         for idx, header in enumerate(headers):
             if header is None:
                 continue
-            h_lower = str(header).lower()
-            if "date" in h_lower and "value" not in h_lower:
+            h_lower = str(header).lower().strip()
+            if "date" in h_lower and "value" not in h_lower and "date" not in col_mapping:
                 col_mapping["date"] = idx
-            elif "description" in h_lower or "narration" in h_lower or "particulars" in h_lower:
+            elif any(k in h_lower for k in ["description", "narration", "particulars", "details", "remark"]) and "narration" not in col_mapping:
                 col_mapping["narration"] = idx
-            elif "debit" in h_lower:
+            elif any(k in h_lower for k in ["debit", "withdrawal", "dr", "outflow"]) and "debit" not in col_mapping:
                 col_mapping["debit"] = idx
-            elif "credit" in h_lower:
+            elif any(k in h_lower for k in ["credit", "deposit", "cr", "inflow"]) and "credit" not in col_mapping:
                 col_mapping["credit"] = idx
-            elif "balance" in h_lower:
+            elif any(k in h_lower for k in ["balance", "running"]) and "balance" not in col_mapping:
                 col_mapping["balance"] = idx
-            elif "type" in h_lower:
+            elif "type" in h_lower and "type" not in col_mapping:
                 col_mapping["type"] = idx
-            elif "total amount" in h_lower or "amount" in h_lower:
+            elif ("amount" in h_lower or "total amount" in h_lower) and "total_amount" not in col_mapping:
                 col_mapping["total_amount"] = idx
                 
         transactions = []
@@ -377,7 +410,7 @@ class AIChatbotWidget(QWidget):
                             tx[k] = val.strftime("%Y-%m-%d")
                         elif k in ["debit", "credit", "balance", "total_amount"]:
                             try:
-                                clean_val = str(val).replace(",", "").replace("₹", "").strip()
+                                clean_val = str(val).replace(",", "").replace("₹", "").replace("$", "").strip()
                                 if clean_val.endswith("-"):
                                     clean_val = "-" + clean_val[:-1]
                                 tx[k] = float(clean_val)
@@ -479,7 +512,9 @@ class AIChatbotWidget(QWidget):
             self.active_transactions,
             self.chat_history,
             msg,
-            currency=self.active_metadata.get("currency", "INR")
+            currency=self.active_metadata.get("currency", "INR"),
+            bank_name=self.active_metadata.get("bank_name", "Unknown Bank"),
+            period=self.active_metadata.get("period", "Unknown Period")
         )
 
         def on_finished(reply):

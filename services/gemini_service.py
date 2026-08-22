@@ -126,16 +126,19 @@ Return JSON only."""
             settings = SettingsService.get_cached_settings()
             model_name = settings.get("ai_model", "Gemini 2.5 Flash")
             
-            # Map user-friendly model strings to API identifiers
+            # Map user-friendly model strings to valid active API identifiers
             model_map = {
-                "Gemini 2.5 Flash": "gemini-2.5-flash",
-                "Gemini 2.5 Pro": "gemini-2.5-pro",
-                "Gemini 1.5 Flash": "gemini-1.5-flash",
-                "Gemini 1.5 Pro": "gemini-1.5-pro",
+                "Gemini Flash Latest": "gemini-flash-latest",
+                "Gemini 3.6 Flash": "gemini-3.6-flash",
                 "Gemini 3.5 Flash (High)": "gemini-3.5-flash",
-                "Gemini 3.5 Flash": "gemini-3.5-flash"
+                "Gemini 3.5 Flash": "gemini-3.5-flash",
+                "Gemini 2.5 Flash": "gemini-flash-latest",
+                "Gemini 2.5 Pro": "gemini-flash-latest",
+                "Gemini 2.0 Flash": "gemini-flash-latest",
+                "Gemini 1.5 Flash": "gemini-flash-latest",
+                "Gemini 1.5 Pro": "gemini-flash-latest"
             }
-            api_model = model_map.get(model_name, "gemini-2.5-flash")
+            api_model = model_map.get(model_name, "gemini-flash-latest")
             
             temp_val = settings.get("ai_temperature", 70)
             temp = float(temp_val) / 100.0 if temp_val is not None else 0.7
@@ -157,12 +160,10 @@ Return JSON only."""
                 system_instruction=system_instruction
             )
             
-            # Set up fallbacks for deprecation 404
+            # Set up fallbacks for deprecation 404 & high demand 503 (fast failover)
             models_to_try = [api_model]
-            # fallback order
-            for fallback in ["gemini-2.0-flash", "gemini-3.5-flash", "gemini-1.5-flash"]:
-                if fallback not in models_to_try:
-                    models_to_try.append(fallback)
+            if "gemini-3.6-flash" not in models_to_try:
+                models_to_try.append("gemini-3.6-flash")
             
             last_error = None
             for m in models_to_try:
@@ -180,12 +181,8 @@ Return JSON only."""
                 except Exception as e:
                     last_error = e
                     err_msg = str(e)
-                    # If model is not found (404), continue fallback loop
-                    if "404" in err_msg or "not found" in err_msg.lower() or "no longer available" in err_msg.lower():
-                        print(f"GeminiService: Model {m} failed with 404 (Not Found/Deprecated). Attempting next model...")
-                        continue
-                    else:
-                        raise e
+                    print(f"GeminiService: Model {m} failed ({err_msg[:120]}). Attempting next model...")
+                    continue
             if last_error:
                 raise last_error
                 
@@ -393,9 +390,9 @@ Return JSON only."""
                 temperature=0.1
             )
             
-            # Using stable model for structural JSON parsing
+            # Using stable active model for structural JSON parsing
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=[prompt, f"Statement text to parse:\n{text}"],
                 config=config
             )
@@ -477,7 +474,7 @@ Return JSON only."""
             img_to_send = cls._ensure_png_image(pil_image)
             
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=[prompt, img_to_send],
                 config=config
             )
@@ -508,7 +505,7 @@ Return JSON only."""
             img_to_send = cls._ensure_png_image(pil_image)
             
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=[prompt, img_to_send]
             )
             bank_name = response.text.strip()
@@ -535,1170 +532,1202 @@ Return JSON only."""
     def _get_report_styles(cls) -> str:
         return """
         <style>
+            :root {
+                --bg-main: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-primary: #0F172A;
+                --text-secondary: #475569;
+                --text-muted: #64748B;
+                --border-color: #E2E8F0;
+                --green-accent: #059669;
+                --blue-accent: #2563EB;
+                --orange-accent: #D97706;
+                --red-accent: #DC2626;
+                --purple-accent: #7C3AED;
+            }
             body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                color: #1E293B;
-                background-color: #F8FAFC;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                color: var(--text-primary);
+                background-color: var(--bg-main);
                 margin: 0;
-                padding: 24px;
+                padding: 16px;
                 font-size: 13px;
                 line-height: 1.5;
+                -webkit-font-smoothing: antialiased;
+            }
+            body.dark-mode {
+                --bg-main: #0B0F17;
+                --card-bg: #151D2A;
+                --text-primary: #F9FAFB;
+                --text-secondary: #CBD5E1;
+                --text-muted: #94A3B8;
+                --border-color: #232E42;
             }
             .report-container {
-                max-width: 850px;
+                max-width: 900px;
                 margin: 0 auto;
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 12px;
-                padding: 30px;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 14px;
+                padding: 24px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
             }
             .report-header {
-                border-bottom: 2px solid #0F172A;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                border-bottom: 2px solid var(--border-color);
                 padding-bottom: 16px;
-                margin-bottom: 24px;
+                margin-bottom: 20px;
             }
-            .report-title-block h1 {
-                font-family: 'Times New Roman', Georgia, serif;
-                font-size: 26px;
-                font-weight: bold;
-                color: #0F172A;
-                margin: 0;
+            .report-title {
+                font-size: 22px;
+                font-weight: 800;
+                color: var(--text-primary);
+                margin: 0 0 4px 0;
+                letter-spacing: -0.3px;
             }
             .report-subtitle {
                 font-size: 12px;
-                color: #2563EB;
-                margin-top: 4px;
-                margin-bottom: 0;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                font-weight: 700;
+                color: var(--text-muted);
+                margin: 0;
+                font-weight: 500;
             }
             .auditor-badge {
                 display: inline-block;
-                background-color: #0037b0;
+                background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
                 color: #FFFFFF;
                 font-size: 10px;
-                font-weight: bold;
-                padding: 5px 10px;
-                border-radius: 15px;
-                text-transform: uppercase;
-                margin-top: 8px;
-            }
-            .card {
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 8px;
-                padding: 12px 14px;
-                background: #F8FAFC;
-            }
-            .card-metric { border-top: 4px solid #0037b0; }
-            .card-success { border-top: 4px solid #059669; }
-            .card-danger { border-top: 4px solid #DC2626; }
-            .card-warning { border-top: 4px solid #D97706; }
-            
-            .card-label {
-                font-size: 10px;
                 font-weight: 700;
-                color: #64748B;
+                padding: 5px 12px;
+                border-radius: 20px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
-                margin-bottom: 4px;
             }
-            .card-value {
-                font-family: 'Times New Roman', Georgia, serif;
-                font-size: 20px;
-                font-weight: bold;
-                color: #0F172A;
+            /* KPI Cards */
+            .kpi-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 12px;
+                margin-bottom: 24px;
             }
-            .section-title {
-                font-family: 'Times New Roman', Georgia, serif;
-                font-size: 16px;
-                font-weight: bold;
-                color: #0F172A;
-                border-left: 4px solid #0037b0;
-                padding-left: 8px;
-                margin-top: 24px;
-                margin-bottom: 12px;
-            }
-            .data-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 16px;
-                font-size: 12px;
-            }
-            .data-table th {
-                background-color: #F8FAFC;
-                color: #475569;
-                font-weight: 700;
-                border-bottom: 2px solid #E2E8F0;
-                padding: 8px 10px;
-                text-align: left;
-            }
-            .data-table td {
-                padding: 8px 10px;
-                border-bottom: 1px solid #E2E8F0;
-                color: #334155;
-            }
-            .data-table tr:nth-child(even) {
-                background-color: #F8FAFC;
-            }
-            .badge {
-                display: inline-block;
-                padding: 2px 6px;
-                font-size: 10px;
-                font-weight: 700;
-                border-radius: 4px;
-                text-transform: uppercase;
-            }
-            .badge-high { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
-            .badge-medium { background-color: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
-            .badge-low { background-color: #D1FAE5; color: #065F46; border: 1px solid #6EE7B7; }
-            
-            .recommendation-box {
-                background-color: #EFF6FF;
-                border-left: 4px solid #2563EB;
-                padding: 12px 14px;
-                border-radius: 0 6px 6px 0;
-                margin-bottom: 14px;
-                color: #1E3A8A;
-            }
-            .recommendation-title {
-                font-weight: 700;
-                font-size: 12px;
-                margin-bottom: 4px;
-            }
-            .progress-bar-container {
-                background-color: #E2E8F0;
-                border-radius: 4px;
-                height: 6px;
-                width: 100%;
-                margin-top: 4px;
+            .kpi-card {
+                background-color: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 14px 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                position: relative;
                 overflow: hidden;
             }
-            .progress-bar-fill {
+            .kpi-card::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 4px;
+                background-color: #CBD5E1;
+            }
+            .kpi-card.accent-green::before { background-color: var(--green-accent); }
+            .kpi-card.accent-blue::before { background-color: var(--blue-accent); }
+            .kpi-card.accent-red::before { background-color: var(--red-accent); }
+            .kpi-card.accent-purple::before { background-color: var(--purple-accent); }
+            .kpi-card.accent-orange::before { background-color: var(--orange-accent); }
+
+            .kpi-label {
+                font-size: 11px;
+                font-weight: 700;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .kpi-value {
+                font-size: 18px;
+                font-weight: 800;
+                color: var(--text-primary);
+                line-height: 1.2;
+            }
+            .kpi-value.text-green { color: var(--green-accent); }
+            .kpi-value.text-red { color: var(--red-accent); }
+            .kpi-value.text-blue { color: var(--blue-accent); }
+            .kpi-value.text-purple { color: var(--purple-accent); }
+
+            /* Sections & Titles */
+            .section-header {
+                font-size: 15px;
+                font-weight: 700;
+                color: var(--text-primary);
+                margin: 24px 0 12px 0;
+                padding-bottom: 6px;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            /* AI Highlights & Recommendations Box */
+            .insights-box {
+                background-color: #F8FAFC;
+                border: 1px solid var(--border-color);
+                border-left: 4px solid var(--blue-accent);
+                border-radius: 0 10px 10px 0;
+                padding: 14px 18px;
+                margin-bottom: 20px;
+            }
+            body.dark-mode .insights-box { background-color: #1E293B; }
+            .insights-box ul {
+                margin: 0;
+                padding-left: 18px;
+            }
+            .insights-box li {
+                margin-bottom: 6px;
+                color: var(--text-secondary);
+                font-size: 13px;
+            }
+
+            /* Category Chart & Progress Bars */
+            .chart-section {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                align-items: center;
+                background-color: #F8FAFC;
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 18px;
+                margin-bottom: 20px;
+            }
+            body.dark-mode .chart-section { background-color: #1E293B; }
+
+            .chart-svg-wrapper {
+                width: 170px;
+                height: 170px;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+            }
+
+            .category-list {
+                flex: 1;
+                min-width: 260px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .category-row {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            }
+            .cat-header {
+                display: flex;
+                justify-content: space-between;
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-primary);
+            }
+            .cat-bar-bg {
+                height: 8px;
+                background-color: var(--border-color);
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            .cat-bar-fill {
                 height: 100%;
-                background-color: #0037b0;
                 border-radius: 4px;
             }
-            .progress-bar-fill-success { background-color: #059669; }
-            .progress-bar-fill-warning { background-color: #D97706; }
-            .progress-bar-fill-danger { background-color: #DC2626; }
+
+            /* Risk Gauge & Risk Cards */
+            .risk-audit-block {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 16px;
+                align-items: center;
+                background-color: #F8FAFC;
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            body.dark-mode .risk-audit-block { background-color: #1E293B; }
+
+            .gauge-wrapper {
+                width: 140px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+            .gauge-score {
+                font-size: 26px;
+                font-weight: 900;
+                color: var(--text-primary);
+                line-height: 1;
+            }
+            .gauge-label {
+                font-size: 10px;
+                font-weight: 700;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                margin-top: 4px;
+            }
+            .risk-badge {
+                display: inline-block;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 800;
+                text-transform: uppercase;
+                margin-top: 6px;
+            }
+            .risk-badge-low { background-color: #D1FAE5; color: #065F46; }
+            .risk-badge-moderate { background-color: #FEF3C7; color: #92400E; }
+            .risk-badge-high { background-color: #FEE2E2; color: #991B1B; }
+
+            .risk-cards-grid {
+                flex: 1;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+                gap: 10px;
+            }
+            .risk-mini-card {
+                background-color: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 10px;
+                padding: 12px;
+                text-align: center;
+            }
+            .risk-mini-title {
+                font-size: 10px;
+                font-weight: 700;
+                color: var(--text-muted);
+                text-transform: uppercase;
+            }
+            .risk-mini-value {
+                font-size: 14px;
+                font-weight: 800;
+                margin-top: 4px;
+            }
+
+            /* Flagged Warning Cards */
+            .warning-card {
+                background-color: #FFFBEB;
+                border: 1px solid #FCD34D;
+                border-left: 5px solid #D97706;
+                border-radius: 10px;
+                padding: 12px 16px;
+                margin-bottom: 10px;
+            }
+            .warning-card.high {
+                background-color: #FEF2F2;
+                border-color: #FCA5A5;
+                border-left-color: #DC2626;
+            }
+            body.dark-mode .warning-card { background-color: #2E1F0D; border-color: #78350F; }
+            body.dark-mode .warning-card.high { background-color: #3B1219; border-color: #881337; }
+
+            .warning-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 4px;
+            }
+            .warning-title {
+                font-size: 13px;
+                font-weight: 700;
+                color: #92400E;
+            }
+            .warning-card.high .warning-title { color: #991B1B; }
+            .warning-amount {
+                font-size: 13px;
+                font-weight: 800;
+                color: var(--text-primary);
+            }
+            .warning-detail {
+                font-size: 12px;
+                color: var(--text-secondary);
+            }
+
+            /* Top Transactions List */
+            .top-tx-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 10px 14px;
+                margin-bottom: 8px;
+            }
+            .top-tx-info {
+                display: flex;
+                flex-direction: column;
+            }
+            .top-tx-name {
+                font-weight: 700;
+                color: var(--text-primary);
+                font-size: 13px;
+            }
+            .top-tx-date {
+                font-size: 11px;
+                color: var(--text-muted);
+            }
+            .top-tx-amt {
+                font-weight: 800;
+                font-size: 14px;
+                color: var(--red-accent);
+            }
+
+            /* Full Report Action Buttons */
+            .report-action-row {
+                display: flex;
+                justify-content: flex-end;
+                gap: 12px;
+                margin-top: 28px;
+                padding-top: 16px;
+                border-top: 1px solid var(--border-color);
+            }
+            .report-btn {
+                padding: 10px 18px;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 700;
+                cursor: pointer;
+                border: none;
+                transition: transform 0.2s, opacity 0.2s;
+            }
+            .report-btn:hover { transform: translateY(-1px); }
+            .btn-pdf { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #FFFFFF; }
+            .btn-email { background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%); color: #FFFFFF; }
         </style>
         """
 
     @classmethod
-    def generate_financial_summary(cls, transactions, bank_name, statement_period, currency="INR") -> str:
-        """Provides high-level audit summary metrics and indicators with local fallback."""
-        try:
-            tx_text = cls._format_transactions(transactions, currency)
-            prompt = f"""
-You are a senior Deloitte forensic auditor.
-Analyze the following parsed bank statement details and provide a professional, premium, executive-level **Financial Summary Report**.
+    def _parse_tx_days(cls, transactions) -> int:
+        """Calculates active statement day count based on date range in transactions."""
+        dates = []
+        for tx in transactions:
+            d_str = str(tx.get("date", "")).strip()
+            if not d_str:
+                continue
+            for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%d %b %Y", "%d-%b-%Y"):
+                try:
+                    dt = datetime.datetime.strptime(d_str, fmt)
+                    dates.append(dt)
+                    break
+                except Exception:
+                    pass
+        if len(dates) >= 2:
+            days = (max(dates) - min(dates)).days + 1
+            return max(1, days)
+        return 30
 
-Statement Info:
-- Bank: {bank_name}
-- Period: {statement_period}
-- Currency: {currency}
-
-Transaction Records:
-{tx_text}
-
-Requirements:
-1. Return a **completely self-contained HTML document** (starting with `<html>` and ending with `</html>`).
-2. Do NOT use markdown formatting outside the HTML or wrap the HTML in backticks (like ```html). Return the raw HTML string directly.
-3. Apply standard Deloitte-style corporate formatting. Include:
-   - **Executive Header**: Styled logo/banner, auditor badge ('AI Financial Summary'), and statement metadata card.
-   - **KPI Cards Section**: Lay this out using an HTML `<table>` with borders hidden (to guarantee rendering in PyQt's QTextBrowser). Include:
-     - Total Inflows (Credits)
-     - Total Outflows (Debits)
-     - Net Savings / Cash Flow (with positive growth or warning indicator)
-     - Financial Health Score (e.g. 90/100)
-   - **Statement Overview table**: detailed stats (opening/closing balance, averages, largest transactions, transaction counts).
-   - **Top 3 Strategic Insights**: analytical observations on cash flows, major inflow/outflow sources.
-   - **Auditor Recommendations**: actionable guidance.
-
-Use the following CSS style block at the top:
-{cls._get_report_styles()}
-"""
-            return cls._call_gemini(prompt, system_instruction="You are a senior financial advisor and auditor.")
-        except Exception as e:
-            print(f"GeminiService: API call failed for generate_financial_summary. Using local fallback. Error: {e}")
-            return cls._generate_local_financial_summary(transactions, bank_name, statement_period, currency)
+    # ====================================================
+    # SINGLE SOURCE OF TRUTH: UNIFIED DATA ENGINE & VIEWS
+    # ====================================================
 
     @classmethod
-    def _generate_local_financial_summary(cls, transactions, bank_name, statement_period, currency="INR") -> str:
-        """Fallback local calculation for financial summary."""
-        total_credit = 0.0
-        total_debit = 0.0
-        max_debit = 0.0
-        max_debit_desc = "N/A"
-        max_credit = 0.0
-        max_credit_desc = "N/A"
-        balances = []
-        
-        for tx in transactions:
-            try:
-                d = float(str(tx.get("debit") or 0.0).replace(",", "").strip())
-                c = float(str(tx.get("credit") or 0.0).replace(",", "").strip())
-                total_debit += d
-                total_credit += c
-                if d > max_debit:
-                    max_debit = d
-                    max_debit_desc = tx.get("narration", "Debit transaction")
-                if c > max_credit:
-                    max_credit = c
-                    max_credit_desc = tx.get("narration", "Credit transaction")
-                
-                bal = tx.get("balance")
-                if bal is not None:
-                    try:
-                        balances.append(float(str(bal).replace(",", "").replace("₹", "").strip()))
-                    except:
-                        pass
-            except:
-                pass
-                
-        net_savings = total_credit - total_debit
-        savings_rate = (net_savings / total_credit * 100) if total_credit > 0 else 0.0
-        avg_balance = sum(balances) / len(balances) if balances else 0.0
-        
-        debits_list = [float(str(tx.get("debit") or 0.0).replace(",", "").strip()) for tx in transactions if float(str(tx.get("debit") or 0.0).replace(",", "").strip()) > 0]
-        credits_list = [float(str(tx.get("credit") or 0.0).replace(",", "").strip()) for tx in transactions if float(str(tx.get("credit") or 0.0).replace(",", "").strip()) > 0]
-        avg_debit = sum(debits_list) / len(debits_list) if debits_list else 0.0
-        avg_credit = sum(credits_list) / len(credits_list) if credits_list else 0.0
-        tx_count = len(transactions)
-        
-        # Calculate financial health score
-        score = 80
-        if total_credit > 0:
-            ratio = total_debit / total_credit
-            if ratio > 1.0:
-                score -= min(30, int((ratio - 1.0) * 50))
-            else:
-                score += min(20, int(savings_rate * 0.4))
-        else:
-            score = 50
-        score = max(10, min(100, score))
-        
-        symbol = "₹" if currency == "INR" else ("$" if currency == "USD" else currency)
-        
-        # Insights
-        insight_1 = f"Primary Outflow: The largest single debit is <strong>{symbol} {max_debit:,.2f}</strong> for <em>'{max_debit_desc}'</em>." if max_debit > 0 else "No debit outflows recorded."
-        insight_2 = f"Primary Inflow: The largest single credit is <strong>{symbol} {max_credit:,.2f}</strong> for <em>'{max_credit_desc}'</em>." if max_credit > 0 else "No credit inflows recorded."
-        if net_savings >= 0:
-            insight_3 = f"Cash Flow Trend: The statement shows a positive net cash flow of <strong>{symbol} {net_savings:,.2f}</strong> indicating a stable account posture."
-        else:
-            insight_3 = f"Cash Flow Trend: Warning - Outflows exceed inflows by <strong>{symbol} {abs(net_savings):,.2f}</strong>, which may deplete reserves over time."
+    def clean_html_response(cls, text: str) -> str:
+        """Strips raw markdown code fences like ```html or ``` from response text."""
+        if not text:
+            return ""
+        text = text.strip()
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if len(lines) > 2 and lines[0].startswith("```"):
+                end_idx = len(lines) - 1
+                while end_idx > 0 and not lines[end_idx].strip() == "```":
+                    end_idx -= 1
+                if end_idx > 0:
+                    text = "\n".join(lines[1:end_idx]).strip()
+        text = re.sub(r"^```html\s*", "", text, flags=re.IGNORECASE).strip()
+        text = re.sub(r"^```\s*", "", text).strip()
+        text = re.sub(r"\s*```$", "", text).strip()
+        return text
 
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            {cls._get_report_styles()}
-        </head>
-        <body>
-            <div class="report-container">
-                <div class="report-header">
-                    <div class="report-title-block">
-                        <h1>Financial Summary &amp; Analysis</h1>
-                        <p class="report-subtitle">{bank_name} • Statement Audit summary</p>
-                    </div>
-                    <div class="auditor-badge">StatementForge AI Fallback Auditor</div>
-                </div>
-                
-                <div class="recommendation-box">
-                    <div class="recommendation-title">💡 Rule-Based Summary Notice</div>
-                    Currently using the offline rule-based parser engine due to AI service connection status.
-                </div>
-
-                <h2 class="section-title">Executive Summary</h2>
-                <p>
-                    The financial statement for the period of <strong>{statement_period}</strong> has been audited. 
-                    Based on local analysis, the account has a savings rate of <strong>{savings_rate:.1f}%</strong>. 
-                    {"Cash flow is positive and indicates healthy reserve margins." if net_savings >= 0 else "Negative net cash flow requires immediate attention to avoid liquidity exhaustion."}
-                </p>
-
-                <h2 class="section-title">Core Metrics</h2>
-                <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 20px;">
-                    <tr>
-                        <td style="width: 25%; padding: 6px; border: none;">
-                            <div class="card card-metric">
-                                <div class="card-label">Total Credits</div>
-                                <div class="card-value" style="color: #059669;">{symbol} {total_credit:,.2f}</div>
-                            </div>
-                        </td>
-                        <td style="width: 25%; padding: 6px; border: none;">
-                            <div class="card card-metric">
-                                <div class="card-label">Total Debits</div>
-                                <div class="card-value" style="color: #DC2626;">{symbol} {total_debit:,.2f}</div>
-                            </div>
-                        </td>
-                        <td style="width: 25%; padding: 6px; border: none;">
-                            <div class="card card-metric">
-                                <div class="card-label">Net Savings</div>
-                                <div class="card-value" style="color: {'#059669' if net_savings >= 0 else '#DC2626'};">{symbol} {net_savings:,.2f}</div>
-                            </div>
-                        </td>
-                        <td style="width: 25%; padding: 6px; border: none;">
-                            <div class="card card-success" style="background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #1D4ED8, stop:1 #7C3AED);">
-                                <div class="card-label" style="color: rgba(255,255,255,0.8);">Health Score</div>
-                                <div class="card-value" style="color: white;">{score}/100</div>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-
-                <h2 class="section-title">Statement Details</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Parameter</th>
-                            <th>Value</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><strong>Total Inflows (Credits)</strong></td><td style="color:#059669; font-weight:700;">{symbol} {total_credit:,.2f}</td><td>Aggregate deposits and credits.</td></tr>
-                        <tr><td><strong>Total Outflows (Debits)</strong></td><td style="color:#EF4444; font-weight:700;">{symbol} {total_debit:,.2f}</td><td>Aggregate expenditures, transfers, and cash debits.</td></tr>
-                        <tr><td><strong>Average Running Balance</strong></td><td>{symbol} {avg_balance:,.2f}</td><td>Mean account balance over the period.</td></tr>
-                        <tr><td><strong>Average Credit / Debit</strong></td><td>Inflow: {symbol}{avg_credit:,.2f} / Outflow: {symbol}{avg_debit:,.2f}</td><td>Mean transaction sizes.</td></tr>
-                        <tr><td><strong>Total Transaction Count</strong></td><td>{tx_count}</td><td>Number of records logged.</td></tr>
-                    </tbody>
-                </table>
-
-                <h2 class="section-title">Key Insights</h2>
-                <ul>
-                    <li style="margin-bottom: 8px;"><strong>Inflow Profile:</strong> {insight_2}</li>
-                    <li style="margin-bottom: 8px;"><strong>Outflow Profile:</strong> {insight_1}</li>
-                    <li style="margin-bottom: 8px;"><strong>Cash Flow Trend:</strong> {insight_3}</li>
-                </ul>
-
-                <h2 class="section-title">Actionable Recommendations</h2>
-                <div class="recommendation-box">
-                    <div class="recommendation-title">1. Spending Moderation</div>
-                    Review discretionary expenses (e.g. food delivery, shopping) to increase the net savings rate.
-                </div>
-                <div class="recommendation-box">
-                    <div class="recommendation-title">2. Reserve Cushion</div>
-                    Build or maintain an emergency cash buffer equal to at least 3-6 months of average expenses ({symbol} {total_debit:,.2f} total).
-                </div>
-            </div>
-        </body>
-        </html>
+    @classmethod
+    def normalize_transactions(cls, transactions: list) -> list:
         """
-        return html.strip()
+        Normalizes any raw parser transaction list or dictionary into a clean numeric schema:
+        {date, narration, debit, credit, balance, transaction_type, reference, category, source_statement_id}
+        """
+        if not transactions:
+            return []
+
+        normalized = []
+        for raw in transactions:
+            if not isinstance(raw, dict):
+                continue
+
+            date_val = str(raw.get("date") or raw.get("Date") or raw.get("txn_date") or "").strip()
+            narr_val = str(
+                raw.get("narration") or raw.get("description") or raw.get("particulars") or 
+                raw.get("Narration") or raw.get("Description") or raw.get("Transaction Description / Narration") or ""
+            ).strip()
+
+            def parse_num(val):
+                if val is None or val == "":
+                    return 0.0
+                try:
+                    s = str(val).replace(",", "").replace("₹", "").replace("$", "").strip()
+                    if s.endswith("-"):
+                        s = "-" + s[:-1]
+                    return float(s)
+                except Exception:
+                    return 0.0
+
+            debit_val = parse_num(raw.get("debit") or raw.get("Debit") or raw.get("withdrawal") or raw.get("Debit Amount") or "")
+            credit_val = parse_num(raw.get("credit") or raw.get("Credit") or raw.get("deposit") or raw.get("Credit Amount") or "")
+            balance_val = parse_num(raw.get("balance") or raw.get("Balance") or raw.get("running_balance") or "")
+
+            total_amt = parse_num(raw.get("amount") or raw.get("total_amount") or "")
+            tx_type = str(raw.get("transaction_type") or raw.get("type") or "").lower()
+            if total_amt > 0 and debit_val == 0.0 and credit_val == 0.0:
+                if "credit" in tx_type or "deposit" in tx_type:
+                    credit_val = total_amt
+                else:
+                    debit_val = total_amt
+
+            narr_lower = narr_val.lower()
+            if any(k in narr_lower for k in ["swiggy", "zomato", "restaurant", "cafe", "food", "dining", "starbucks", "blinkit", "instamart", "dominos", "pizza"]):
+                cat = "Food & Dining"
+            elif any(k in narr_lower for k in ["rent", "housing", "apartment", "society", "lease", "landlord"]):
+                cat = "Rent & Housing"
+            elif any(k in narr_lower for k in ["netflix", "spotify", "prime", "youtube", "hotstar", "subscription", "aws", "google", "microsoft", "adobe", "saas", "github", "zoom"]):
+                cat = "Subscriptions"
+            elif any(k in narr_lower for k in ["electricity", "water", "bill", "recharge", "airtel", "jio", "bsnl", "broadband", "bescom", "gas"]):
+                cat = "Utilities & Bills"
+            elif any(k in narr_lower for k in ["amazon", "flipkart", "myntra", "retail", "shopping", "store", "mall", "supermarket"]):
+                cat = "Shopping"
+            elif any(k in narr_lower for k in ["uber", "ola", "fuel", "petrol", "transport", "irctc", "metro", "rapido", "namma"]):
+                cat = "Transport"
+            elif any(k in narr_lower for k in ["upi", "gpay", "phonepe", "paytm", "transfer", "neft", "rtgs", "imps", "@"]):
+                cat = "UPI & Direct Transfers"
+            else:
+                cat = "Other"
+
+            ref_val = str(raw.get("reference") or raw.get("ref_no") or raw.get("ref no") or raw.get("cheque") or "").strip()
+            stmt_id = str(raw.get("source_statement_id") or raw.get("statement_id") or "").strip()
+
+            normalized.append({
+                "date": date_val,
+                "narration": narr_val,
+                "debit": abs(debit_val),
+                "credit": abs(credit_val),
+                "balance": balance_val,
+                "transaction_type": "Credit" if credit_val > 0 else "Debit",
+                "reference": ref_val,
+                "category": cat,
+                "source_statement_id": stmt_id
+            })
+
+        # Balance Delta Fallback calculation for rows where Debit & Credit are 0.0 but Balance exists
+        prev_b = None
+        for item in normalized:
+            d = item["debit"]
+            c = item["credit"]
+            b = item["balance"]
+
+            if d == 0.0 and c == 0.0 and b > 0.0 and prev_b is not None and prev_b > 0.0:
+                diff = round(b - prev_b, 2)
+                if diff > 0:
+                    item["credit"] = diff
+                    item["transaction_type"] = "Credit"
+                elif diff < 0:
+                    item["debit"] = abs(diff)
+                    item["transaction_type"] = "Debit"
+
+            if b > 0.0:
+                prev_b = b
+
+        return normalized
+
+    @classmethod
+    def calculate_risk_analysis(cls, transactions: list) -> dict:
+        """
+        Centralized Risk Engine: Produces a deterministic risk_analysis dictionary.
+        Returns exact score, rating, duplicate_risk, liquidity_risk, velocity_risk, and flagged_transactions.
+        """
+        normalized = cls.normalize_transactions(transactions)
+        if not normalized:
+            return {
+                "score": 100,
+                "rating": "LOW RISK",
+                "duplicate_risk": "LOW",
+                "liquidity_risk": "LOW",
+                "velocity_risk": "LOW",
+                "flagged_transactions": [],
+                "risk_factors": ["No transaction data loaded."]
+            }
+
+        total_credit = sum(tx["credit"] for tx in normalized)
+        total_debit = sum(tx["debit"] for tx in normalized)
+
+        flagged = []
+        penalties = 0
+
+        # 1. Duplicate Detection
+        seen = {}
+        duplicates_found = 0
+        for tx in normalized:
+            if tx["debit"] > 0:
+                key = (tx["date"], tx["narration"], tx["debit"])
+                if key in seen:
+                    duplicates_found += 1
+                    flagged.append({
+                        "title": "Duplicate Transaction Detected",
+                        "amount": tx["debit"],
+                        "narration": tx["narration"],
+                        "date": tx["date"],
+                        "reason": "Identical date, merchant narration, and debit amount detected."
+                    })
+                else:
+                    seen[key] = True
+
+        duplicate_risk = "HIGH" if duplicates_found >= 3 else ("MEDIUM" if duplicates_found > 0 else "LOW")
+        penalties += duplicates_found * 8
+
+        # 2. Liquidity Risk
+        if total_credit > 0:
+            outflow_ratio = total_debit / total_credit
+        else:
+            outflow_ratio = 1.5 if total_debit > 0 else 0.0
+
+        if outflow_ratio > 1.1:
+            liquidity_risk = "HIGH"
+            penalties += 20
+        elif outflow_ratio > 0.85:
+            liquidity_risk = "MEDIUM"
+            penalties += 10
+        else:
+            liquidity_risk = "LOW"
+
+        # 3. High-Value Outflow & Velocity Anomalies
+        large_outflows = 0
+        for tx in normalized:
+            if tx["debit"] >= 50000.0:
+                large_outflows += 1
+                flagged.append({
+                    "title": "High-Value Single Outflow",
+                    "amount": tx["debit"],
+                    "narration": tx["narration"],
+                    "date": tx["date"],
+                    "reason": "Single transaction exceeding ₹50,000.00."
+                })
+
+        if len(normalized) > 50 or large_outflows >= 3:
+            velocity_risk = "MEDIUM"
+        else:
+            velocity_risk = "LOW"
+
+        penalties += large_outflows * 5
+
+        # 4. Score & Rating
+        raw_score = max(58, min(98, 100 - penalties))
+        if raw_score >= 82:
+            rating = "LOW RISK"
+        elif raw_score >= 68:
+            rating = "MEDIUM RISK"
+        else:
+            rating = "HIGH RISK"
+
+        risk_factors = []
+        if duplicates_found > 0:
+            risk_factors.append(f"{duplicates_found} duplicate payment pattern(s) identified for verification.")
+        else:
+            risk_factors.append("Zero duplicate billing anomalies detected.")
+
+        if liquidity_risk == "HIGH":
+            risk_factors.append("Account outflow exceeds total credit income during the statement period.")
+        elif liquidity_risk == "MEDIUM":
+            risk_factors.append("Outflow absorption ratio is high (>85% of total inflow).")
+        else:
+            risk_factors.append("Liquidity status is stable with healthy net cash reserves.")
+
+        if large_outflows > 0:
+            risk_factors.append(f"{large_outflows} high-value transaction(s) exceeding ₹50,000 flagged for audit review.")
+        else:
+            risk_factors.append("No excessive single-transaction capital outflow detected.")
+
+        score_reason_lines = []
+        symbol_fmt = "₹" if normalized and True else "₹"
+        score_reason_lines.append(f"Score of {raw_score}/100 ({rating}) evaluated across {len(normalized)} transactions totaling {symbol_fmt}{total_credit:,.2f} credits and {symbol_fmt}{total_debit:,.2f} debits.")
+
+        if total_credit > 0 and total_debit > total_credit:
+            score_reason_lines.append(f"Deducted points due to liquidity risk where total outflows exceed credit income by {((total_debit - total_credit)/total_credit*100):.1f}%.")
+        elif total_credit > 0 and total_debit / total_credit > 0.85:
+            score_reason_lines.append(f"Outflows absorb {(total_debit/total_credit*100):.1f}% of total credit income reserves.")
+        else:
+            sav_pct = ((total_credit - total_debit) / total_credit * 100) if total_credit > 0 else 0.0
+            score_reason_lines.append(f"Maintains a stable balance sheet with a {sav_pct:.1f}% net savings position.")
+
+        if duplicates_found > 0 or large_outflows > 0:
+            items = []
+            if duplicates_found > 0:
+                items.append(f"{duplicates_found} duplicate entry set(s)")
+            if large_outflows > 0:
+                items.append(f"{large_outflows} high-value transfer(s) exceeding {symbol_fmt}50,000")
+            score_reason_lines.append("Audit findings: " + " and ".join(items) + ".")
+        else:
+            score_reason_lines.append("Zero duplicate billing anomalies or suspicious large transfers detected.")
+
+        score_reason_text = "<br>• ".join(score_reason_lines)
+
+        return {
+            "score": raw_score,
+            "rating": rating,
+            "duplicate_risk": duplicate_risk,
+            "liquidity_risk": liquidity_risk,
+            "velocity_risk": velocity_risk,
+            "flagged_transactions": flagged,
+            "risk_factors": risk_factors,
+            "score_reason": score_reason_text
+        }
+
+    @classmethod
+    def build_report_data(cls, transactions: list, bank_name: str, statement_period: str, account_holder="Unknown", account_number="Unknown", currency="INR", statement_id="") -> dict:
+        """
+        Creates the single source of truth report_data object powering all 4 views, PDF, and Email.
+        """
+        normalized = cls.normalize_transactions(transactions)
+        total_credits = sum(tx["credit"] for tx in normalized)
+        total_debits = sum(tx["debit"] for tx in normalized)
+        net_savings = total_credits - total_debits
+        savings_rate = (net_savings / total_credits * 100) if total_credits > 0 else 0.0
+        days = cls._parse_tx_days(normalized)
+        average_daily_burn = total_debits / max(1, days)
+
+        cat_totals = {}
+        for tx in normalized:
+            if tx["debit"] > 0:
+                cat = tx["category"]
+                cat_totals[cat] = cat_totals.get(cat, 0.0) + tx["debit"]
+
+        spending_categories = []
+        for cat, amt in sorted(cat_totals.items(), key=lambda x: x[1], reverse=True):
+            pct = (amt / total_debits * 100) if total_debits > 0 else 0.0
+            spending_categories.append({
+                "category": cat,
+                "amount": amt,
+                "percentage": pct
+            })
+
+        top_debits = sorted([tx for tx in normalized if tx["debit"] > 0], key=lambda x: x["debit"], reverse=True)[:10]
+        risk_data = cls.calculate_risk_analysis(normalized)
+        symbol = "₹" if currency == "INR" else ("$" if currency == "USD" else currency + " ")
+
+        highlights = []
+        if net_savings >= 0:
+            highlights.append(f"Positive net savings recorded at {symbol}{net_savings:,.2f} ({savings_rate:.1f}% savings rate).")
+        else:
+            highlights.append(f"Net cash deficit of {symbol}{abs(net_savings):,.2f} recorded during the statement period.")
+        highlights.append(f"Total credit inflow of {symbol}{total_credits:,.2f} against {symbol}{total_debits:,.2f} total outflows.")
+        highlights.append(f"Average daily burn rate stood at {symbol}{average_daily_burn:,.2f} per day across {days} active days.")
+        highlights.append(f"Overall audit risk score is rated at {risk_data['score']}/100 ({risk_data['rating']}).")
+
+        spending_insights = []
+        if spending_categories:
+            top_cat = spending_categories[0]
+            spending_insights.append(f"'{top_cat['category']}' represents the largest expense share at {symbol}{top_cat['amount']:,.2f} ({top_cat['percentage']:.1f}%).")
+        if len(spending_categories) > 1:
+            sec_cat = spending_categories[1]
+            spending_insights.append(f"'{sec_cat['category']}' is the second-largest category at {symbol}{sec_cat['amount']:,.2f} ({sec_cat['percentage']:.1f}%).")
+        spending_insights.append(f"Top {len(top_debits)} transactions account for {symbol}{sum(t['debit'] for t in top_debits):,.2f} of total outflows.")
+
+        recommendations = []
+        if savings_rate < 15:
+            recommendations.append("Increase monthly reserve accumulation by reducing discretionary category outflows.")
+        else:
+            recommendations.append("Maintain positive savings rate and route surplus liquidity toward high-yield reserves.")
+        if risk_data["duplicate_risk"] != "LOW":
+            recommendations.append("Review flagged duplicate transaction entries with merchant support for refund processing.")
+        if average_daily_burn > 2000:
+            recommendations.append("Establish daily spending threshold alerts to monitor recurring variable daily outflows.")
+        recommendations.append("Implement automated category budget caps to control direct payment transfer volumes.")
+
+        return {
+            "statement_id": statement_id,
+            "bank_name": bank_name,
+            "statement_period": statement_period,
+            "account_holder": account_holder,
+            "account_number": account_number,
+            "currency": currency,
+            "transaction_count": len(normalized),
+            "total_credits": total_credits,
+            "total_debits": total_debits,
+            "net_savings": net_savings,
+            "savings_rate": savings_rate,
+            "average_daily_burn": average_daily_burn,
+            "spending_categories": spending_categories,
+            "top_transactions": top_debits,
+            "risk_analysis": risk_data,
+            "ai_highlights": highlights,
+            "ai_spending_insights": spending_insights,
+            "ai_risk_assessment": risk_data["risk_factors"],
+            "recommendations": recommendations
+        }
+
+    # ====================================================
+    # 4 UI ANALYSIS VIEW RENDERERS (DETERMINISTIC)
+    # ====================================================
+
+    @classmethod
+    def generate_financial_summary(cls, transactions, bank_name, statement_period, currency="INR") -> str:
+        """Renders Output #1: Financial Summary KPI Dashboard."""
+        report_data = cls.build_report_data(transactions, bank_name, statement_period, currency=currency)
+        return cls._render_financial_summary_view(report_data)
+
+    @classmethod
+    def _render_financial_summary_view(cls, report_data: dict) -> str:
+        if not report_data or report_data.get("transaction_count", 0) == 0:
+            return "<div class='report-container'><p style='text-align:center; color:#64748B;'>No sufficient transaction data available.</p></div>"
+
+        symbol = "₹" if report_data["currency"] == "INR" else ("$" if report_data["currency"] == "USD" else report_data["currency"] + " ")
+        total_credits = report_data["total_credits"]
+        total_debits = report_data["total_debits"]
+        net_savings = report_data["net_savings"]
+        savings_rate = report_data["savings_rate"]
+        daily_burn = report_data["average_daily_burn"]
+
+        savings_class = "text-green" if net_savings >= 0 else "text-red"
+        savings_accent = "accent-green" if net_savings >= 0 else "accent-red"
+        bullets_html = "".join([f"<li>{h}</li>" for h in report_data["ai_highlights"]])
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    {cls._get_report_styles()}
+</head>
+<body>
+    <div class="report-container">
+        <div class="report-header">
+            <div>
+                <h1 class="report-title">📋 Financial Summary</h1>
+                <p class="report-subtitle">{report_data['bank_name']} • {report_data['statement_period']} • {report_data['transaction_count']} Transactions</p>
+            </div>
+            <span class="auditor-badge">KPI Dashboard</span>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card accent-green">
+                <span class="kpi-label">TOTAL INFLOW</span>
+                <span class="kpi-value text-green">{symbol}{total_credits:,.2f}</span>
+            </div>
+            <div class="kpi-card accent-red">
+                <span class="kpi-label">TOTAL OUTFLOW</span>
+                <span class="kpi-value text-red">{symbol}{total_debits:,.2f}</span>
+            </div>
+            <div class="kpi-card {savings_accent}">
+                <span class="kpi-label">NET SAVINGS</span>
+                <span class="kpi-value {savings_class}">{symbol}{net_savings:,.2f}</span>
+            </div>
+            <div class="kpi-card accent-purple">
+                <span class="kpi-label">SAVINGS RATE</span>
+                <span class="kpi-value text-purple">{savings_rate:.1f}%</span>
+            </div>
+            <div class="kpi-card accent-blue">
+                <span class="kpi-label">AVG DAILY BURN</span>
+                <span class="kpi-value text-blue">{symbol}{daily_burn:,.2f}</span>
+            </div>
+        </div>
+
+        <h3 class="section-header">AI Highlights</h3>
+        <div class="insights-box">
+            <ul>
+                {bullets_html}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>"""
+        return cls.clean_html_response(html)
 
     @classmethod
     def analyze_monthly_spending(cls, transactions, currency="INR", **kwargs) -> str:
-        """Performs structured category-wise spending analysis and recommendations with local fallback."""
+        """Renders Output #2: Spending Insights with Donut SVG & Top Transactions."""
         bank_name = kwargs.get("bank_name", "Unknown Bank")
         statement_period = kwargs.get("period", "Unknown Period")
-        try:
-            tx_text = cls._format_transactions(transactions, currency)
-            prompt = f"""
-You are a senior EY budget optimization consultant.
-Analyze the spending (debits) in the following transactions and generate a premium, executive-level **Spending Insights & Category Analysis Report**.
-
-Statement Info:
-- Bank: {bank_name}
-- Period: {statement_period}
-- Currency: {currency}
-
-Transactions:
-{tx_text}
-
-Requirements:
-1. Return a **completely self-contained HTML document** (starting with `<html>` and ending with `</html>`).
-2. Do NOT use markdown formatting outside the HTML or wrap the HTML in backticks.
-3. Include:
-   - **EY-style Header**: Title, auditor badge ('AI Spending Insights'), metadata block.
-   - **Spending by Category Table**: Group expenses (Shopping, Food & Dining, Travel, Utilities, Subscriptions, Rent, Cash/ATM, Business, Miscellaneous) showing Category, Amount, Percentage, and a visual horizontal progress bar inline.
-   - **Essential vs Discretionary Analysis**: Split ratio card/table.
-   - **Top Outflows Analysis**: Visual callout card highlighting the 3 largest single expenditure rows.
-   - **Special Audits**: UPI spending overview, ATM cash withdrawal velocity, merchant analysis.
-   - **Executive Recommendations**: Actionable suggestions.
-
-Use the following CSS style block:
-{cls._get_report_styles()}
-"""
-            return cls._call_gemini(prompt, system_instruction="You are a budget optimization consultant.")
-        except Exception as e:
-            print(f"GeminiService: API call failed for analyze_monthly_spending. Using local fallback. Error: {e}")
-            return cls._generate_local_spending_insights(transactions, bank_name, statement_period, currency)
+        report_data = cls.build_report_data(transactions, bank_name, statement_period, currency=currency)
+        return cls._render_spending_insights_view(report_data)
 
     @classmethod
-    def _generate_local_spending_insights(cls, transactions, bank_name, statement_period, currency="INR") -> str:
-        """Fallback local calculation for spending insights."""
-        categories = {
-            "Shopping": 0.0,
-            "Food & Dining": 0.0,
-            "Travel & Transport": 0.0,
-            "Subscriptions": 0.0,
-            "Rent": 0.0,
-            "Cash Withdrawals": 0.0,
-            "Utilities & Bills": 0.0,
-            "Business": 0.0,
-            "Miscellaneous": 0.0
-        }
-        
-        total_spend = 0.0
-        outflows = []
-        upi_spend = 0.0
-        atm_spend = 0.0
-        
-        for tx in transactions:
-            try:
-                d = float(str(tx.get("debit") or 0.0).replace(",", "").strip())
-                if d <= 0:
-                    continue
-                total_spend += d
-                outflows.append((d, tx.get("date", "N/A"), tx.get("narration", "Debit")))
-                
-                narr = str(tx.get("narration", "")).lower()
-                if "upi" in narr or "imps" in narr:
-                    upi_spend += d
-                if "atm" in narr or "cash" in narr:
-                    atm_spend += d
-                    
-                # Categorize
-                if any(kw in narr for kw in ["netflix", "spotify", "aws", "google", "microsoft", "adobe", "cloud", "saas", "github", "zoom"]):
-                    categories["Subscriptions"] += d
-                elif any(kw in narr for kw in ["rent", "lease", "owner", "broker"]):
-                    categories["Rent"] += d
-                elif any(kw in narr for kw in ["atm", "cash", "withd"]):
-                    categories["Cash Withdrawals"] += d
-                elif any(kw in narr for kw in ["swiggy", "zomato", "restaurant", "cafe", "hotel", "food", "dining", "eats", "grocery"]):
-                    categories["Food & Dining"] += d
-                elif any(kw in narr for kw in ["uber", "ola", "travel", "irctc", "rail", "metro", "cab", "flight", "airline", "fuel", "petrol"]):
-                    categories["Travel & Transport"] += d
-                elif any(kw in narr for kw in ["amazon", "flipkart", "myntra", "store", "shop", "mall", "market", "paytm", "retail"]):
-                    categories["Shopping"] += d
-                elif any(kw in narr for kw in ["electricity", "water", "recharge", "bill", "broadband", "jio", "airtel", "bsnl"]):
-                    categories["Utilities & Bills"] += d
-                elif any(kw in narr for kw in ["salary", "payout", "business", "invoice", "vendor", "office"]):
-                    categories["Business"] += d
-                else:
-                    categories["Miscellaneous"] += d
-            except:
-                pass
-                
-        # Sort outflows
-        outflows.sort(key=lambda x: x[0], reverse=True)
-        top_3 = outflows[:3]
-        
-        # Calculate ratios
-        discretionary = categories["Shopping"] + categories["Food & Dining"] + categories["Subscriptions"]
-        essential = categories["Rent"] + categories["Utilities & Bills"] + categories["Travel & Transport"] + categories["Business"]
-        
-        disc_pct = (discretionary / total_spend * 100) if total_spend > 0 else 0.0
-        ess_pct = (essential / total_spend * 100) if total_spend > 0 else 0.0
-        misc_pct = 100.0 - disc_pct - ess_pct
-        
-        symbol = "₹" if currency == "INR" else ("$" if currency == "USD" else currency)
-        
-        # Build category table rows with horizontal progress bars
-        cat_rows_html = ""
-        bar_colors = ["#0037b0", "#059669", "#D97706", "#DC2626", "#6366F1", "#EC4899", "#8B5CF6", "#14B8A6", "#64748B"]
-        for idx, (cat, amt) in enumerate(categories.items()):
-            pct = (amt / total_spend * 100) if total_spend > 0 else 0.0
-            color = bar_colors[idx % len(bar_colors)]
-            cat_rows_html += f"""
-            <tr>
-                <td><strong>{cat}</strong></td>
-                <td>{symbol} {amt:,.2f}</td>
-                <td>{pct:.1f}%</td>
-                <td style="width: 30%;">
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" style="width: {pct}%; background-color: {color};"></div>
-                    </div>
-                </td>
-            </tr>
-            """
-            
-        # Top 3 details
-        top_rows_html = ""
-        for idx, (amt, date, desc) in enumerate(top_3):
-            top_rows_html += f"""
-            <div class="recommendation-box" style="background-color: #FEF2F2; border-left-color: #EF4444; color: #991B1B;">
-                <div class="recommendation-title">#{idx+1} Outflow: {symbol} {amt:,.2f}</div>
-                Logged on <strong>{date}</strong> - Description: <em>'{desc}'</em>
-            </div>
-            """
-        if not top_rows_html:
-            top_rows_html = "<p>No outflows recorded.</p>"
-            
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            {cls._get_report_styles()}
-        </head>
-        <body>
-            <div class="report-container">
-                <div class="report-header">
-                    <div class="report-title-block">
-                        <h1>Spending Insights &amp; Budget Optimization</h1>
-                        <p class="report-subtitle">{bank_name} • Category Audit</p>
-                    </div>
-                    <div class="auditor-badge" style="background-color: #EA580C;">Spending Report</div>
+    def _render_spending_insights_view(cls, report_data: dict) -> str:
+        if not report_data or report_data.get("transaction_count", 0) == 0:
+            return "<div class='report-container'><p style='text-align:center; color:#64748B;'>No valid transaction data found in the selected statement.</p></div>"
+
+        symbol = "₹" if report_data["currency"] == "INR" else ("$" if report_data["currency"] == "USD" else report_data["currency"] + " ")
+        total_debits = report_data["total_debits"]
+        cats = report_data["spending_categories"]
+
+        cat_colors = ["#2563EB", "#7C3AED", "#059669", "#D97706", "#EC4899", "#8B5CF6", "#64748B", "#0D9488", "#E11D48"]
+
+        # Progress bar / table rows
+        rows_html = ""
+        for idx, cat_item in enumerate(cats):
+            c_name = cat_item["category"]
+            c_amt = cat_item["amount"]
+            c_pct = cat_item["percentage"]
+            color = cat_colors[idx % len(cat_colors)]
+
+            rows_html += f"""
+            <div class="progress-item" style="margin-bottom:10px;">
+                <div class="progress-info" style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:4px;">
+                    <span class="progress-label" style="display:flex; align-items:center; gap:6px;">
+                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:{color};"></span>
+                        {c_name}
+                    </span>
+                    <span class="progress-value" style="font-weight:700;">{symbol}{c_amt:,.2f} ({c_pct:.1f}%)</span>
                 </div>
-                
-                <div class="recommendation-box" style="background-color: #FFFBEB; border-left-color: #D97706; color: #92400E;">
-                    <div class="recommendation-title">💡 Rule-Based spending Insights Notice</div>
-                    Currently using the offline rule-based parser engine due to AI service connection status.
-                </div>
-
-                <h2 class="section-title">Spending Category Allocation</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Expense Category</th>
-                            <th>Total Amount</th>
-                            <th>Allocation (%)</th>
-                            <th>Distribution Chart</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {cat_rows_html}
-                        <tr style="background-color: #F1F5F9; font-weight: bold;">
-                            <td>Total Audited Debits</td>
-                            <td>{symbol} {total_spend:,.2f}</td>
-                            <td>100.0%</td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h2 class="section-title">Essential vs Discretionary Ratio</h2>
-                <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 20px;">
-                    <tr>
-                        <td style="width: 50%; padding: 6px; border: none;">
-                            <div class="card card-metric">
-                                <div class="card-label">Essential Needs Ratio</div>
-                                <div class="card-value" style="color: #0037b0;">{ess_pct:.1f}%</div>
-                                <p style="font-size: 11px; color:#64748B; margin: 4px 0 0 0;">Rent, Utilities, Transport, Business</p>
-                            </div>
-                        </td>
-                        <td style="width: 50%; padding: 6px; border: none;">
-                            <div class="card card-warning">
-                                <div class="card-label">Discretionary Choice Ratio</div>
-                                <div class="card-value" style="color: #D97706;">{disc_pct:.1f}%</div>
-                                <p style="font-size: 11px; color:#64748B; margin: 4px 0 0 0;">Shopping, Dining Out, Subscriptions</p>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-
-                <h2 class="section-title">Top 3 Largest Single Expenditures</h2>
-                {top_rows_html}
-
-                <h2 class="section-title">Channel &amp; Merchant Analysis</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Channel Category</th>
-                            <th>Audited Outlay</th>
-                            <th>Percentage of Expenditure (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td><strong>UPI &amp; Digital Transfers</strong></td><td>{symbol} {upi_spend:,.2f}</td><td>{((upi_spend / total_spend * 100) if total_spend > 0 else 0):.1f}%</td></tr>
-                        <tr><td><strong>ATM &amp; Cash Withdrawals</strong></td><td>{symbol} {atm_spend:,.2f}</td><td>{((atm_spend / total_spend * 100) if total_spend > 0 else 0):.1f}%</td></tr>
-                    </tbody>
-                </table>
-
-                <h2 class="section-title">Executive Budget recommendations</h2>
-                <div class="recommendation-box">
-                    <div class="recommendation-title">1. Discretionary Spending Capping</div>
-                    Your discretionary choices represent <strong>{disc_pct:.1f}%</strong> of total expenditures. Aim to cap lifestyle shopping and dining at 20% to free up savings.
-                </div>
-                <div class="recommendation-box">
-                    <div class="recommendation-title">2. UPI Spend Auditing</div>
-                    UPI transfers account for <strong>{((upi_spend / total_spend * 100) if total_spend > 0 else 0):.1f}%</strong> of spending. Digital micro-transactions accumulate rapidly; implement weekly transaction tracking.
+                <div class="progress-bar-bg" style="height:8px; background-color:var(--border-color); border-radius:4px; overflow:hidden;">
+                    <div class="progress-bar-fill" style="width: {min(100, max(3, c_pct))}%; height:100%; background-color: {color}; border-radius:4px;"></div>
                 </div>
             </div>
-        </body>
-        </html>
-        """
-        return html.strip()
+            """
 
-    @classmethod
-    def analyze_income_vs_expense(cls, transactions, currency="INR") -> str:
-        """Compares overall income inflows against expense outflows."""
-        tx_text = cls._format_transactions(transactions, currency)
-        prompt = f"""
-Compare the cash inflows (credits) against cash outflows (debits) for these transactions:
-{tx_text}
+        # SVG Donut Chart (if <= 6 categories) or Horizontal Bar Chart (if > 6 categories)
+        if len(cats) <= 6:
+            svg_arcs = ""
+            accumulated_pct = 0.0
+            for idx, cat_item in enumerate(cats):
+                c_pct = cat_item["percentage"]
+                color = cat_colors[idx % len(cat_colors)]
+                dash_array = f"{c_pct * 2.827} {282.7 - (c_pct * 2.827)}"
+                dash_offset = -accumulated_pct * 2.827
+                svg_arcs += f'<circle cx="60" cy="60" r="45" fill="transparent" stroke="{color}" stroke-width="16" stroke-dasharray="{dash_array}" stroke-dashoffset="{dash_offset}" />'
+                accumulated_pct += c_pct
 
-Requirements:
-1. **Inflow vs Outflow Table**: Present a summary table showing Total Inflow (Credits) vs Total Outflow (Debits).
-2. **Net Savings Trend**: Report the exact Net Cash Flow (Inflow minus Outflow). If negative, flag it with warning indicators.
-3. **Cash Flow Quality**: Evaluate the frequency and stability of inflows (e.g., steady salary vs irregular deposits) versus the velocity of outflows.
-4. **Sustainability Analysis**: State whether this current pattern is sustainable for long-term financial health.
+            chart_html = f"""
+            <div class="chart-container" style="display:flex; flex-wrap:wrap; gap:24px; align-items:center; background-color:var(--bg-main); border:1px solid var(--border-color); border-radius:12px; padding:20px; margin-bottom:24px;">
+                <div class="donut-chart-wrapper" style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="140" height="140" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
+                        {svg_arcs if svg_arcs else '<circle cx="60" cy="60" r="45" fill="transparent" stroke="#E2E8F0" stroke-width="16"/>'}
+                    </svg>
+                    <div class="donut-center-text" style="position:absolute; text-align:center;">
+                        <span class="donut-label" style="display:block; font-size:9px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">TOTAL SPENDING</span>
+                        <span class="donut-val" style="display:block; font-size:12px; font-weight:800; color:var(--text-primary);">{symbol}{total_debits:,.2f}</span>
+                    </div>
+                </div>
+                <div class="progress-list" style="flex:1; min-width:240px;">
+                    {rows_html}
+                </div>
+            </div>
+            """
+        else:
+            chart_html = f"""
+            <div class="bar-chart-container" style="background-color:var(--bg-main); border:1px solid var(--border-color); border-radius:12px; padding:20px; margin-bottom:24px;">
+                <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:12px; text-transform:uppercase;">HORIZONTAL CATEGORY BREAKDOWN ({len(cats)} CATEGORIES)</div>
+                {rows_html}
+            </div>
+            """
 
-Format in clean GitHub-flavored Markdown.
-"""
-        return cls._call_gemini(prompt, system_instruction="You are a cash-flow analyst.")
+        insights_html = "".join([f"<li>{h}</li>" for h in report_data["ai_spending_insights"]])
 
-    @classmethod
-    def categorize_expenses(cls, transactions, currency="INR") -> str:
-        """Labels all transactions and provides business vs personal separation recommendations."""
-        tx_text = cls._format_transactions(transactions, currency)
-        prompt = f"""
-Analyze the transactions below:
-{tx_text}
+        top_tx_html = ""
+        for tx in report_data["top_transactions"]:
+            top_tx_html += f"""
+            <div class="top-tx-card" style="display:flex; justify-content:space-between; align-items:center; background-color:var(--card-bg); border:1px solid var(--border-color); border-radius:10px; padding:12px 16px; margin-bottom:8px;">
+                <div>
+                    <div class="top-tx-narr" style="font-weight:700; color:var(--text-primary); font-size:13px;">{tx['narration']}</div>
+                    <div class="top-tx-sub" style="font-size:11px; color:var(--text-muted); margin-top:2px;">{tx['date']} • {tx['category']}</div>
+                </div>
+                <div class="top-tx-amount" style="font-size:14px; font-weight:800; color:var(--red-accent);">{symbol}{tx['debit']:,.2f}</div>
+            </div>
+            """
 
-Requirements:
-1. Group every debit transaction into one of these buckets: [Food, Utilities, Travel, Shopping, Fuel, Rent, Subscriptions, Business, Personal, Unknown].
-2. Identify which expenses appear to be **Business Expenses** (e.g., Cloud bills, office rent, internet bills, SaaS subscriptions like Google Cloud, AWS, Adobe, Microsoft 365, etc.) vs **Personal Expenses** (e.g., dining out, Netflix, personal clothing). Write a detailed log of identified business transactions.
-3. Suggest which expenses could be claimed as business tax deductions.
+        if not top_tx_html:
+            top_tx_html = "<p style='color:#64748B;'>No debit transactions recorded.</p>"
 
-Provide a clear, structured Markdown report.
-"""
-        return cls._call_gemini(prompt, system_instruction="You are an corporate tax advisor and accountant.")
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    {cls._get_report_styles()}
+</head>
+<body>
+    <div class="report-container">
+        <div class="report-header">
+            <div>
+                <h1 class="report-title">📊 Spending Insights</h1>
+                <p class="report-subtitle">Where your money went • {report_data['bank_name']} • {report_data['statement_period']}</p>
+            </div>
+            <span class="auditor-badge" style="background-color:#7C3AED;">Category Audit</span>
+        </div>
 
-    @classmethod
-    def analyze_cash_flow(cls, transactions, currency="INR") -> str:
-        """Inspects velocity and consistency of running balances."""
-        tx_text = cls._format_transactions(transactions, currency)
-        prompt = f"""
-Analyze the cash flow velocity and balance consistency of the account based on:
-{tx_text}
+        <h3 class="section-header">SPENDING BY CATEGORY</h3>
+        {chart_html}
 
-Requirements:
-1. Evaluate how the running balance changes over the period (growth percentage from opening to closing).
-2. Identify periods of 'cash crunch' (when balance drops to its lowest) and peak balance days.
-3. Assess the liquidity profile and provide a cash runway projection (how many months the average balance would last if inflows stopped).
+        <h3 class="section-header">AI Spending Insights</h3>
+        <div class="insights-box">
+            <ul>
+                {insights_html}
+            </ul>
+        </div>
 
-Write a professional financial analysis in Markdown.
-"""
-        return cls._call_gemini(prompt, system_instruction="You are a corporate liquidity and treasury manager.")
-
-    @classmethod
-    def detect_unusual_transactions(cls, transactions, currency="INR") -> str:
-        """Flags large amounts, off-hours activity, and potential duplicate transaction anomalies."""
-        tx_text = cls._format_transactions(transactions, currency)
-        prompt = f"""
-Audit these transactions for risk, unusual patterns, or potential errors:
-{tx_text}
-
-Requirements:
-1. **Unusual Off-Hours or Large Withdrawals**: Flag withdrawals of unusually large amounts or transactions made at odd hours (e.g., late night transfers).
-2. **Refund Errors**: Scan for transactions where a refund or credit narration appears but was processed as a debit, or vice versa.
-3. **Hidden Subscription Burdens**: Group and list all recurring software, streaming, or membership subscriptions (e.g. Netflix, Amazon Prime, Google Workspace, AWS, Spotify). Indicate monthly/annual billing estimation and highlight potential savings.
-4. **General Financial Risk Profile**: Assess overall transaction risk (Low, Medium, High).
-
-Format in Markdown. Be direct and list items clearly with warning/risk emojis where appropriate.
-"""
-        return cls._call_gemini(prompt, system_instruction="You are a forensic fraud investigator and financial auditor.")
-
-    @classmethod
-    def get_savings_suggestions(cls, transactions, currency="INR") -> str:
-        """Finds direct leakages and suggests smart household or business budget hacks."""
-        tx_text = cls._format_transactions(transactions, currency)
-        prompt = f"""
-Suggest savings strategies based on:
-{tx_text}
-
-Identify specific spend categories that show waste or leakage (e.g. high dining frequency, overlapping subscriptions).
-Provide 5 hyper-specific, actionable recommendations to improve savings this month (e.g. 'Cut dining spend by 10% to save {currency} 2,000').
-
-Format in Markdown.
-"""
-        return cls._call_gemini(prompt, system_instruction="You are a personal finance wealth advisor.")
-
-    @classmethod
-    def get_investment_suggestions(cls, transactions, currency="INR") -> str:
-        """Recommends asset allocation based on net cash margins."""
-        tx_text = cls._format_transactions(transactions, currency)
-        prompt = f"""
-Recommend customized investment assets based on this cash statement:
-{tx_text}
-
-1. Calculate available net monthly investable surplus.
-2. Provide a suggested investment allocation split (e.g. 50% Mutual Funds / Equities, 30% Fixed Deposits/Low-risk, 20% Liquid Emergency Fund).
-3. Recommend specific financial instruments suited to this surplus profile (Fds, Recurring Deposits, Index Funds, ETFs). Include risk-return explanations.
-
-Format in Markdown.
-"""
-        return cls._call_gemini(prompt, system_instruction="You are a certified financial planner and investment advisor.")
+        <h3 class="section-header">Top Transactions</h3>
+        <div class="top-tx-grid">
+            {top_tx_html}
+        </div>
+    </div>
+</body>
+</html>"""
+        return cls.clean_html_response(html)
 
     @classmethod
     def analyze_risks(cls, transactions, currency="INR", **kwargs) -> str:
-        """Synthesizes duplicates, subscription burdens, and balance checks into a risk report with local fallback."""
+        """Renders Output #3: Risk Analysis Forensic Audit Dashboard."""
         bank_name = kwargs.get("bank_name", "Unknown Bank")
         statement_period = kwargs.get("period", "Unknown Period")
-        try:
-            tx_text = cls._format_transactions(transactions, currency)
-            prompt = f"""
-You are a senior forensic auditor at a Big-4 accounting firm (PwC/EY).
-Audit the statement transactions for risk detection and generate a premium, executive-level **Forensic Audit & Risk Analysis Report** in HTML.
-
-Statement Details:
-- Bank: {bank_name}
-- Period: {statement_period}
-- Currency: {currency}
-
-Transactions:
-{tx_text}
-
-Requirements:
-1. Return a **completely self-contained HTML document** (starting with `<html>` and ending with `</html>`).
-2. Do NOT wrap the HTML in backticks or markdown formatting.
-3. Include:
-   - **Auditor Header**: Title, badge ('Forensic Risk Analysis'), metadata block.
-   - **Executive Risk Score Card**: Display a colored score badge (e.g. Risk Level: Medium, score: 35/100).
-   - **Identified Risk Factors Table/List**: Check and list indicators with severity badges (High/Medium/Low), explanations, and recommendations:
-     - Subscription Burdens & Recurring Outflows
-     - Duplicate payment checks (double entry anomalies)
-     - Suspicious amount detection (round figures, rapid consecutive transfers)
-     - Large transaction warnings (above threshold)
-     - Running balance integrity & low liquidity checks
-     - Unusual transaction timing
-   - **AML / compliance notes** and money flow analysis.
-   - **Final Audit Opinion** and advisory action steps.
-
-Use the following CSS style block:
-{cls._get_report_styles()}
-"""
-            return cls._call_gemini(prompt, system_instruction="You are a risk management consultant.")
-        except Exception as e:
-            print(f"GeminiService: API call failed for analyze_risks. Using local fallback. Error: {e}")
-            return cls._generate_local_risk_analysis(transactions, bank_name, statement_period, currency)
+        report_data = cls.build_report_data(transactions, bank_name, statement_period, currency=currency)
+        return cls._render_risk_analysis_view(report_data)
 
     @classmethod
-    def _generate_local_risk_analysis(cls, transactions, bank_name, statement_period, currency="INR") -> str:
-        """Fallback local calculation for risk assessment."""
-        subscriptions = []
-        duplicates = {}
-        balance_drops = []
-        large_withdrawals = []
-        round_figures = []
-        rapid_transfers = {}
-        unusual_timing = []
-        
-        for idx, tx in enumerate(transactions):
-            try:
-                d = float(str(tx.get("debit") or 0.0).replace(",", "").strip())
-                c = float(str(tx.get("credit") or 0.0).replace(",", "").strip())
-                date = tx.get("date", "N/A")
-                narr = tx.get("narration", "")
-                bal = tx.get("balance")
-                
-                # Check large withdrawal (>=50,000)
-                if d >= 50000:
-                    large_withdrawals.append((d, date, narr))
-                    
-                # Track duplicates
-                if d > 0:
-                    dup_key = (date, d)
-                    duplicates.setdefault(dup_key, []).append(narr)
-                    
-                    # Track round figures
-                    if d >= 5000 and d % 1000 == 0:
-                        round_figures.append((d, date, narr))
-                    
-                    # Track rapid consecutive transfers (group by date)
-                    rapid_transfers.setdefault(date, []).append(d)
-                    
-                # Check subscriptions
-                narr_lower = narr.lower()
-                if d > 0 and any(kw in narr_lower for kw in ["netflix", "spotify", "aws", "google", "microsoft", "adobe", "cloud", "saas", "github", "zoom"]):
-                    subscriptions.append((d, date, narr))
-                    
-                # Check low balance
-                if bal is not None:
-                    try:
-                        b_val = float(str(bal).replace(",", "").replace("₹", "").strip())
-                        if b_val < 5000:
-                            balance_drops.append((b_val, date))
-                    except:
-                        pass
-            except:
-                pass
-                
-        # Group duplicates
-        dup_alerts_html = ""
-        dup_count = 0
-        for (date, amt), narr_list in duplicates.items():
-            if len(narr_list) > 1:
-                dup_count += 1
-                dup_alerts_html += f"<li><strong>{currency} {amt:,.2f}</strong> on <em>{date}</em> (Narrations: " + " &amp; ".join([f"'{n}'" for n in narr_list]) + ")</li>"
-        if not dup_alerts_html:
-            dup_alerts_html = "<li>No duplicate transaction anomalies detected.</li>"
-            
-        # Group large transactions
-        large_html = ""
-        for amt, date, desc in large_withdrawals:
-            large_html += f"<li><strong>{currency} {amt:,.2f}</strong> on <em>{date}</em> (Merchant: <em>'{desc}'</em>)</li>"
-        if not large_html:
-            large_html = "<li>No large outflows detected.</li>"
-            
-        # Group subscriptions
-        sub_html = ""
-        annual_est = 0.0
-        for amt, date, desc in subscriptions:
-            sub_html += f"<li><strong>{currency} {amt:,.2f}</strong> on <em>{date}</em> - Recurring <em>'{desc}'</em></li>"
-            annual_est += amt * 12
-        if not sub_html:
-            sub_html = "<li>No active subscription items identified.</li>"
-            
-        # Group round figures
-        round_html = ""
-        for amt, date, desc in round_figures[:5]:
-            round_html += f"<li><strong>{currency} {amt:,.2f}</strong> on <em>{date}</em> - <em>'{desc}'</em></li>"
-        if not round_html:
-            round_html = "<li>No round figure transfers detected.</li>"
-            
-        # Group rapid transfers
-        rapid_count = sum(1 for d, txs in rapid_transfers.items() if len(txs) >= 3)
-        
-        # Risk score calculation
-        risk_score_num = 15
-        risk_score_num += len(large_withdrawals) * 10
-        risk_score_num += dup_count * 15
-        risk_score_num += (15 if balance_drops else 0)
-        risk_score_num += rapid_count * 10
-        risk_score_num = min(99, risk_score_num)
-        
-        if risk_score_num > 60:
-            risk_badge = '<span class="badge badge-high">High Risk</span>'
-            badge_class = "card-danger"
-            val_color = "#DC2626"
-        elif risk_score_num > 30:
-            risk_badge = '<span class="badge badge-medium">Medium Risk</span>'
-            badge_class = "card-warning"
-            val_color = "#D97706"
+    def _render_risk_analysis_view(cls, report_data: dict) -> str:
+        if not report_data or report_data.get("transaction_count", 0) == 0:
+            return "<div class='report-container'><p style='text-align:center; color:#64748B;'>No valid transaction data found in the selected statement.</p></div>"
+
+        symbol = "₹" if report_data["currency"] == "INR" else ("$" if report_data["currency"] == "USD" else report_data["currency"] + " ")
+        risk_info = report_data["risk_analysis"]
+        score = risk_info["score"]
+        rating = risk_info["rating"]
+
+        rating_upper = rating.upper()
+        if "CRITICAL" in rating_upper:
+            risk_color = "#991B1B"
+        elif "HIGH" in rating_upper:
+            risk_color = "#DC2626"
+        elif "MEDIUM" in rating_upper or "MODERATE" in rating_upper:
+            risk_color = "#D97706"
         else:
-            risk_badge = '<span class="badge badge-low">Low Risk</span>'
-            badge_class = "card-success"
-            val_color = "#059669"
-            
-        symbol = "₹" if currency == "INR" else ("$" if currency == "USD" else currency)
-        
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            {cls._get_report_styles()}
-        </head>
-        <body>
-            <div class="report-container">
-                <div class="report-header">
-                    <div class="report-title-block">
-                        <h1>Forensic Audit &amp; Risk Analysis</h1>
-                        <p class="report-subtitle">{bank_name} • Risk Profile Summary</p>
-                    </div>
-                    <div class="auditor-badge" style="background-color: #DC2626;">Forensic Audit</div>
-                </div>
-                
-                <div class="recommendation-box" style="background-color: #FEF2F2; border-left-color: #EF4444; color: #991B1B;">
-                    <div class="recommendation-title">⚠️ Rule-Based forensic Analysis Notice</div>
-                    Currently using the offline rule-based parser engine due to AI service connection status.
-                </div>
+            risk_color = "#059669"
 
-                <h2 class="section-title">Risk Assessment Dashboard</h2>
-                <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 20px;">
-                    <tr>
-                        <td style="width: 50%; padding: 6px; border: none;">
-                            <div class="card {badge_class}">
-                                <div class="card-label">Forensic Risk Score</div>
-                                <div class="card-value" style="color: {val_color};">{risk_score_num} / 100</div>
-                                <p style="font-size: 11px; color:#64748B; margin: 4px 0 0 0;">Overall Risk Assessment: {risk_badge}</p>
-                            </div>
-                        </td>
-                        <td style="width: 50%; padding: 6px; border: none;">
-                            <div class="card card-metric">
-                                <div class="card-label">Annualized Subscription Leakage</div>
-                                <div class="card-value">{symbol} {annual_est:,.2f}</div>
-                                <p style="font-size: 11px; color:#64748B; margin: 4px 0 0 0;">Estimated recurring SaaS / media expense</p>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+        # Flagged transaction cards
+        flagged_cards_html = ""
+        for item in risk_info["flagged_transactions"]:
+            flagged_cards_html += f"""
+            <div class="warning-card high">
+                <div class="warning-header">
+                    <span class="warning-title">⚠️ {item['title']}</span>
+                    <span class="warning-amount">{symbol}{item['amount']:,.2f}</span>
+                </div>
+                <div class="warning-detail">{item['date']} • {item['narration']} — {item['reason']}</div>
+            </div>
+            """
 
-                <h2 class="section-title">Forensic Audit Logs</h2>
-                
-                <div class="card" style="margin-bottom: 12px;">
-                    <div class="card-label" style="color:#B91C1C;">1. Subscription Burdens &amp; Leakages</div>
-                    <ul style="margin: 6px 0 0 0; padding-left: 20px;">
-                        {sub_html}
-                    </ul>
+        if not flagged_cards_html:
+            flagged_cards_html = """
+            <div class="warning-card" style="background-color:#ECFDF5; border-color:#A7F3D0; border-left-color:#059669;">
+                <div class="warning-header">
+                    <span class="warning-title" style="color:#065F46;">✓ No Flagged Anomalies</span>
                 </div>
-                
-                <div class="card" style="margin-bottom: 12px;">
-                    <div class="card-label" style="color:#B91C1C;">2. Duplicate Payment / Double Charges</div>
-                    <ul style="margin: 6px 0 0 0; padding-left: 20px;">
-                        {dup_alerts_html}
-                    </ul>
-                </div>
-                
-                <div class="card" style="margin-bottom: 12px;">
-                    <div class="card-label" style="color:#B91C1C;">3. High-Value Transfers (>= 50,000)</div>
-                    <ul style="margin: 6px 0 0 0; padding-left: 20px;">
-                        {large_html}
-                    </ul>
-                </div>
-                
-                <div class="card" style="margin-bottom: 12px;">
-                    <div class="card-label" style="color:#B91C1C;">4. Round-Figure Outflow Detection</div>
-                    <ul style="margin: 6px 0 0 0; padding-left: 20px;">
-                        {round_html}
-                    </ul>
-                </div>
+                <div class="warning-detail" style="color:#047857;">No qualifying duplicate, unusual-time, high-value or suspicious transaction pattern was detected.</div>
+            </div>
+            """
 
-                <h2 class="section-title">Risk Mitigation &amp; Auditor Opinion</h2>
-                <div class="recommendation-box">
-                    <div class="recommendation-title">Advisory Recommendation (Duplicates)</div>
-                    If duplicate payment alerts are listed, check with the card processor or bank immediately to dispute possible double transactions.
-                </div>
-                <div class="recommendation-box">
-                    <div class="recommendation-title">Advisory Recommendation (Subscriptions)</div>
-                    Cancel unused recurring charges to reclaim <strong>{symbol} {annual_est:,.2f}</strong> in annual runway.
+        risk_bullets_html = "".join([f"<li>{h}</li>" for h in risk_info["risk_factors"]])
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    {cls._get_report_styles()}
+</head>
+<body>
+    <div class="report-container">
+        <div class="report-header">
+            <div>
+                <h1 class="report-title">🛡️ Risk Analysis</h1>
+                <p class="report-subtitle">{report_data['bank_name']} • {report_data['statement_period']}</p>
+            </div>
+            <span class="auditor-badge" style="background-color:#EA580C;">FORENSIC AUDIT</span>
+        </div>
+
+        <div class="risk-score-wrapper">
+            <div class="score-ring">
+                <svg width="120" height="120" viewBox="0 0 100 100" style="transform: rotate(-90deg);">
+                    <circle cx="50" cy="50" r="42" fill="transparent" stroke="#E2E8F0" stroke-width="8" />
+                    <circle cx="50" cy="50" r="42" fill="transparent" stroke="{risk_color}" stroke-width="8" stroke-dasharray="{score * 2.639} 263.9" />
+                </svg>
+                <div class="score-center-text">
+                    <span class="score-num" style="color:{risk_color};">{score}</span>
+                    <span class="score-den">/100</span>
                 </div>
             </div>
-        </body>
-        </html>
-        """
-        return html.strip()
+            <div class="score-meta" style="display:flex; flex-direction:column; justify-content:center;">
+                <div style="font-size:16px; font-weight:800; color:{risk_color}; letter-spacing:0.5px; margin-bottom:4px; text-transform:uppercase;">{rating}</div>
+                <div style="margin-top:4px; color:var(--text-secondary); font-size:12px; line-height:1.5;">
+                    <strong>Score Rationale:</strong><br>• {risk_info.get('score_reason', 'Comprehensive deterministic forensic compliance assessment score.')}
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card accent-blue">
+                <span class="kpi-label">DUPLICATE RISK</span>
+                <span class="kpi-value text-blue">{risk_info['duplicate_risk']}</span>
+            </div>
+            <div class="kpi-card accent-purple">
+                <span class="kpi-label">LIQUIDITY RISK</span>
+                <span class="kpi-value text-purple">{risk_info['liquidity_risk']}</span>
+            </div>
+            <div class="kpi-card accent-orange">
+                <span class="kpi-label">VELOCITY RISK</span>
+                <span class="kpi-value text-orange">{risk_info['velocity_risk']}</span>
+            </div>
+        </div>
+
+        <h3 class="section-header">⚠️ Flagged Transactions</h3>
+        <div class="warning-grid">
+            {flagged_cards_html}
+        </div>
+
+        <h3 class="section-header">AI Risk Assessment</h3>
+        <div class="insights-box" style="border-left-color:#EA580C;">
+            <ul>
+                {risk_bullets_html}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>"""
+        return cls.clean_html_response(html)
 
     @classmethod
     def generate_executive_report(cls, transactions, bank_name, account_holder, account_number, statement_period, currency="INR") -> str:
-        """Generates a complete, beautiful HTML financial auditing report resembling Deloitte or PwC outputs with local fallback."""
-        try:
-            tx_text = cls._format_transactions(transactions, currency)
-            total_debit = 0.0
-            total_credit = 0.0
-            for tx in transactions:
-                try:
-                    total_debit += float(str(tx.get("debit") or 0.0).replace(",", "").strip())
-                    total_credit += float(str(tx.get("credit") or 0.0).replace(",", "").strip())
-                except:
-                    pass
-            net_savings = total_credit - total_debit
-            savings_ratio = (net_savings / total_credit * 100) if total_credit > 0 else 0
-            
-            prompt = f"""
-You are a senior Principal Auditor at a Big-4 accounting firm (Deloitte/PwC style).
-Generate a professional, premium, executive-level **AI Financial Audit & Advisor Report** in HTML format.
-
-Details:
-- Account Holder: {account_holder}
-- Account Number: {account_number}
-- Bank Name: {bank_name}
-- Statement Period: {statement_period}
-- Currency: {currency}
-- Total Credits: {currency} {total_credit:,.2f}
-- Total Debits: {currency} {total_debit:,.2f}
-- Net Savings: {currency} {net_savings:,.2f}
-- Savings Ratio: {savings_ratio:.1f}%
-
-Extracted Transactions:
-{tx_text}
-
-Requirements:
-1. Return a **completely self-contained HTML document** (starting with `<html>` and ending with `</html>`).
-2. Do NOT use markdown formatting outside the HTML or wrap the HTML in backticks.
-3. Use a premium, corporate aesthetic color scheme.
-4. Include:
-   - **Executive Header**: Styled logo banner, auditor stamp ('StatementForge AI Auditor'), and metadata card.
-   - **Financial Health Score Section**: Display a large, beautiful badge containing an AI calculated score.
-   - **Spending Profile Section**: Category table and key findings.
-   - **Risk & Fraud Audit Section**: Flag unusual transactions, potential duplicate payments, subscription leakages, and refund inconsistencies.
-   - **Business Deductions & Recommendations**: Business vs Personal expense suggestions, plus 4 strategic advisor recommendations to improve cash reserves.
-5. Apply professional CSS styling.
-
-Use the following CSS style block:
-{cls._get_report_styles()}
-"""
-            return cls._call_gemini(prompt, system_instruction="You are a Big-4 senior forensic auditor and wealth manager.")
-        except Exception as e:
-            print(f"GeminiService: API call failed for generate_executive_report. Using local fallback. Error: {e}")
-            return cls._generate_local_executive_report(transactions, bank_name, account_holder, account_number, statement_period, currency)
+        """Renders Output #4: ✨ Generate Full AI Report (Executive Report)."""
+        report_data = cls.build_report_data(
+            transactions, 
+            bank_name, 
+            statement_period, 
+            account_holder=account_holder, 
+            account_number=account_number, 
+            currency=currency
+        )
+        return cls._render_full_report_view(report_data)
 
     @classmethod
-    def _generate_local_executive_report(cls, transactions, bank_name, account_holder, account_number, statement_period, currency="INR") -> str:
-        """Fallback local calculation to generate Deloitte-style HTML report."""
-        total_debit = 0.0
-        total_credit = 0.0
-        categories = {
-            "Shopping": 0.0, "Food & Dining": 0.0, "Travel & Transport": 0.0,
-            "Subscriptions": 0.0, "Rent": 0.0, "Cash Withdrawals": 0.0,
-            "Utilities & Bills": 0.0, "Business": 0.0, "Miscellaneous": 0.0
-        }
-        subscriptions = []
-        duplicates = {}
-        large_withdrawals = []
-        
-        for tx in transactions:
-            try:
-                d = float(str(tx.get("debit") or 0.0).replace(",", "").strip())
-                c = float(str(tx.get("credit") or 0.0).replace(",", "").strip())
-                date = tx.get("date", "N/A")
-                narr = tx.get("narration", "")
-                
-                total_debit += d
-                total_credit += c
-                
-                if d > 0:
-                    if d >= 50000:
-                        large_withdrawals.append((d, date, narr))
-                        
-                    # Track duplicates
-                    dup_key = (date, d)
-                    duplicates.setdefault(dup_key, []).append(narr)
-                        
-                    # Categorize
-                    narr_lower = narr.lower()
-                    if any(kw in narr_lower for kw in ["netflix", "spotify", "aws", "google", "microsoft", "adobe", "cloud", "saas", "github", "zoom"]):
-                        categories["Subscriptions"] += d
-                        subscriptions.append((d, date, narr))
-                    elif any(kw in narr_lower for kw in ["rent", "lease", "owner", "broker"]):
-                        categories["Rent"] += d
-                    elif any(kw in narr_lower for kw in ["atm", "cash", "withd"]):
-                        categories["Cash Withdrawals"] += d
-                    elif any(kw in narr_lower for kw in ["swiggy", "zomato", "restaurant", "cafe", "hotel", "food", "dining", "eats", "grocery"]):
-                        categories["Food & Dining"] += d
-                    elif any(kw in narr_lower for kw in ["uber", "ola", "travel", "irctc", "rail", "metro", "cab", "flight", "airline", "fuel", "petrol"]):
-                        categories["Travel & Transport"] += d
-                    elif any(kw in narr_lower for kw in ["amazon", "flipkart", "myntra", "store", "shop", "mall", "market", "paytm", "retail"]):
-                        categories["Shopping"] += d
-                    elif any(kw in narr_lower for kw in ["electricity", "water", "recharge", "bill", "broadband", "jio", "airtel", "bsnl"]):
-                        categories["Utilities & Bills"] += d
-                    elif any(kw in narr_lower for kw in ["salary", "payout", "business", "invoice", "vendor", "office"]):
-                        categories["Business"] += d
-                    else:
-                        categories["Miscellaneous"] += d
-            except:
-                pass
-                
-        net_savings = total_credit - total_debit
-        score = 80 # simplified
-        
-        dup_alerts_html = "".join([f"<li><strong>{currency} {amt:,.2f}</strong> on <em>{date}</em> (Narrations: " + " &amp; ".join([f"'{n}'" for n in narr_list]) + ")</li>" for (date, amt), narr_list in duplicates.items() if len(narr_list) > 1])
-        large_txs_html = "".join([f"<li><strong>{currency} {amt:,.2f}</strong> on <em>{date}</em> - <em>'{desc}'</em></li>" for amt, date, desc in large_withdrawals])
-        sub_html = "".join([f"<li><strong>{currency} {amt:,.2f}</strong> recurring for <em>'{desc}'</em></li>" for amt, date, desc in subscriptions])
-        annual_est = sum(amt * 12 for amt, d, desc in subscriptions)
-            
-        cat_rows_html = ""
-        for cat, amt in categories.items():
-            pct = (amt / total_debit * 100) if total_debit > 0 else 0.0
-            cat_rows_html += f"<tr><td>{cat}</td><td>{currency} {amt:,.2f}</td><td>{pct:.1f}%</td></tr>"
-            
-        symbol = "₹" if currency == "INR" else ("$" if currency == "USD" else currency)
+    def _render_full_report_view(cls, report_data: dict) -> str:
+        if not report_data or report_data.get("transaction_count", 0) == 0:
+            return "<div class='report-container'><p style='text-align:center; color:#64748B;'>No valid transaction data found in the selected statement.</p></div>"
 
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            {cls._get_report_styles()}
-        </head>
-        <body>
-            <div class="report-container">
-                <div class="report-header">
-                    <div class="report-title-block">
-                        <h1>Executive Audit &amp; Business Report</h1>
-                        <p class="report-subtitle">{bank_name} • Comprehensive Audit</p>
-                    </div>
-                    <div class="auditor-badge" style="background-color: #1E3A8A;">Big-4 Auditor Report</div>
-                </div>
-                
-                <div class="recommendation-box" style="background-color: #FFFBEB; border-left-color: #D97706; color: #92400E;">
-                    <div class="recommendation-title">💡 Rule-Based Report Notice</div>
-                    Currently using the offline rule-based parser engine due to AI service connection status.
-                </div>
+        symbol = "₹" if report_data["currency"] == "INR" else ("$" if report_data["currency"] == "USD" else report_data["currency"] + " ")
+        total_credits = report_data["total_credits"]
+        total_debits = report_data["total_debits"]
+        net_savings = report_data["net_savings"]
+        savings_rate = report_data["savings_rate"]
+        daily_burn = report_data["average_daily_burn"]
 
-                <h2 class="section-title">Statement Metadata</h2>
-                <table class="data-table">
-                    <tbody>
-                        <tr><td><strong>Account Holder:</strong></td><td>{account_holder}</td></tr>
-                        <tr><td><strong>Account Number:</strong></td><td>{account_number}</td></tr>
-                        <tr><td><strong>Bank Name:</strong></td><td>{bank_name}</td></tr>
-                        <tr><td><strong>Statement Period:</strong></td><td>{statement_period}</td></tr>
-                    </tbody>
-                </table>
+        savings_class = "text-green" if net_savings >= 0 else "text-red"
+        savings_accent = "accent-green" if net_savings >= 0 else "accent-red"
 
-                <h2 class="section-title">Financial Health &amp; Core Metrics</h2>
-                <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 20px;">
-                    <tr>
-                        <td style="width: 25%; padding: 6px; border: none;">
-                            <div class="card card-metric">
-                                <div class="card-label">Total Credits</div>
-                                <div class="card-value" style="color: #059669;">{symbol} {total_credit:,.2f}</div>
-                            </div>
-                        </td>
-                        <td style="width: 25%; padding: 6px; border: none;">
-                            <div class="card card-metric">
-                                <div class="card-label">Total Debits</div>
-                                <div class="card-value" style="color: #DC2626;">{symbol} {total_debit:,.2f}</div>
-                            </div>
-                        </td>
-                        <td style="width: 25%; padding: 6px; border: none;">
-                            <div class="card card-metric">
-                                <div class="card-label">Net Savings</div>
-                                <div class="card-value" style="color: {'#059669' if net_savings >= 0 else '#DC2626'};">{symbol} {net_savings:,.2f}</div>
-                            </div>
-                        </td>
-                        <td style="width: 25%; padding: 6px; border: none;">
-                            <div class="card card-success">
-                                <div class="card-label">Health Score</div>
-                                <div class="card-value">{score}/100</div>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+        risk_info = report_data["risk_analysis"]
+        score = risk_info["score"]
+        rating = risk_info["rating"]
 
-                <h2 class="section-title">Spending Breakdown</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Total Outlay</th>
-                            <th>Allocation (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {cat_rows_html}
-                    </tbody>
-                </table>
+        top_cat_name = report_data["spending_categories"][0]["category"] if report_data["spending_categories"] else "N/A"
 
-                <h2 class="section-title">Forensic Audits Summary</h2>
-                
-                <h3>Recurring Subscription Leakages</h3>
-                <ul>
-                    {sub_html if sub_html else "<li>None identified.</li>"}
-                </ul>
-                <p style="font-size: 11px; color: #64748B;">Estimated Annualized Subscription Leakage: <strong>{symbol} {annual_est:,.2f}</strong></p>
+        recs_html = "".join([f"<li>{r}</li>" for r in report_data["recommendations"]])
 
-                <h3>Duplicate Payment Detections</h3>
-                <ul>
-                    {dup_alerts_html if dup_alerts_html else "<li>None detected.</li>"}
-                </ul>
-
-                <h3>Large Outflows Detections</h3>
-                <ul>
-                    {large_txs_html if large_txs_html else "<li>None detected.</li>"}
-                </ul>
-
-                <h2 class="section-title">Strategic Tax Deductions &amp; Advisory Action Items</h2>
-                <ul>
-                    <li style="margin-bottom: 8px;"><strong>Tax Write-Off optimization:</strong> Maintain systematic logs of business transactions to reduce aggregate corporate tax exposure.</li>
-                    <li style="margin-bottom: 8px;"><strong>Subscription Scrubbing:</strong> Review and prune active monthly service subscriptions to retain <strong>{symbol} {annual_est:,.2f}</strong> in reserve margins.</li>
-                    <li style="margin-bottom: 8px;"><strong>Cash Buffer allocations:</strong> Automate deposits to direct 10% of monthly inflows into secure yield-bearing reserve certificates.</li>
-                </ul>
-
-                <div style="margin-top: 40px; font-size: 11px; text-align: center; color: #94A3B8; border-top: 1px solid #E2E8F0; padding-top: 15px;">
-                    Report generated by StatementForge AI Auditor Fallback Engine on {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.
-                </div>
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    {cls._get_report_styles()}
+</head>
+<body>
+    <div class="report-container">
+        <div class="report-header">
+            <div>
+                <h1 class="report-title">✨ AI FINANCIAL &amp; FORENSIC REPORT</h1>
+                <p class="report-subtitle">{report_data['account_holder']} • {report_data['bank_name']} • Account #{report_data['account_number']} • {report_data['statement_period']}</p>
             </div>
-        </body>
-        </html>
-        """
-        return html.strip()
+            <span class="auditor-badge" style="background:linear-gradient(135deg, #059669 0%, #047857 100%);">Full AI Report</span>
+        </div>
+
+        <h3 class="section-header">1. Executive Overview</h3>
+        <div class="insights-box" style="border-left-color:#059669;">
+            <p style="margin:0; font-size:13px;">Statement ledger contains {report_data['transaction_count']} transactions. Total credit inflows of <strong>{symbol}{total_credits:,.2f}</strong> against total debit outflows of <strong>{symbol}{total_debits:,.2f}</strong> resulting in net savings of <strong>{symbol}{net_savings:,.2f}</strong> ({savings_rate:.1f}% savings rate).</p>
+        </div>
+
+        <h3 class="section-header">2. Financial Performance</h3>
+        <div class="kpi-grid">
+            <div class="kpi-card accent-green">
+                <span class="kpi-label">Total Credits</span>
+                <span class="kpi-value text-green">{symbol}{total_credits:,.2f}</span>
+            </div>
+            <div class="kpi-card accent-red">
+                <span class="kpi-label">Total Debits</span>
+                <span class="kpi-value text-red">{symbol}{total_debits:,.2f}</span>
+            </div>
+            <div class="kpi-card {savings_accent}">
+                <span class="kpi-label">Net Savings</span>
+                <span class="kpi-value {savings_class}">{symbol}{net_savings:,.2f}</span>
+            </div>
+            <div class="kpi-card accent-purple">
+                <span class="kpi-label">Savings Rate</span>
+                <span class="kpi-value text-purple">{savings_rate:.1f}%</span>
+            </div>
+            <div class="kpi-card accent-blue">
+                <span class="kpi-label">Avg Daily Burn</span>
+                <span class="kpi-value text-blue">{symbol}{daily_burn:,.2f}</span>
+            </div>
+        </div>
+
+        <h3 class="section-header">3. Spending Assessment</h3>
+        <div class="insights-box" style="border-left-color:#7C3AED;">
+            <p style="margin:0 0 6px 0;">Total outflow across statement period was <strong>{symbol}{total_debits:,.2f}</strong> across {len(report_data['top_transactions'])} top debit entries.</p>
+        </div>
+
+        <h3 class="section-header">4. Risk Assessment</h3>
+        <div class="insights-box" style="border-left-color:#EA580C;">
+            <p style="margin:0 0 6px 0; font-size:14px;"><strong>Audit Risk Score: {score}/100 — {rating}</strong></p>
+            <p style="margin:0;">Duplicate Risk: <strong>{risk_info['duplicate_risk']}</strong> • Liquidity Risk: <strong>{risk_info['liquidity_risk']}</strong> • Velocity Risk: <strong>{risk_info['velocity_risk']}</strong>.</p>
+        </div>
+
+        <h3 class="section-header">5. Key Recommendations</h3>
+        <div class="insights-box" style="border-left-color:#2563EB;">
+            <ol style="margin:0; padding-left:18px;">
+                {recs_html}
+            </ol>
+        </div>
+
+        <h3 class="section-header">6. Final Financial Snapshot</h3>
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+            <div class="kpi-card accent-green">
+                <span class="kpi-label">INCOME</span>
+                <span class="kpi-value text-green">{symbol}{total_credits:,.2f}</span>
+            </div>
+            <div class="kpi-card accent-red">
+                <span class="kpi-label">EXPENSES</span>
+                <span class="kpi-value text-red">{symbol}{total_debits:,.2f}</span>
+            </div>
+            <div class="kpi-card {savings_accent}">
+                <span class="kpi-label">SAVINGS</span>
+                <span class="kpi-value {savings_class}">{symbol}{net_savings:,.2f}</span>
+            </div>
+            <div class="kpi-card accent-purple">
+                <span class="kpi-label">SAVINGS RATE</span>
+                <span class="kpi-value text-purple">{savings_rate:.1f}%</span>
+            </div>
+            <div class="kpi-card accent-orange">
+                <span class="kpi-label">RISK SCORE</span>
+                <span class="kpi-value text-orange">{score}/100</span>
+            </div>
+            <div class="kpi-card accent-blue">
+                <span class="kpi-label">TOP SPENDING</span>
+                <span class="kpi-value text-blue" style="font-size:13px; font-weight:700;">{top_cat_name}</span>
+            </div>
+        </div>
+
+        <div class="report-action-row">
+            <button type="button" class="report-btn btn-pdf" onclick="triggerExportPdf()">📥 Export PDF</button>
+            <button type="button" class="report-btn btn-email" onclick="triggerSendEmail()">✉️ Send via Email</button>
+        </div>
+    </div>
+</body>
+</html>"""
+        return cls.clean_html_response(html)
 
     @classmethod
     def chat_with_statement(cls, transactions, chat_history, user_message, currency="INR") -> str:
@@ -1916,9 +1945,9 @@ Return valid JSON list only. Do not wrap in markdown or write explanation text.
                 response_mime_type="application/json",
                 temperature=0.1
             )
-            # Use stable fast model
+            # Use stable active model
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt,
                 config=config
             )
@@ -2020,7 +2049,7 @@ Ensure the output is ONLY a valid JSON list. Do not wrap in markdown or add expl
                 temperature=0.1
             )
             response = client.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-flash-latest",
                 contents=prompt,
                 config=config
             )
@@ -2104,4 +2133,367 @@ Ensure the output is ONLY a valid JSON list. Do not wrap in markdown or add expl
         except Exception as e:
             print(f"GeminiService: GST transaction analysis failed: {e}")
             return []
+
+    @classmethod
+    def chat_with_statement(cls, transactions: list, chat_history: list, message: str, currency="INR", **kwargs) -> str:
+        """
+        AI Chatbot Engine: Answers financial questions using ONLY the actual selected statement transactions.
+        1. Validates and normalizes statement transactions (Single Source of Truth).
+        2. Evaluates query intent deterministically (Top Expenses, Duplicate UPIs, Subscriptions, Where I Spend Most, Totals/Stats).
+        3. Formats response into clean HTML cards matching StatementForge UI aesthetics.
+        4. Invokes Gemini as a natural language synthesizer strictly using the actual calculated facts (Never invents numbers).
+        """
+        if not transactions or len(transactions) == 0:
+            return (
+                "<div style='background:#FEF2F2; border:1px solid #FCA5A5; border-radius:8px; padding:12px; color:#991B1B; font-size:13px; font-weight:600;'>"
+                "⚠️ No sufficient transaction data is available for this statement.<br>"
+                "Please verify that the statement has been parsed successfully."
+                "</div>"
+            )
+
+        normalized = cls.normalize_transactions(transactions)
+        if not normalized:
+            return (
+                "<div style='background:#FEF2F2; border:1px solid #FCA5A5; border-radius:8px; padding:12px; color:#991B1B; font-size:13px; font-weight:600;'>"
+                "⚠️ No sufficient transaction data is available for this statement."
+                "</div>"
+            )
+
+        symbol = "₹" if currency == "INR" else ("$" if currency == "USD" else currency + " ")
+        msg_lower = message.lower().strip()
+
+        # Build Single Source of Truth Metrics
+        total_credits = sum(tx["credit"] for tx in normalized)
+        total_debits = sum(tx["debit"] for tx in normalized)
+        net_savings = total_credits - total_debits
+        savings_rate = (net_savings / total_credits * 100) if total_credits > 0 else 0.0
+
+        # --- INTENT 1: TOP EXPENSES ---
+        if any(w in msg_lower for w in ["top expense", "top expenses", "largest expense", "highest expense", "highest debit", "big expense", "most expensive"]):
+            debit_txs = [tx for tx in normalized if tx["debit"] > 0]
+            if not debit_txs:
+                return "<p style='margin:4px 0; color:#64748B;'>No debit expenses were found in the selected statement.</p>"
+            sorted_debits = sorted(debit_txs, key=lambda x: x["debit"], reverse=True)[:5]
+            
+            items_html = ""
+            for idx, tx in enumerate(sorted_debits, 1):
+                cat_badge = f"<span style='background:#EFF6FF; color:#1D4ED8; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:600;'>{tx['category']}</span>" if tx.get("category") else ""
+                items_html += f"""
+                <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;'>
+                    <div>
+                        <div style='font-weight:700; color:#0F172A; font-size:13px;'>{idx}. {tx['narration']}</div>
+                        <div style='color:#64748B; font-size:11px; margin-top:2px;'>{tx['date']} &nbsp; {cat_badge}</div>
+                    </div>
+                    <div style='font-weight:800; color:#DC2626; font-size:14px;'>{symbol}{tx['debit']:,.2f}</div>
+                </div>
+                """
+            return f"""
+            <div style='font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:#1E293B; font-size:14px; margin-bottom:10px; display:flex; align-items:center; gap:6px;'>
+                    <span>📌</span> <span>TOP EXPENSES</span>
+                </div>
+                {items_html}
+            </div>
+            """
+
+        # --- INTENT 1B: LOWEST EXPENSES & SMALL PURCHASES ---
+        if any(w in msg_lower for w in ["low expense", "low expenses", "lowest expense", "lowest expenses", "small expense", "small expenses", "smallest expense", "cheapest", "minimum expense", "low spending", "lowest spending"]):
+            debit_txs = [tx for tx in normalized if tx["debit"] > 0]
+            if not debit_txs:
+                return "<p style='margin:4px 0; color:#64748B;'>No debit expenses were found in the selected statement.</p>"
+            sorted_debits = sorted(debit_txs, key=lambda x: x["debit"])[:5]
+            
+            items_html = ""
+            for idx, tx in enumerate(sorted_debits, 1):
+                cat_badge = f"<span style='background:#EFF6FF; color:#1D4ED8; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:600;'>{tx['category']}</span>" if tx.get("category") else ""
+                items_html += f"""
+                <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;'>
+                    <div>
+                        <div style='font-weight:700; color:#0F172A; font-size:13px;'>{idx}. {tx['narration']}</div>
+                        <div style='color:#64748B; font-size:11px; margin-top:2px;'>{tx['date']} &nbsp; {cat_badge}</div>
+                    </div>
+                    <div style='font-weight:800; color:#059669; font-size:14px;'>{symbol}{tx['debit']:,.2f}</div>
+                </div>
+                """
+            return f"""
+            <div style='font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:#1E293B; font-size:14px; margin-bottom:10px; display:flex; align-items:center; gap:6px;'>
+                    <span>📉</span> <span>LOWEST EXPENSES & SMALL PURCHASES</span>
+                </div>
+                {items_html}
+            </div>
+            """
+
+        # --- INTENT 2: DUPLICATE UPIS / DUPLICATE TRANSACTIONS ---
+        if any(w in msg_lower for w in ["duplicate", "duplicate upi", "duplicate upis", "repeated payment"]):
+            seen = {}
+            duplicates = []
+            for tx in normalized:
+                if tx["debit"] > 0:
+                    key = (tx["date"], tx["narration"].lower().strip(), tx["debit"])
+                    if key in seen:
+                        duplicates.append(tx)
+                    else:
+                        seen[key] = True
+            
+            if not duplicates:
+                return (
+                    "<div style='background:#ECFDF5; border:1px solid #A7F3D0; border-radius:8px; padding:12px; color:#065F46; font-size:13px; font-weight:600;'>"
+                    "<strong>✓ DUPLICATE UPI TRANSACTIONS</strong><br>"
+                    "No duplicate UPI transactions were detected in the selected statement."
+                    "</div>"
+                )
+            
+            dup_items_html = ""
+            for tx in duplicates:
+                dup_items_html += f"""
+                <div style='background:#FEF2F2; border:1px solid #FCA5A5; border-radius:8px; padding:10px 14px; margin-bottom:8px;'>
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <span style='font-weight:700; color:#991B1B; font-size:13px;'>⚠️ {tx['narration']}</span>
+                        <span style='font-weight:800; color:#DC2626; font-size:13px;'>{symbol}{tx['debit']:,.2f}</span>
+                    </div>
+                    <div style='color:#B91C1C; font-size:11px; margin-top:2px;'>Date: {tx['date']} — Duplicate debit pattern detected</div>
+                </div>
+                """
+            return f"""
+            <div style='font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:#991B1B; font-size:14px; margin-bottom:10px;'>⚠️ DUPLICATE UPI TRANSACTIONS DETECTED ({len(duplicates)})</div>
+                {dup_items_html}
+            </div>
+            """
+
+        # --- INTENT 3: ACTIVE SUBSCRIPTIONS ---
+        if any(w in msg_lower for w in ["subscription", "subscriptions", "recurring", "monthly bill"]):
+            sub_keywords = ["netflix", "spotify", "prime", "amazon prime", "youtube", "adobe", "apple", "google", "jio", "airtel", "tatasky", "swiggy super", "zomato gold", "gym", "broadband", "hotstar", "zee5", "sony"]
+            merchant_counts = {}
+            for tx in normalized:
+                if tx["debit"] > 0:
+                    narr_lower = tx["narration"].lower()
+                    for kw in sub_keywords:
+                        if kw in narr_lower:
+                            if kw not in merchant_counts:
+                                merchant_counts[kw] = {"name": kw.title(), "count": 0, "total": 0.0, "dates": []}
+                            merchant_counts[kw]["count"] += 1
+                            merchant_counts[kw]["total"] += tx["debit"]
+                            merchant_counts[kw]["dates"].append(tx["date"])
+                            break
+
+            if not merchant_counts:
+                raw_merchant_counts = {}
+                for tx in normalized:
+                    if tx["debit"] > 0 and len(tx["narration"]) > 3:
+                        m_name = tx["narration"].strip()
+                        if m_name not in raw_merchant_counts:
+                            raw_merchant_counts[m_name] = {"name": m_name, "count": 0, "total": 0.0, "dates": []}
+                        raw_merchant_counts[m_name]["count"] += 1
+                        raw_merchant_counts[m_name]["total"] += tx["debit"]
+                        raw_merchant_counts[m_name]["dates"].append(tx["date"])
+                for m_name, m_data in raw_merchant_counts.items():
+                    if m_data["count"] >= 2 and any(k in m_name.lower() for k in ["sub", "bill", "pay", "fee", "auto", "club"]):
+                        merchant_counts[m_name] = m_data
+
+            if not merchant_counts:
+                return (
+                    "<div style='background:#EFF6FF; border:1px solid #BFDBFE; border-radius:8px; padding:12px; color:#1E40AF; font-size:13px; font-weight:600;'>"
+                    "<strong>📱 ACTIVE SUBSCRIPTIONS & RECURRING PAYMENTS</strong><br>"
+                    "No recurring subscription payments were identified in the selected statement."
+                    "</div>"
+                )
+
+            sub_items_html = ""
+            for kw, data in merchant_counts.items():
+                avg_amt = data["total"] / max(1, data["count"])
+                last_date = data["dates"][-1] if data["dates"] else "-"
+                sub_items_html += f"""
+                <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;'>
+                    <div>
+                        <div style='font-weight:700; color:#0F172A; font-size:13px;'>📱 {data['name']}</div>
+                        <div style='color:#64748B; font-size:11px; margin-top:2px;'>{data['count']} occurrence(s) • Last paid: {last_date}</div>
+                    </div>
+                    <div style='font-weight:800; color:#2563EB; font-size:13px;'>~{symbol}{avg_amt:,.2f}</div>
+                </div>
+                """
+            return f"""
+            <div style='font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:#1E293B; font-size:14px; margin-bottom:10px;'>📱 ACTIVE SUBSCRIPTIONS & RECURRING PAYMENTS</div>
+                {sub_items_html}
+            </div>
+            """
+
+        # --- INTENT 4: WHERE I SPEND MOST / CATEGORY BREAKDOWN ---
+        if any(w in msg_lower for w in ["where i spend", "where am i spending", "spend most", "spending category", "category", "breakdown", "spending distribution"]):
+            cat_totals = {}
+            cat_counts = {}
+            for tx in normalized:
+                if tx["debit"] > 0:
+                    cat = tx.get("category", "Other")
+                    cat_totals[cat] = cat_totals.get(cat, 0.0) + tx["debit"]
+                    cat_counts[cat] = cat_counts.get(cat, 0) + 1
+
+            if not cat_totals:
+                return "<p style='margin:4px 0; color:#64748B;'>No debit spending recorded in this statement.</p>"
+
+            sorted_cats = sorted(cat_totals.items(), key=lambda x: x[1], reverse=True)
+            cat_items_html = ""
+            for cat, amount in sorted_cats[:6]:
+                pct = (amount / total_debits * 100) if total_debits > 0 else 0.0
+                count = cat_counts.get(cat, 0)
+                cat_items_html += f"""
+                <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 14px; margin-bottom:8px;'>
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <span style='font-weight:700; color:#0F172A; font-size:13px;'>📊 {cat}</span>
+                        <span style='font-weight:800; color:#0F172A; font-size:13px;'>{symbol}{amount:,.2f}</span>
+                    </div>
+                    <div style='display:flex; justify-content:space-between; align-items:center; margin-top:4px;'>
+                        <div style='background:#E2E8F0; border-radius:4px; height:6px; flex:1; margin-right:10px; overflow:hidden;'>
+                            <div style='background:#2563EB; height:100%; width:{min(100, pct):.1f}%;'></div>
+                        </div>
+                        <span style='color:#64748B; font-size:11px; font-weight:600;'>{pct:.1f}% ({count} tx)</span>
+                    </div>
+                </div>
+                """
+            return f"""
+            <div style='font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:#1E293B; font-size:14px; margin-bottom:10px;'>📊 SPENDING BY CATEGORY</div>
+                {cat_items_html}
+            </div>
+            """
+
+        # --- INTENT 5: TOTAL INCOME / TOTAL CREDITS ---
+        if any(w in msg_lower for w in ["total income", "total credit", "total credits", "how much income", "credit total", "money in", "inflow"]):
+            credits_list = [tx for tx in normalized if tx["credit"] > 0]
+            max_credit = max((tx["credit"] for tx in credits_list), default=0.0)
+            return f"""
+            <div style='background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; padding:14px; font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:#065F46; font-size:14px; margin-bottom:6px;'>💰 TOTAL INCOME / CREDITS</div>
+                <div style='font-size:22px; font-weight:900; color:#059669;'>{symbol}{total_credits:,.2f}</div>
+                <div style='color:#047857; font-size:12px; margin-top:6px;'>
+                    Total credit transactions: <b>{len(credits_list)}</b><br>
+                    Largest credit inflow: <b>{symbol}{max_credit:,.2f}</b>
+                </div>
+            </div>
+            """
+
+        # --- INTENT 6: TOTAL OUTFLOW / TOTAL SPENDING ---
+        if any(w in msg_lower for w in ["total spending", "total debit", "total debits", "total outflow", "how much spent", "debit total", "outflow"]):
+            debits_list = [tx for tx in normalized if tx["debit"] > 0]
+            max_debit = max((tx["debit"] for tx in debits_list), default=0.0)
+            return f"""
+            <div style='background:#FEF2F2; border:1px solid #FCA5A5; border-radius:10px; padding:14px; font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:#991B1B; font-size:14px; margin-bottom:6px;'>💸 TOTAL SPENDING / DEBITS</div>
+                <div style='font-size:22px; font-weight:900; color:#DC2626;'>{symbol}{total_debits:,.2f}</div>
+                <div style='color:#B91C1C; font-size:12px; margin-top:6px;'>
+                    Total debit transactions: <b>{len(debits_list)}</b><br>
+                    Largest debit outflow: <b>{symbol}{max_debit:,.2f}</b>
+                </div>
+            </div>
+            """
+
+        # --- INTENT 7: NET SAVINGS / SAVINGS RATE ---
+        if any(w in msg_lower for w in ["savings", "net savings", "savings rate", "how much did i save", "saved"]):
+            color = "#059669" if net_savings >= 0 else "#DC2626"
+            bg = "#ECFDF5" if net_savings >= 0 else "#FEF2F2"
+            border = "#A7F3D0" if net_savings >= 0 else "#FCA5A5"
+            return f"""
+            <div style='background:{bg}; border:1px solid {border}; border-radius:10px; padding:14px; font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:{color}; font-size:14px; margin-bottom:6px;'>🏦 NET SAVINGS & SAVINGS RATE</div>
+                <div style='font-size:22px; font-weight:900; color:{color};'>{symbol}{net_savings:,.2f}</div>
+                <div style='color:{color}; font-size:12px; margin-top:6px;'>
+                    Savings Rate: <b>{savings_rate:.1f}%</b><br>
+                    Income ({symbol}{total_credits:,.2f}) − Spending ({symbol}{total_debits:,.2f})
+                </div>
+            </div>
+            """
+
+        # --- INTENT 8: HIGHEST / LARGEST TRANSACTION ---
+        if any(w in msg_lower for w in ["highest transaction", "largest transaction", "max transaction", "biggest transaction"]):
+            all_txs = sorted(normalized, key=lambda x: max(x["debit"], x["credit"]), reverse=True)
+            if not all_txs:
+                return "<p style='margin:4px 0; color:#64748B;'>No transactions found.</p>"
+            top = all_txs[0]
+            is_debit = top["debit"] > 0
+            amt_str = f"{symbol}{top['debit']:,.2f}" if is_debit else f"{symbol}{top['credit']:,.2f}"
+            t_type = "Debit (Outflow)" if is_debit else "Credit (Inflow)"
+            t_color = "#DC2626" if is_debit else "#059669"
+            return f"""
+            <div style='background:#F8FAFC; border:1px solid #CBD5E1; border-radius:10px; padding:14px; font-family:Inter, sans-serif;'>
+                <div style='font-weight:800; color:#0F172A; font-size:14px; margin-bottom:6px;'>🏆 LARGEST TRANSACTION</div>
+                <div style='font-size:20px; font-weight:900; color:{t_color};'>{amt_str}</div>
+                <div style='color:#475569; font-size:12px; margin-top:6px;'>
+                    <b>Narration:</b> {top['narration']}<br>
+                    <b>Date:</b> {top['date']} &nbsp; • &nbsp; <b>Type:</b> {t_type}
+                </div>
+            </div>
+            """
+
+        # --- INTENT 8C: SEARCH BY MERCHANT OR NARRATION KEYWORD ---
+        stop_words = ["what", "where", "show", "many", "much", "did", "spent", "paid", "from", "for", "with", "this", "that", "there", "have", "tell", "give", "list", "check", "the", "are", "any", "my"]
+        query_words = [w for w in msg_lower.replace("?", "").replace(".", "").split() if len(w) >= 3 and w not in stop_words]
+        if len(query_words) > 0:
+            matching_txs = [t for t in normalized if any(w in t["narration"].lower() for w in query_words)]
+            if len(matching_txs) > 0:
+                items_html = ""
+                for idx, t in enumerate(matching_txs[:5], 1):
+                    amt_str = f"{symbol}{t['debit']:,.2f}" if t["debit"] > 0 else f"{symbol}{t['credit']:,.2f}"
+                    color_str = "#DC2626" if t["debit"] > 0 else "#059669"
+                    items_html += f"""
+                    <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;'>
+                        <div>
+                            <div style='font-weight:700; color:#0F172A; font-size:13px;'>{idx}. {t['narration']}</div>
+                            <div style='color:#64748B; font-size:11px; margin-top:2px;'>{t['date']}</div>
+                        </div>
+                        <div style='font-weight:800; color:{color_str}; font-size:14px;'>{amt_str}</div>
+                    </div>
+                    """
+                kw_title = " / ".join(query_words[:2]).upper()
+                return f"""
+                <div style='font-family:Inter, sans-serif;'>
+                    <div style='font-weight:800; color:#1E293B; font-size:14px; margin-bottom:10px;'>🔍 TRANSACTIONS MATCHING '{kw_title}' ({len(matching_txs)} items)</div>
+                    {items_html}
+                </div>
+                """
+
+        # --- INTENT 9: GENERAL STATEMENT SUMMARY / UNRECOGNIZED QUERY ---
+        facts_summary = f"""
+        Statement Data Context:
+        - Bank: {kwargs.get('bank_name', 'Bank')}
+        - Statement Period: {kwargs.get('period', 'Period')}
+        - Total Transactions: {len(normalized)}
+        - Total Income / Credits: {symbol}{total_credits:,.2f}
+        - Total Outflow / Debits: {symbol}{total_debits:,.2f}
+        - Net Savings: {symbol}{net_savings:,.2f} (Savings Rate: {savings_rate:.1f}%)
+        - Top 3 Debits: {', '.join([f"{tx['narration']} ({symbol}{tx['debit']:,.2f} on {tx['date']})" for tx in sorted([t for t in normalized if t['debit']>0], key=lambda x:x['debit'], reverse=True)[:3]])}
+        """
+
+        try:
+            client = cls.get_client()
+            if client:
+                prompt = (
+                    f"You are StatementForge AI Financial Assistant.\n"
+                    f"Answer the user's question concisely using ONLY the statement facts provided below.\n"
+                    f"DO NOT invent or guess any numbers. If the data does not answer the question, state: 'No sufficient data was found in the selected statement for this question.'\n\n"
+                    f"STATEMENT FACTS:\n{facts_summary}\n\n"
+                    f"USER QUESTION: {message}"
+                )
+                gemini_res = cls._call_model_with_fallback(
+                    client,
+                    prompt=prompt,
+                    system_instruction="You are StatementForge AI Assistant. Never invent numbers."
+                )
+                if gemini_res:
+                    return cls.clean_html_response(gemini_res)
+        except Exception:
+            pass
+
+        return f"""
+        <div style='font-family:Inter, sans-serif;'>
+            <div style='font-weight:700; color:#0F172A; font-size:13px; margin-bottom:8px;'>📊 Statement Summary ({len(normalized)} transactions)</div>
+            <div style='background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 14px; font-size:12px; color:#334155; line-height:1.6;'>
+                • <b>Total Income:</b> {symbol}{total_credits:,.2f}<br>
+                • <b>Total Spending:</b> {symbol}{total_debits:,.2f}<br>
+                • <b>Net Savings:</b> {symbol}{net_savings:,.2f} ({savings_rate:.1f}% savings rate)<br>
+                • <b>Transaction Count:</b> {len(normalized)} items parsed.
+            </div>
+        </div>
+        """
 

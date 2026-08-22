@@ -10,6 +10,7 @@ from PyQt6.QtGui import QCursor, QFont, QIcon, QPixmap, QColor, QDesktopServices
 from services.email_service import EmailService
 from services.credential_manager import CredentialManager
 from settings.settings_service import SettingsService
+from settings.toast import Toast
 from utils.user_session import UserSession
 from workers.email_worker import EmailSendWorker
 
@@ -347,6 +348,7 @@ class EmailComposerDialog(QDialog):
 
         # Footer Buttons & Gmail-style Draft status
         footer_lay = QHBoxLayout()
+        footer_lay.setSpacing(10)
         
         self.draft_status_lbl = QLabel("Draft saved" if self.draft_id else "")
         self.draft_status_lbl.setStyleSheet("color: #64748B; font-size: 12px; font-style: italic;")
@@ -361,9 +363,10 @@ class EmailComposerDialog(QDialog):
                 color: #DC2626;
                 border: 1px solid #FCA5A5;
                 border-radius: 8px;
-                padding: 8px 14px;
+                padding: 8px 16px;
                 font-weight: 600;
-                font-size: 12px;
+                font-size: 13px;
+                min-width: 80px;
             }
             QPushButton:hover { background-color: #FEF2F2; }
         """)
@@ -381,6 +384,7 @@ class EmailComposerDialog(QDialog):
                 padding: 8px 18px;
                 font-weight: 600;
                 font-size: 13px;
+                min-width: 75px;
             }
             QPushButton:hover { background-color: #F8FAFC; }
         """)
@@ -398,30 +402,14 @@ class EmailComposerDialog(QDialog):
                 padding: 8px 18px;
                 font-weight: bold;
                 font-size: 13px;
+                min-width: 105px;
             }
             QPushButton:hover { background-color: #FDE68A; }
         """)
         self.draft_btn.clicked.connect(self.save_draft_action)
         footer_lay.addWidget(self.draft_btn)
 
-        self.webmail_btn = QPushButton("🌐 Open Webmail")
-        self.webmail_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.webmail_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #EFF6FF;
-                color: #2563EB;
-                border: 1px solid #BFDBFE;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: bold;
-                font-size: 13px;
-            }
-            QPushButton:hover { background-color: #DBEAFE; }
-        """)
-        self.webmail_btn.clicked.connect(self.open_webmail_action)
-        footer_lay.addWidget(self.webmail_btn)
-
-        self.send_btn = QPushButton("Send Email")
+        self.send_btn = QPushButton("✉ Open directly in Mail")
         self.send_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.send_btn.setStyleSheet("""
             QPushButton {
@@ -432,11 +420,12 @@ class EmailComposerDialog(QDialog):
                 padding: 8px 22px;
                 font-weight: bold;
                 font-size: 13px;
+                min-width: 175px;
             }
             QPushButton:hover { background-color: #1d4ed8; }
             QPushButton:disabled { background-color: #CBD5E1; color: #94A3B8; }
         """)
-        self.send_btn.clicked.connect(self.send_email_action)
+        self.send_btn.clicked.connect(self.open_webmail_action)
         footer_lay.addWidget(self.send_btn)
 
         main_layout.addLayout(footer_lay)
@@ -716,16 +705,14 @@ class EmailComposerDialog(QDialog):
         super().closeEvent(event)
 
     def save_draft_action(self):
-        """Explicitly saves current email composition as a Draft with receiver ID."""
+        """Explicitly saves current email composition as a Draft."""
         recipient = self.to_input.text().strip()
         cc = self.cc_input.text().strip()
         bcc = self.bcc_input.text().strip()
         subject = self.subject_input.text().strip()
         message = self.message_input.toPlainText()
 
-        if not recipient:
-            self.show_status_banner("✕ Please enter a recipient email (receiver ID) to save draft.", is_error=True)
-            return
+        display_rec = recipient if recipient else "Draft (No recipient specified)"
 
         from database.email_repository import EmailRepository
         user = UserSession.get_current_user()
@@ -734,7 +721,7 @@ class EmailComposerDialog(QDialog):
 
         self.draft_id = EmailRepository.save_email_log(
             user_id=user_id,
-            recipient_email=recipient,
+            recipient_email=display_rec,
             cc=cc,
             bcc=bcc,
             subject=subject,
@@ -747,32 +734,37 @@ class EmailComposerDialog(QDialog):
             log_id=self.draft_id
         )
 
+        self.draft_status_lbl.setText("✓ Draft saved")
+        Toast.success(self, "✓ Draft email saved successfully!")
+
         QMessageBox.information(
             self,
             "Draft Saved",
-            f"✓ Draft email saved successfully!\n\nReceiver ID: {recipient}\nSubject: {subject}"
+            f"✓ Draft email saved successfully!\n\nRecipient: {display_rec}\nSubject: {subject or '(No subject)'}"
         )
-        self.emailSentSuccess.emit({"status": "Draft", "id": self.draft_id, "recipient": recipient})
+        self.emailSentSuccess.emit({"status": "Draft", "id": self.draft_id, "recipient": display_rec})
         self.accept()
 
     def update_webmail_button_label(self):
-        """Updates the webmail button label based on configured sender or recipient domain."""
+        """Updates the primary mail button label based on configured sender or recipient domain."""
+        if not hasattr(self, "send_btn"):
+            return
         recipient = self.to_input.text().strip() if hasattr(self, "to_input") else ""
         provider_name, _ = EmailService.get_webmail_compose_url(
             sender_email=getattr(self, "sender_email", ""),
             recipient=recipient
         )
         if "Google" in provider_name:
-            self.webmail_btn.setText("🌐 Open in Google Mail (Gmail)")
+            self.send_btn.setText("✉ Open in Google Mail (Gmail)")
         elif "Yahoo" in provider_name:
-            self.webmail_btn.setText("🌐 Open in Yahoo Mail")
+            self.send_btn.setText("✉ Open in Yahoo Mail")
         elif "Outlook" in provider_name:
-            self.webmail_btn.setText("🌐 Open in Outlook Web")
+            self.send_btn.setText("✉ Open in Outlook Web")
         else:
-            self.webmail_btn.setText("🌐 Open in Webmail / Mail App")
+            self.send_btn.setText("✉ Open directly in Mail App")
 
     def open_webmail_action(self):
-        """Opens user's registered webmail provider (Google Mail, Yahoo Mail, Outlook Web, or Default Mail)."""
+        """Opens user's registered webmail provider (Google Mail, Yahoo Mail, Outlook Web, or Default Mail App) with all details pre-filled."""
         recipient = self.to_input.text().strip()
         cc = self.cc_input.text().strip()
         bcc = self.bcc_input.text().strip()
@@ -788,14 +780,39 @@ class EmailComposerDialog(QDialog):
             bcc=bcc
         )
 
+        # Log email item in repository as "Prepared in Mail App"
+        try:
+            from database.email_repository import EmailRepository
+            user = UserSession.get_current_user()
+            user_id = user.get("id") or user.get("username") if user else "guest"
+            att_name = os.path.basename(self.attachment_paths[0]) if self.attachment_paths else "No attachment"
+
+            EmailRepository.save_email_log(
+                user_id=user_id,
+                recipient_email=recipient or "External Mail App",
+                cc=cc,
+                bcc=bcc,
+                subject=subject,
+                report_type=self.report_type,
+                attachment_name=att_name,
+                attachment_paths=self.attachment_paths,
+                status="Opened in Mail App",
+                error_message="",
+                body=message,
+                log_id=self.draft_id
+            )
+        except Exception:
+            pass
+
         # Copy attachment path to clipboard if attachments exist
         if self.attachment_paths:
-            att_info = "\n".join([os.path.basename(p) for p in self.attachment_paths])
             cb = QGuiApplication.clipboard()
             if cb:
                 cb.setText(self.attachment_paths[0])
-            self.show_status_banner(f"✓ Opening {provider_name}. Attachment path copied to clipboard!", is_error=False)
+            self.show_status_banner(f"✓ Opened details in {provider_name}. Attachment path copied to clipboard!", is_error=False)
         else:
-            self.show_status_banner(f"✓ Opening {provider_name} composer...", is_error=False)
+            self.show_status_banner(f"✓ Opened details in {provider_name}...", is_error=False)
 
         QDesktopServices.openUrl(QUrl(compose_url))
+        Toast.success(self, f"✓ Email details opened directly in {provider_name}!")
+        self.accept()
