@@ -3,6 +3,7 @@ import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from parser.utils import ParserUtils
 
 class GSTExcelWriter:
     """Generates professional dual-sheet GST Ledger reports matching the StatementForge aesthetic."""
@@ -93,7 +94,7 @@ class GSTExcelWriter:
             ("Account Holder", account_holder),
             ("Account Number", masked_acc),
             ("Statement Period", period),
-            ("Report Export Date", datetime.datetime.now().strftime("%Y-%m-%d %I:%M %p")),
+            ("Report Export Date", datetime.datetime.now().strftime("%d-%m-%Y %I:%M %p")),
             ("", ""),
             ("GST Reconciliation Summary", ""),
             ("Total GST Paid (ITC claimable)", "=SUMIF('GST Transactions'!N:N, \"Yes\", 'GST Transactions'!M:M)"),
@@ -183,7 +184,7 @@ class GSTExcelWriter:
                 
             row_data = [
                 tx.get("invoice_num", ""),
-                tx.get("date", ""),
+                ParserUtils.parse_date(tx.get("date", "")),
                 tx.get("narration", ""),
                 tx.get("type", "Debit (ITC Claimable)"),
                 tx.get("category", ""),
@@ -224,6 +225,8 @@ class GSTExcelWriter:
                     cell.number_format = percent_format
                     cell.alignment = Alignment(horizontal="right", vertical="center")
                 elif c_idx in (1, 2, 4, 7, 16, 17, 19): # Center details
+                    if c_idx == 2 and isinstance(val, datetime.date):
+                        cell.number_format = 'dd-mm-yyyy'
                     cell.alignment = Alignment(horizontal="center", vertical="center")
                 else:
                     cell.alignment = Alignment(vertical="center")

@@ -130,6 +130,8 @@ class DashboardScreen(QWidget):
             elif key == "generate_excel":
                 from ui.generate_excel import GenerateExcelWidget
                 self.generate_excel_widget = GenerateExcelWidget(self)
+                if hasattr(self.generate_excel_widget, "processingCompleted"):
+                    self.generate_excel_widget.processingCompleted.connect(self.update_dashboard_stats)
                 new_widget = self.generate_excel_widget
             elif key == "budget_planner":
                 from ui.budget_planner import BudgetPlannerWidget
@@ -185,7 +187,9 @@ class DashboardScreen(QWidget):
             # Sync sidebar checked state if called programmatically
             self.sidebar.set_active_page(key)
 
-            if key == "history":
+            if key == "dashboard":
+                self.update_dashboard_stats()
+            elif key == "history":
                 self.load_history_table()
             elif key in ["ai_auditor", "ai_report"]:
                 if hasattr(self, "ai_report_widget") and self.ai_report_widget:

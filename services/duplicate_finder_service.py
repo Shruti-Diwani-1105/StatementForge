@@ -361,7 +361,7 @@ class DuplicateFinderService:
         title_cell.font = Font(name="Calibri", size=16, bold=True, color="0F172A")
         title_cell.alignment = Alignment(horizontal="left", vertical="center")
 
-        ws_sum["A2"] = f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        ws_sum["A2"] = f"Generated on: {datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
         ws_sum["A2"].font = Font(name="Calibri", size=10, italic=True, color="64748B")
 
         # KPI Metrics Table

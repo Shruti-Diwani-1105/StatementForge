@@ -22,6 +22,8 @@ class GenerateExcelWidget(QWidget):
     Left Panel: Drag-and-drop PDF upload zone, file details, page count, and bank name.
     Right Panel: Timeline progress, transaction preview grid, Generate & Download buttons.
     """
+    processingCompleted = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.file_path = None
@@ -531,6 +533,8 @@ class GenerateExcelWidget(QWidget):
             pass
 
         def on_finished(excel_path):
+            if hasattr(self, "history_record_id"):
+                HistoryService.update_record_status(self.history_record_id, status="Completed")
             self.excel_output_path = excel_path
             self.lbl_status.setText("Status: Conversion completed successfully!")
             self.pbar.setValue(100)
@@ -538,6 +542,15 @@ class GenerateExcelWidget(QWidget):
             self.email_btn.setEnabled(True)
             self.generate_btn.setEnabled(True)
             self.load_recent_generated_sheets()
+            self.processingCompleted.emit()
+            
+            p = self.parent()
+            while p:
+                if hasattr(p, "update_dashboard_stats"):
+                    p.update_dashboard_stats()
+                    break
+                p = p.parent()
+                
             Toast.success(self, "✓ Excel workbook compiled successfully!")
 
         def on_error(err):

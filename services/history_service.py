@@ -40,7 +40,7 @@ class HistoryService:
         now = datetime.datetime.utcnow()
         
         doc = {
-            "user_id": user_id,
+            "user_id": str(user_id) if user_id else "guest",
             "pdf_path": pdf_path,
             "excel_path": "",
             "bank_name": bank_name,

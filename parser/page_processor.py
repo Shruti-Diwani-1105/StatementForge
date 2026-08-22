@@ -61,9 +61,8 @@ class PageProcessor:
                             if logger:
                                 logger.log(f"Page {page_num + 1} {strategy_name} strategy error: {e}")
 
-        # 2. Try OCR Fallback (if scanned and digital failed/yielded 0)
-        ocr_failed = False
-        if not transactions and not is_digital:
+        # 2. Try OCR Fallback (if scanned or digital extraction yielded 0 transactions)
+        if not transactions:
             method_used = "OCR Parser"
             try:
                 grid_table = TableExtractor.extract_table_via_ocr(pdf_path, page_num, logger)
@@ -72,16 +71,15 @@ class PageProcessor:
                         used_mapping = TransactionParser.detect_columns(grid_table)
                     transactions = TransactionParser.parse_rows(grid_table, used_mapping)
             except Exception as e:
-                ocr_failed = True
                 if logger:
                     logger.log(f"Page {page_num + 1} OCR extraction error: {e}")
 
-        # 3. Try AI Vision Last-resort Fallback (if both digital and local OCR failed/yielded 0)
-        if not transactions and not is_digital and ocr_failed:
+        # 3. Try AI Vision Last-resort Fallback (if both digital and local OCR yielded 0 transactions)
+        if not transactions:
             method_used = "AI Vision Fallback"
             try:
                 if logger:
-                    logger.log(f"Page {page_num + 1}: Local engines failed. Running AI Vision last-resort fallback...")
+                    logger.log(f"Page {page_num + 1}: Local engines failed/0 transactions. Running AI Vision image fallback...")
                 
                 # Render page to PIL image
                 from parser.ocr_parser import OCRParser

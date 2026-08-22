@@ -3,6 +3,7 @@ import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from parser.utils import ParserUtils
 
 class ExcelGenerator:
     """Generates a professionally formatted Excel spreadsheet from parsed statements."""
@@ -81,7 +82,7 @@ class ExcelGenerator:
             ("Total Debits (Withdrawals)", total_debit),
             ("Total Credits (Deposits)", total_credit),
             ("Total Transactions", num_transactions),
-            ("Extraction Date", datetime.datetime.now().strftime("%Y-%m-%d %I:%M %p")),
+            ("Extraction Date", datetime.datetime.now().strftime("%d-%m-%Y %I:%M %p")),
         ]
 
         # Currency formatting rule
@@ -159,7 +160,10 @@ class ExcelGenerator:
             c_row = ws_tx.cell(row=row_idx, column=1, value=row_idx - 1)
             c_row.alignment = Alignment(horizontal="center", vertical="center")
             
-            c_date = ws_tx.cell(row=row_idx, column=2, value=tx["date"])
+            parsed_d = ParserUtils.parse_date(tx["date"])
+            c_date = ws_tx.cell(row=row_idx, column=2, value=parsed_d)
+            if isinstance(parsed_d, datetime.date):
+                c_date.number_format = 'dd-mm-yyyy'
             c_date.alignment = Alignment(horizontal="center", vertical="center")
             
             c_narr = ws_tx.cell(row=row_idx, column=3, value=tx["narration"])

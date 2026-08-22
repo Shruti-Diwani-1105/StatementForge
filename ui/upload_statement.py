@@ -269,12 +269,13 @@ class UploadStatementWidget(QWidget):
             self.html_wrapper.eval_js(f"addRecentActivity('{bank_name}', '{file_name}', {tx_len}, '{time_str}', 'Completed');")
             self.processingCompleted.emit()
             
-            # Sync TopBar Badge
+            # Sync Dashboard Stats and TopBar Badge in real time
             p = self.parent()
             while p:
+                if hasattr(p, "update_dashboard_stats"):
+                    p.update_dashboard_stats()
                 if hasattr(p, "update_notification_badge"):
                     p.update_notification_badge()
-                    break
                 p = p.parent()
                 
             action = getattr(self, "post_process_action", "excel")
