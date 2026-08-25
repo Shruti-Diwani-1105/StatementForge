@@ -1,7 +1,7 @@
 import os
 import sys
 import datetime
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFileDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFileDialog, QMessageBox
 from PyQt6.QtCore import pyqtSignal
 from ui.html_screen_wrapper import HtmlScreenWrapper
 from services.statement_service import StatementService
@@ -27,7 +27,7 @@ class UploadStatementWidget(QWidget):
         self.parsed_payload = None
         self.active_thread = None
         self.post_process_action = "excel"
-        self.auto_detect = True
+        self.auto_detect = False
 
         # Embed HTML + CSS presentation layer
         layout = QVBoxLayout(self)
@@ -55,7 +55,21 @@ class UploadStatementWidget(QWidget):
         cmd = parts[1] if len(parts) > 1 else ""
         raw_payload = parts[2] if len(parts) > 2 else ""
 
-        if cmd == "upload_browse":
+        if cmd in ["upload_browse", "upload_browse_csv", "upload_browse_json", "upload_browse_excel"]:
+            try:
+                import json
+                data = json.loads(raw_payload) if raw_payload else {}
+                self.auto_detect = data.get("autoDetect", False)
+            except Exception:
+                pass
+                
+            if cmd == "upload_browse_csv":
+                self.post_process_action = "csv"
+            elif cmd == "upload_browse_json":
+                self.post_process_action = "json"
+            elif cmd == "upload_browse_excel":
+                self.post_process_action = "excel"
+                
             self.browse_pdf_file()
         elif cmd == "upload_file_selected":
             try:
@@ -104,8 +118,13 @@ class UploadStatementWidget(QWidget):
             is_digital = PDFReader.is_digital_pdf(self.file_path)
             self.doc_type_desc = "Digital PDF" if is_digital else "Scanned PDF"
 
-            selected_flow = getattr(self, "target_flow_preset", "excel")
-            if selected_flow:
+            bank_str = self.detected_bank.replace("'", "\\'")
+            doc_str = self.doc_type_desc.replace("'", "\\'")
+            self.html_wrapper.eval_js(f"if(document.getElementById('procBankName')) document.getElementById('procBankName').innerText = '{bank_str}';")
+            self.html_wrapper.eval_js(f"if(document.getElementById('procPageCount')) document.getElementById('procPageCount').innerText = '{self.page_count} pages ({doc_str})';")
+
+            selected_flow = getattr(self, "target_flow_preset", "excel") or "excel"
+            if hasattr(self, "target_flow_preset") and self.target_flow_preset:
                 self.target_flow_preset = None
 
             if self.auto_detect:
@@ -127,7 +146,8 @@ class UploadStatementWidget(QWidget):
 
     def handle_module_selection(self, module_key):
         """Handles choice card button actions."""
-        if module_key in ["excel", "gst"]:
+        if module_key in ["excel", "gst", "csv", "json"]:
+            self.post_process_action = module_key
             self.start_processing_flow(target_flow=module_key)
         elif module_key == "tally":
             self.post_process_action = "tally"
@@ -143,15 +163,18 @@ class UploadStatementWidget(QWidget):
                     break
                 p = p.parent()
         elif module_key == "email":
-            p = self.parent()
-            while p:
-                if hasattr(p, "switch_dashboard_page"):
-                    p.switch_dashboard_page("email_history")
-                    break
-                p = p.parent()
+            from ui.email_composer_dialog import EmailComposerDialog
+            att_path = getattr(self, "file_path", None)
+            dialog = EmailComposerDialog(
+                report_type="Bank Statement",
+                default_attachment=att_path,
+                bank_name=getattr(self, "detected_bank", ""),
+                parent=self
+            )
+            dialog.exec()
 
     # ==========================================
-    # BACKEND WORKFLOW STEP 2: PARSE & COMPILE EXCEL
+    # BACKEND WORKFLOW STEP 2: PARSE & COMPILE EXCEL/CSV/JSON
     # ==========================================
     def start_processing_flow(self, target_flow="excel"):
         """Launches the backend extraction and parsing engine thread."""
@@ -164,11 +187,16 @@ class UploadStatementWidget(QWidget):
             pdf_path=self.file_path,
             bank_name=self.detected_bank,
             status="Processing",
-            output_format="GST Report" if target_flow == "gst" else "Excel"
+            output_format=target_flow.upper()
         )
 
         def on_started():
-            pass
+            file_str = os.path.basename(self.file_path).replace("'", "\\'") if self.file_path else "Statement"
+            bank_str = self.detected_bank.replace("'", "\\'")
+            doc_str = getattr(self, "doc_type_desc", "PDF").replace("'", "\\'")
+            self.html_wrapper.eval_js("switchView('view-processing');")
+            self.html_wrapper.eval_js(f"if(document.getElementById('procBankName')) document.getElementById('procBankName').innerText = '{bank_str}';")
+            self.html_wrapper.eval_js(f"if(document.getElementById('procPageCount')) document.getElementById('procPageCount').innerText = '{self.page_count} pages ({doc_str})';")
 
         def on_step_started(idx):
             msg = "Pre-processing document..." if idx == 1 else ("Reading layout pages..." if idx == 2 else "Configuring OCR alignments...")
@@ -208,6 +236,10 @@ class UploadStatementWidget(QWidget):
                     dashboard.switch_dashboard_page("ai_auditor")
                     dashboard.ai_auditor_widget.run_ai_task("report")
                 self.reset_to_upload()
+            elif action == "csv":
+                self.export_csv_flow(payload)
+            elif action == "json":
+                self.export_json_flow(payload)
             else:
                 self.generate_excel_flow()
 
@@ -220,6 +252,180 @@ class UploadStatementWidget(QWidget):
 
         self.active_thread = StatementService.start_parse(
             self.file_path, on_started, on_step_started, on_step_completed, on_progress, on_finished, on_error
+        )
+
+    def export_csv_flow(self, payload):
+        """Prompts native save dialog and exports parsed statement payload to CSV."""
+        if not payload or not payload.get("transactions"):
+            self.reset_to_upload()
+            self.html_wrapper.eval_js("alert('No valid transactions found in this statement for CSV export.');")
+            return
+
+        from PyQt6.QtCore import QStandardPaths
+        doc_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        
+        bank_clean = "".join(c for c in self.detected_bank if c.isalnum()) or "Bank"
+        date_stamp = datetime.datetime.now().strftime("%Y-%m-%d")
+        default_filename = f"StatementForge_{bank_clean}_{date_stamp}.csv"
+        default_path = os.path.join(doc_dir, default_filename)
+
+        save_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Statement as CSV", default_path, "CSV Files (*.csv)"
+        )
+
+        if not save_path:
+            self.reset_to_upload()
+            return
+
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else "guest"
+        record_id = getattr(self, "history_record_id", None)
+
+        def on_started():
+            pass
+
+        def on_finished(csv_path):
+            if hasattr(self, "history_record_id"):
+                HistoryService.update_record_completed(
+                    record_id=self.history_record_id,
+                    excel_path=csv_path,
+                    period=self.parsed_payload.get("period", "Unknown"),
+                    processing_time=self.parsed_payload.get("processing_time", 0),
+                    total_transactions=len(self.parsed_payload.get("transactions", []))
+                )
+            
+            tx_len = len(self.parsed_payload.get("transactions", []))
+            time_str = datetime.datetime.now().strftime("%H:%M")
+            file_name = os.path.basename(self.file_path).replace("'", "\\'")
+            bank_name = self.detected_bank.replace("'", "\\'")
+            
+            try:
+                from services.notification_service import NotificationService
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="parsing_export",
+                    title="CSV Export Completed",
+                    message=f"CSV exported successfully to {os.path.basename(csv_path)} ({tx_len} transactions).",
+                    action_type="view_statement"
+                )
+            except Exception as e:
+                print(f"CSV Export notification error: {e}")
+
+            self.html_wrapper.eval_js(f"addRecentActivity('{bank_name}', '{file_name}', {tx_len}, '{time_str}', 'Completed');")
+            self.processingCompleted.emit()
+            self.reset_to_upload()
+            
+            ans = QMessageBox.question(
+                self,
+                "CSV Export Completed",
+                f"✓ CSV statement exported successfully:\n{os.path.basename(csv_path)}\n\nWould you like to send this CSV file via Email / Google Mail?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            if ans == QMessageBox.StandardButton.Yes:
+                from ui.email_composer_dialog import EmailComposerDialog
+                dialog = EmailComposerDialog(
+                    report_type="Bank Statement CSV Export",
+                    default_attachment=csv_path,
+                    bank_name=self.detected_bank,
+                    parent=self
+                )
+                dialog.exec()
+
+        def on_error(err):
+            self.reset_to_upload()
+            escaped_err = str(err).replace("'", "\\'").replace("\n", " ")
+            self.html_wrapper.eval_js(f"alert('CSV export failed: {escaped_err}');")
+
+        StatementService.start_generate_csv(
+            user_id, payload, save_path, record_id, on_started, on_finished, on_error
+        )
+
+    def export_json_flow(self, payload):
+        """Prompts native save dialog and exports parsed statement payload to JSON."""
+        if not payload or not payload.get("transactions"):
+            self.reset_to_upload()
+            self.html_wrapper.eval_js("alert('No valid transactions found in this statement for JSON export.');")
+            return
+
+        from PyQt6.QtCore import QStandardPaths
+        doc_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        
+        bank_clean = "".join(c for c in self.detected_bank if c.isalnum()) or "Bank"
+        date_stamp = datetime.datetime.now().strftime("%Y-%m-%d")
+        default_filename = f"StatementForge_{bank_clean}_{date_stamp}.json"
+        default_path = os.path.join(doc_dir, default_filename)
+
+        save_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Statement as JSON", default_path, "JSON Files (*.json)"
+        )
+
+        if not save_path:
+            self.reset_to_upload()
+            return
+
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else "guest"
+        record_id = getattr(self, "history_record_id", None)
+
+        def on_started():
+            pass
+
+        def on_finished(json_path):
+            if hasattr(self, "history_record_id"):
+                HistoryService.update_record_completed(
+                    record_id=self.history_record_id,
+                    excel_path=json_path,
+                    period=self.parsed_payload.get("period", "Unknown"),
+                    processing_time=self.parsed_payload.get("processing_time", 0),
+                    total_transactions=len(self.parsed_payload.get("transactions", []))
+                )
+            
+            tx_len = len(self.parsed_payload.get("transactions", []))
+            time_str = datetime.datetime.now().strftime("%H:%M")
+            file_name = os.path.basename(self.file_path).replace("'", "\\'")
+            bank_name = self.detected_bank.replace("'", "\\'")
+            
+            try:
+                from services.notification_service import NotificationService
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="parsing_export",
+                    title="JSON Export Completed",
+                    message=f"JSON exported successfully to {os.path.basename(json_path)} ({tx_len} transactions).",
+                    action_type="view_statement"
+                )
+            except Exception as e:
+                print(f"JSON Export notification error: {e}")
+
+            self.html_wrapper.eval_js(f"addRecentActivity('{bank_name}', '{file_name}', {tx_len}, '{time_str}', 'Completed');")
+            self.processingCompleted.emit()
+            self.reset_to_upload()
+            
+            ans = QMessageBox.question(
+                self,
+                "JSON Export Completed",
+                f"✓ JSON statement exported successfully:\n{os.path.basename(json_path)}\n\nWould you like to send this JSON file via Email / Google Mail?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            if ans == QMessageBox.StandardButton.Yes:
+                from ui.email_composer_dialog import EmailComposerDialog
+                dialog = EmailComposerDialog(
+                    report_type="Bank Statement JSON Export",
+                    default_attachment=json_path,
+                    bank_name=self.detected_bank,
+                    parent=self
+                )
+                dialog.exec()
+
+        def on_error(err):
+            self.reset_to_upload()
+            escaped_err = str(err).replace("'", "\\'").replace("\n", " ")
+            self.html_wrapper.eval_js(f"alert('JSON export failed: {escaped_err}');")
+
+        StatementService.start_generate_json(
+            user_id, payload, save_path, record_id, on_started, on_finished, on_error
         )
 
     def generate_excel_flow(self):

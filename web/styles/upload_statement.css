@@ -273,12 +273,39 @@ body {
     color: var(--text-muted);
 }
 
+.upload-action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.btn-json {
+    background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+}
+
+.btn-json:hover {
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.5);
+}
+
+.btn-excel {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 4px 16px rgba(5, 150, 105, 0.35);
+}
+
+.btn-excel:hover {
+    box-shadow: 0 8px 24px rgba(5, 150, 105, 0.5);
+}
+
 /* Flagship Primary Button */
 .btn-flagship {
     background: var(--primary-gradient);
     color: #FFFFFF;
     border: none;
-    padding: 10px 26px;
+    padding: 10px 22px;
     border-radius: var(--radius-btn);
     font-family: var(--font-serif);
     font-size: 13px;
@@ -739,6 +766,8 @@ body.dark-mode .recent-table tbody tr:nth-child(even) {
 }
 
 .card-icon-box.bg-green { background-color: #F0FDF4; }
+.card-icon-box.bg-teal { background-color: #F0FDFA; }
+.card-icon-box.bg-indigo { background-color: #EEF2FF; }
 .card-icon-box.bg-purple { background-color: #F5F3FF; }
 .card-icon-box.bg-amber { background-color: #FFFBEB; }
 .card-icon-box.bg-orange { background-color: #FFF7ED; }

@@ -238,6 +238,72 @@ class GSTWorker(QObject):
             self.error.emit(str(e))
 
 
+class CSVWorker(QObject):
+    """Worker object that runs CSV export and database logging in a background thread."""
+    started = pyqtSignal()
+    finished = pyqtSignal(str)
+    error = pyqtSignal(str)
+
+    def __init__(self, user_id, payload, output_path, history_record_id=None):
+        super().__init__()
+        self.user_id = user_id
+        self.payload = payload
+        self.output_path = output_path
+        self.history_record_id = history_record_id
+
+    def run(self):
+        try:
+            self.started.emit()
+            from services.export_service import ExportService
+            res = ExportService.export_csv(self.payload, self.output_path)
+            
+            if self.history_record_id:
+                HistoryService.update_record_completed(
+                    record_id=self.history_record_id,
+                    excel_path=self.output_path,
+                    period=self.payload.get("period", "Unknown"),
+                    processing_time=self.payload.get("processing_time", 0),
+                    total_transactions=res["transaction_count"]
+                )
+
+            self.finished.emit(self.output_path)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+class JSONWorker(QObject):
+    """Worker object that runs JSON export and database logging in a background thread."""
+    started = pyqtSignal()
+    finished = pyqtSignal(str)
+    error = pyqtSignal(str)
+
+    def __init__(self, user_id, payload, output_path, history_record_id=None):
+        super().__init__()
+        self.user_id = user_id
+        self.payload = payload
+        self.output_path = output_path
+        self.history_record_id = history_record_id
+
+    def run(self):
+        try:
+            self.started.emit()
+            from services.export_service import ExportService
+            res = ExportService.export_json(self.payload, self.output_path)
+            
+            if self.history_record_id:
+                HistoryService.update_record_completed(
+                    record_id=self.history_record_id,
+                    excel_path=self.output_path,
+                    period=self.payload.get("period", "Unknown"),
+                    processing_time=self.payload.get("processing_time", 0),
+                    total_transactions=res["transaction_count"]
+                )
+
+            self.finished.emit(self.output_path)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 class StatementService:
     """Service to spawn thread workers for statement processing."""
     
@@ -342,6 +408,66 @@ class StatementService:
 # Refactored / updated upload_statement module and service integration
 
     @classmethod
+    def start_generate_csv(cls, user_id, payload, output_path, history_record_id, on_started, on_finished, on_error):
+        """Spawns a CSVWorker in a background thread."""
+        thread = QThread()
+        worker = CSVWorker(user_id, payload, output_path, history_record_id)
+        worker.moveToThread(thread)
+
+        thread.worker = worker
+
+        thread.started.connect(worker.run)
+        worker.started.connect(on_started)
+
+        def cleanup():
+            thread.quit()
+            thread.wait()
+
+        def handle_finished(path):
+            on_finished(path)
+            cleanup()
+
+        def handle_error(err_msg):
+            on_error(err_msg)
+            cleanup()
+
+        worker.finished.connect(handle_finished)
+        worker.error.connect(handle_error)
+
+        thread.start()
+        return thread
+
+    @classmethod
+    def start_generate_json(cls, user_id, payload, output_path, history_record_id, on_started, on_finished, on_error):
+        """Spawns a JSONWorker in a background thread."""
+        thread = QThread()
+        worker = JSONWorker(user_id, payload, output_path, history_record_id)
+        worker.moveToThread(thread)
+
+        thread.worker = worker
+
+        thread.started.connect(worker.run)
+        worker.started.connect(on_started)
+
+        def cleanup():
+            thread.quit()
+            thread.wait()
+
+        def handle_finished(path):
+            on_finished(path)
+            cleanup()
+
+        def handle_error(err_msg):
+            on_error(err_msg)
+            cleanup()
+
+        worker.finished.connect(handle_finished)
+        worker.error.connect(handle_error)
+
+        thread.start()
+        return thread
+
+    @classmethod
     def start_generate_gst_report(cls, user_id, payload, history_record_id, on_started, on_finished, on_error):
         """Spawns a GSTWorker in a background thread."""
         thread = QThread()
@@ -370,4 +496,3 @@ class StatementService:
 
         thread.start()
         return thread
-
