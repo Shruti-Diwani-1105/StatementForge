@@ -483,7 +483,6 @@ class UploadStatementWidget(QWidget):
                 if hasattr(p, "update_notification_badge"):
                     p.update_notification_badge()
                 p = p.parent()
-                
             action = getattr(self, "post_process_action", "excel")
             self.reset_to_upload()
             
