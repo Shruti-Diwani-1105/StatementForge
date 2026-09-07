@@ -30,7 +30,8 @@
 
         <!-- Navigation Menu -->
         <nav class="sidebar-nav">
-            <ul class="nav-list">
+            <!-- STANDARD USER MENU ITEMS -->
+            <ul class="nav-list user-nav">
                 <li class="nav-item">
                     <button type="button" class="nav-button active" id="nav-dashboard" data-tooltip="Dashboard" onclick="sendAppCommand('nav', 'dashboard')">
                         <span class="icon-container">
@@ -112,6 +113,50 @@
                     </button>
                 </li>
             </ul>
+
+            <!-- ADMIN EXCLUSIVE MENU ITEMS -->
+            <ul class="nav-list admin-nav" style="display:none;">
+                <li class="nav-item">
+                    <button type="button" class="nav-button active" id="nav-admin_panel" data-tooltip="Admin Control Center" onclick="sendAppCommand('nav', 'admin_panel')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/admin.png" alt="Admin Control Center" class="nav-icon">
+                        </span>
+                        <span class="text-container">Admin Overview</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-admin_users" data-tooltip="User Accounts" onclick="sendAppCommand('nav', 'admin_users')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/profile.png" alt="User Accounts" class="nav-icon">
+                        </span>
+                        <span class="text-container">User Accounts</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-admin_statements" data-tooltip="Statement Audit Log" onclick="sendAppCommand('nav', 'admin_statements')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/history.png" alt="Statement Audit Log" class="nav-icon">
+                        </span>
+                        <span class="text-container">Statement Audit Log</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-admin_logs" data-tooltip="Security & Activity Logs" onclick="sendAppCommand('nav', 'admin_logs')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/bell.png" alt="Security & Activity Logs" class="nav-icon">
+                        </span>
+                        <span class="text-container">Security & Activity Logs</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-button" id="nav-settings" data-tooltip="Settings" onclick="sendAppCommand('nav', 'settings')">
+                        <span class="icon-container">
+                            <img src="../assets/icons/settings.png" alt="Settings" class="nav-icon">
+                        </span>
+                        <span class="text-container">Settings</span>
+                    </button>
+                </li>
+            </ul>
         </nav>
 
         <!-- Sidebar Footer / Logout -->
@@ -126,6 +171,20 @@
     </aside>
 
     <script>
+        function setUserRole(role) {
+            const r = String(role || '').toLowerCase();
+            const isAdmin = (r === 'admin' || r === 'administrator');
+            const userNav = document.querySelector('.user-nav');
+            const adminNav = document.querySelector('.admin-nav');
+            if (isAdmin) {
+                if (userNav) userNav.style.display = 'none';
+                if (adminNav) adminNav.style.display = 'block';
+            } else {
+                if (userNav) userNav.style.display = 'block';
+                if (adminNav) adminNav.style.display = 'none';
+            }
+        }
+
         function toggleSidebarState() {
             const isCollapsed = document.body.classList.toggle('collapsed');
             updateToggleUI(isCollapsed);

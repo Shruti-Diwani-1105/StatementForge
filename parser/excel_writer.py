@@ -160,17 +160,32 @@ class ExcelWriter:
         for col in ws_tx.columns:
             max_len = 0
             col_letter = get_column_letter(col[0].column)
+            header_val = str(ws_tx.cell(row=1, column=col[0].column).value or "").lower()
             for cell in col:
                 val = cell.value
                 if val is not None:
                     if isinstance(val, datetime.date):
                         val_str = val.strftime('%d-%m-%Y')
-                    elif isinstance(val, (int, float)) and any(term in ws_tx.cell(row=1, column=cell.column).value.lower() for term in ["debit", "credit", "balance", "amount"]):
+                    elif isinstance(val, (int, float)) and any(term in header_val for term in ["debit", "credit", "balance", "amount"]):
                         val_str = f"₹ {val:,.2f}"
                     else:
                         val_str = str(val)
                     max_len = max(max_len, len(val_str))
-            ws_tx.column_dimensions[col_letter].width = max(max_len + 3, 12)
+
+            if "date" in header_val:
+                min_w = 18
+            elif any(term in header_val for term in ["narration", "description", "particulars", "remarks"]):
+                min_w = 45
+            elif any(term in header_val for term in ["ref", "cheque"]):
+                min_w = 25
+            elif "type" in header_val or "transaction" in header_val:
+                min_w = 22
+            elif any(term in header_val for term in ["debit", "credit", "balance", "amount"]):
+                min_w = 18
+            else:
+                min_w = 16
+
+            ws_tx.column_dimensions[col_letter].width = max(max_len + 5, min_w)
 
         # ----------------------------------------------------
         # SHEET 2: SUMMARY

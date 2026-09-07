@@ -138,8 +138,14 @@ class NavigationController(QMainWindow):
         
         # Update user profile in dashboard
         self.dashboard_screen.set_user_profile(user_details)
-        # Reset dashboard page index to the home Dashboard tab view
-        self.dashboard_screen.switch_dashboard_page("dashboard")
+        
+        # Direct admin user to Admin Panel, and standard user to Dashboard
+        role = str(user_details.get("role", "")).lower() if user_details else ""
+        if role in ["admin", "administrator"]:
+            self.dashboard_screen.switch_dashboard_page("admin_panel")
+        else:
+            self.dashboard_screen.switch_dashboard_page("dashboard")
+            
         self.stacked_widget.setCurrentIndex(3)
 
     def handle_logout(self):

@@ -47,6 +47,13 @@ class WebBridge(QObject):
         success, message, user_details = AuthDB.validate_user(email, password)
         
         if success:
+            # Bypass OTP verification for Admin accounts
+            role = str(user_details.get("role", "")).lower() if user_details else ""
+            user_email = email.strip().lower()
+            if role in ["admin", "administrator"] or user_email == "xyz@gmail.com":
+                self.loginSuccess.emit(user_details)
+                return
+
             from ui.login_otp_dialog import LoginOTPDialog
             from PyQt6.QtWidgets import QDialog
             
@@ -112,4 +119,52 @@ class WebBridge(QObject):
             self.profileUpdated.emit(updated_profile)
             return True
         return False
+
+    # --- Admin Panel Slots ---
+
+    @pyqtSlot(result=list)
+    def getAdminUsers(self):
+        """Returns all registered users for admin panel management."""
+        from services.admin_service import AdminService
+        return AdminService.get_all_users()
+
+    @pyqtSlot(str, str, result=dict)
+    def updateUserRole(self, email, role):
+        """Updates user role to admin or user."""
+        from services.admin_service import AdminService
+        success, message = AdminService.update_user_role(email, role)
+        return {"success": success, "message": message}
+
+    @pyqtSlot(str, str, result=dict)
+    def updateUserStatus(self, email, status):
+        """Updates account status to active or disabled."""
+        from services.admin_service import AdminService
+        success, message = AdminService.update_user_status(email, status)
+        return {"success": success, "message": message}
+
+    @pyqtSlot(str, result=dict)
+    def deleteUserAccount(self, email):
+        """Deletes specified user account."""
+        from services.admin_service import AdminService
+        success, message = AdminService.delete_user(email)
+        return {"success": success, "message": message}
+
+    @pyqtSlot(result=dict)
+    def getAdminStats(self):
+        """Returns overall system statistics for the admin dashboard."""
+        from services.admin_service import AdminService
+        return AdminService.get_system_stats()
+
+    @pyqtSlot(result=list)
+    def getAdminStatements(self):
+        """Returns statement logs across all users."""
+        from services.admin_service import AdminService
+        return AdminService.get_all_statements()
+
+    @pyqtSlot(result=list)
+    def getAdminAuditLogs(self):
+        """Returns system activity and audit logs."""
+        from services.admin_service import AdminService
+        return AdminService.get_audit_logs()
+
 

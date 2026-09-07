@@ -33,7 +33,8 @@ def generate_assets():
         "profile": draw_profile_icon,
         "duplicate": draw_duplicate_icon,
         "email": draw_email_icon,
-        "budget": draw_budget_icon
+        "budget": draw_budget_icon,
+        "admin": draw_admin_icon
     }
     
     for name, func in icons.items():
@@ -368,6 +369,20 @@ def draw_budget_icon(painter, primary, accent, gray):
     # Currency symbol (Rupee/Dollar stroke) in center
     painter.setPen(QPen(QColor("#FFFFFF"), 2, Qt.PenStyle.SolidLine))
     painter.drawEllipse(QRectF(43, 30, 4, 4))
+
+def draw_admin_icon(painter, primary, accent, gray):
+    # Shield / Admin User Icon
+    painter.setPen(QPen(primary, 4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    
+    # Shield contour
+    painter.drawRoundedRect(QRectF(12, 10, 40, 44), 8, 8)
+    
+    # Inner star / badge dot
+    painter.setBrush(QBrush(accent))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawEllipse(QRectF(26, 24, 12, 12))
+
 
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication

@@ -162,6 +162,28 @@ class UploadStatementWidget(QWidget):
                     p.switch_dashboard_page("history")
                     break
                 p = p.parent()
+        elif module_key in ["duplicate", "duplicate_finder"]:
+            p = self.parent()
+            while p:
+                if hasattr(p, "switch_dashboard_page"):
+                    p.switch_dashboard_page("duplicate_finder")
+                    if hasattr(p, "duplicate_finder_widget") and p.duplicate_finder_widget is not None and getattr(self, "file_path", None):
+                        if os.path.exists(self.file_path):
+                            from parser.parser import PDFStatementParser
+                            try:
+                                payload = PDFStatementParser.parse(self.file_path)
+                                txs = payload.get("transactions", [])
+                                if txs:
+                                    p.duplicate_finder_widget.loaded_statements = [{
+                                        "file_name": os.path.basename(self.file_path),
+                                        "bank_name": payload.get("bank_name", getattr(self, "detected_bank", "Bank")),
+                                        "transactions": txs
+                                    }]
+                                    p.duplicate_finder_widget.run_duplicate_scan()
+                            except Exception as e:
+                                print(f"Error loading statement into duplicate finder: {e}")
+                    break
+                p = p.parent()
         elif module_key == "email":
             from ui.email_composer_dialog import EmailComposerDialog
             att_path = getattr(self, "file_path", None)

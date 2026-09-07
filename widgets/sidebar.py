@@ -77,6 +77,8 @@ class Sidebar(QFrame):
     def _on_load_finished(self, success):
         if success:
             self.set_active_page(self.current_key)
+            if hasattr(self, "user_role") and self.user_role:
+                self.set_user_role(self.user_role)
             from utils.theme_manager import ThemeManager
             self.update_theme_styles(ThemeManager.get_theme())
             self.apply_collapsed_state(self.is_collapsed, animate=False)
@@ -102,6 +104,12 @@ class Sidebar(QFrame):
         elif cmd == "toggle_sidebar":
             new_state = (payload.strip().lower() == "collapsed")
             self.set_collapsed(new_state, animate=True)
+
+    def set_user_role(self, role: str):
+        """Passes user role ('admin' vs 'user') to sidebar HTML to toggle menu items."""
+        self.user_role = str(role or '').lower()
+        script = f"if (typeof setUserRole === 'function') setUserRole('{self.user_role}');"
+        self.web_view.page().runJavaScript(script)
 
     def set_collapsed(self, collapsed: bool, animate=True):
         """Programmatically collapses or expands the sidebar with smooth animation."""
@@ -148,3 +156,4 @@ class Sidebar(QFrame):
         """Propagates theme changes (light/dark) to the sidebar HTML container."""
         script = f"if ('{theme}' === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');"
         self.web_view.page().runJavaScript(script)
+

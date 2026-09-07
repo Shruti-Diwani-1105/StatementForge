@@ -68,8 +68,8 @@ class DashboardScreen(QWidget):
         # Create the main dashboard overview page immediately (index 0)
         self.create_main_dashboard_page()
         
-        # Add placeholders for the other 12 pages
-        for _ in range(12):
+        # Add placeholders for the other 13 pages
+        for _ in range(13):
             placeholder = QWidget()
             placeholder.setProperty("is_placeholder", True)
             self.page_stack.addWidget(placeholder)
@@ -93,7 +93,11 @@ class DashboardScreen(QWidget):
             "email_history": 9,
             "ai_chatbot": 10,
             "notifications": 11,
-            "tally": 12
+            "tally": 12,
+            "admin_panel": 13,
+            "admin_users": 13,
+            "admin_statements": 13,
+            "admin_logs": 13
         }
         if key not in mapping:
             return
@@ -154,6 +158,10 @@ class DashboardScreen(QWidget):
                 from ui.tally_export import TallyExportWidget
                 self.tally_export_widget = TallyExportWidget(self)
                 new_widget = self.tally_export_widget
+            elif key.startswith("admin_"):
+                from ui.admin_panel_widget import AdminPanelWidget
+                self.admin_panel_widget = AdminPanelWidget(self)
+                new_widget = self.admin_panel_widget
             else:
                 return
             
@@ -178,7 +186,11 @@ class DashboardScreen(QWidget):
             "email_history": 9,
             "ai_chatbot": 10,
             "notifications": 11,
-            "tally": 12
+            "tally": 12,
+            "admin_panel": 13,
+            "admin_users": 13,
+            "admin_statements": 13,
+            "admin_logs": 13
         }
         if key in mapping:
             self.ensure_page_loaded(key)
@@ -211,6 +223,13 @@ class DashboardScreen(QWidget):
                     self.notifications_page_widget.load_user_notifications()
             elif key == "tally":
                 self.tally_export_widget.load_statements_dropdown()
+            elif key == "admin_panel":
+                if hasattr(self, "admin_panel_widget") and self.admin_panel_widget:
+                    self.admin_panel_widget.reload_data()
+            elif key in ["admin_users", "admin_statements", "admin_logs"]:
+                if hasattr(self, "admin_panel_widget") and self.admin_panel_widget:
+                    tab_target = key.replace("admin_", "")
+                    self.admin_panel_widget.switch_tab(tab_target)
             elif key == "settings":
                 if hasattr(self, "settings_window") and self.settings_window:
                     self.settings_window.sync_user_profile_directly()
@@ -228,7 +247,12 @@ class DashboardScreen(QWidget):
         """Updates the dashboard greeting and topbar initials avatar with user details."""
         full_name = user_details.get("name", "User")
         profile_color = user_details.get("profile_color", "#0037b0")
+        role = user_details.get("role", "user")
         
+        # Update Sidebar menu view based on user role
+        if hasattr(self, "sidebar") and self.sidebar is not None:
+            self.sidebar.set_user_role(role)
+            
         # Update TopBar details
         if hasattr(self, "topbar") and self.topbar is not None:
             self.topbar.update_profile(full_name, profile_color)

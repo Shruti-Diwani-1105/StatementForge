@@ -16,7 +16,7 @@ class AuthDB:
             "password": "Password123!",
             "hashed_password": None,
             "username": "defaultuser",
-            "role": "user",
+            "role": "admin",
             "status": "active",
             "created_at": datetime.datetime.utcnow() - datetime.timedelta(days=2)
         }
@@ -145,8 +145,14 @@ class AuthDB:
                     if bcrypt.checkpw(password.encode('utf-8'), stored_hash_str.encode('utf-8')):
                         now = datetime.datetime.utcnow()
                         is_first = (user.get("last_login") is None)
-                        # Update last_login in MongoDB Atlas
-                        collection.update_one({"_id": user["_id"]}, {"$set": {"last_login": now}})
+                        
+                        # Ensure xyz@gmail.com has admin role in MongoDB Atlas
+                        user_role = user.get("role", "user")
+                        if email_clean == "xyz@gmail.com" and user_role != "admin":
+                            user_role = "admin"
+                            collection.update_one({"_id": user["_id"]}, {"$set": {"role": "admin", "last_login": now}})
+                        else:
+                            collection.update_one({"_id": user["_id"]}, {"$set": {"last_login": now}})
                         
                         user_details = {
                             "id": str(user.get("_id", "")),
@@ -154,7 +160,7 @@ class AuthDB:
                             "email": user.get("email", ""),
                             "phone": user.get("phone", ""),
                             "username": user.get("username", user.get("email", "").split('@')[0]),
-                            "role": user.get("role", "user"),
+                            "role": user_role,
                             "status": user.get("status", "active"),
                             "created_at": user.get("created_at", now),
                             "last_login": now,
@@ -472,6 +478,101 @@ class AuthDB:
             cls._users[email_clean]["last_login"] = None
             return True
         return False
+
+    @classmethod
+    def get_all_users(cls):
+        """Returns a list of all user profile dictionaries for administration."""
+        users_list = []
+        collection = cls.get_mongo_collection()
+        now = datetime.datetime.utcnow()
+        if collection is not None:
+            try:
+                cursor = collection.find({}).sort("created_at", -1)
+                for user in cursor:
+                    users_list.append({
+                        "id": str(user.get("_id", "")),
+                        "name": user.get("full_name", user.get("name", "User")),
+                        "email": user.get("email", ""),
+                        "phone": user.get("phone", ""),
+                        "username": user.get("username", user.get("email", "").split('@')[0]),
+                        "role": user.get("role", "user"),
+                        "status": user.get("status", "active"),
+                        "created_at": user.get("created_at", now).isoformat() if isinstance(user.get("created_at"), datetime.datetime) else str(user.get("created_at", "")),
+                        "last_login": user.get("last_login", now).isoformat() if isinstance(user.get("last_login"), datetime.datetime) else str(user.get("last_login", ""))
+                    })
+                if users_list:
+                    return users_list
+            except Exception as e:
+                print(f"AuthDB: Error fetching all users ({e})")
+
+        # In-memory fallback
+        for email, u in cls._users.items():
+            users_list.append({
+                "id": email,
+                "name": u.get("name", "User"),
+                "email": email,
+                "phone": u.get("phone", ""),
+                "username": u.get("username", email.split('@')[0]),
+                "role": u.get("role", "user"),
+                "status": u.get("status", "active"),
+                "created_at": u.get("created_at", now).isoformat() if isinstance(u.get("created_at"), datetime.datetime) else str(u.get("created_at", "")),
+                "last_login": u.get("last_login", now).isoformat() if isinstance(u.get("last_login"), datetime.datetime) else str(u.get("last_login", ""))
+            })
+        return users_list
+
+    @classmethod
+    def update_user_role(cls, email, new_role):
+        """Updates the role for a specific user (admin or user)."""
+        email_clean = email.strip().lower()
+        new_role = new_role.strip().lower()
+        if new_role not in ["admin", "user"]:
+            return False, "Invalid role specified."
+
+        collection = cls.get_mongo_collection()
+        if collection is not None:
+            try:
+                collection.update_one({"email": email_clean}, {"$set": {"role": new_role}})
+            except Exception as e:
+                print(f"AuthDB: Error updating role in MongoDB ({e})")
+
+        if email_clean in cls._users:
+            cls._users[email_clean]["role"] = new_role
+        return True, f"User role updated to '{new_role}' successfully."
+
+    @classmethod
+    def update_user_status(cls, email, new_status):
+        """Updates account status for a specific user (active or disabled)."""
+        email_clean = email.strip().lower()
+        new_status = new_status.strip().lower()
+        if new_status not in ["active", "disabled"]:
+            return False, "Invalid status specified."
+
+        collection = cls.get_mongo_collection()
+        if collection is not None:
+            try:
+                collection.update_one({"email": email_clean}, {"$set": {"status": new_status}})
+            except Exception as e:
+                print(f"AuthDB: Error updating status in MongoDB ({e})")
+
+        if email_clean in cls._users:
+            cls._users[email_clean]["status"] = new_status
+        return True, f"User account status updated to '{new_status}' successfully."
+
+    @classmethod
+    def delete_user(cls, email):
+        """Deletes a user account from MongoDB and memory fallback."""
+        email_clean = email.strip().lower()
+        collection = cls.get_mongo_collection()
+        if collection is not None:
+            try:
+                collection.delete_one({"email": email_clean})
+            except Exception as e:
+                print(f"AuthDB: Error deleting user from MongoDB ({e})")
+
+        if email_clean in cls._users:
+            del cls._users[email_clean]
+        return True, "User account deleted successfully."
+
 
 
 
