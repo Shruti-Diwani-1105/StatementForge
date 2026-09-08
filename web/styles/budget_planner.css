@@ -211,7 +211,7 @@ body {
     gap: 24px;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 850px) {
     .bp-main-grid {
         grid-template-columns: 1fr;
     }

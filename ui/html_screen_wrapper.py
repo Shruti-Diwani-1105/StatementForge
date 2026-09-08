@@ -19,8 +19,12 @@ class HtmlScreenWrapper(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
+        # Enable drag & drop support
+        self.setAcceptDrops(True)
+        
         # Instantiate WebEngineView
         self.web_view = QWebEngineView(self)
+        self.web_view.setAcceptDrops(True)
         layout.addWidget(self.web_view)
         
         # Instantiate WebChannel & Bridge

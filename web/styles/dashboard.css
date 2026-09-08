@@ -101,10 +101,10 @@ html, body {
 
 /* Dashboard App Wrapper */
 .dashboard-container {
-    padding: 32px 36px;
+    padding: 24px 28px;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 24px;
     max-width: 1600px;
     margin: 0 auto;
 }
@@ -132,8 +132,8 @@ html, body {
 /* 2. Metrics Cards Row */
 .metrics-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
 }
 
 .metric-card {
@@ -148,6 +148,7 @@ html, body {
     transition: var(--transition-fast);
     position: relative;
     overflow: hidden;
+    min-width: 0;
 }
 
 .metric-card:hover {
@@ -178,8 +179,8 @@ html, body {
 /* 3. Main Content Split */
 .content-split {
     display: grid;
-    grid-template-columns: 3fr 1fr;
-    gap: 28px;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+    gap: 24px;
     align-items: start;
 }
 
@@ -199,22 +200,23 @@ html, body {
 
 .modules-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
 }
 
 .module-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    padding: 20px;
+    padding: 18px 16px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     cursor: pointer;
     box-shadow: var(--shadow-card);
     transition: var(--transition-fast);
     position: relative;
+    min-width: 0;
 }
 
 .module-card:hover {
@@ -425,11 +427,20 @@ body.dark-mode .btn-delete-activity:hover {
 }
 
 /* Responsive Scaling */
-@media (max-width: 1200px) {
+@media (max-width: 850px) {
     .content-split {
         grid-template-columns: 1fr;
     }
     .modules-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .metrics-row {
+        grid-template-columns: 1fr;
+    }
+    .modules-grid {
+        grid-template-columns: 1fr;
     }
 }

@@ -760,7 +760,7 @@ body.dark-mode .chat-input-field {
 }
 
 /* Responsive Grid Adjustments */
-@media (max-width: 1024px) {
+@media (max-width: 850px) {
     .auditor-app-container { flex-direction: column; }
     .auditor-sidebar-right { width: 100%; }
     .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

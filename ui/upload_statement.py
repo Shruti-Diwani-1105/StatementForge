@@ -35,8 +35,58 @@ class UploadStatementWidget(QWidget):
         self.html_wrapper = HtmlScreenWrapper("web/upload_statement.html", self)
         layout.addWidget(self.html_wrapper)
 
+        # Enable Drag & Drop support
+        self.setAcceptDrops(True)
+        self.html_wrapper.setAcceptDrops(True)
+        self.html_wrapper.web_view.setAcceptDrops(True)
+        self.html_wrapper.web_view.installEventFilter(self)
+
         # Connect document title / WebBridge IPC commands
         self.html_wrapper.web_view.titleChanged.connect(self.handle_web_commands)
+
+    def eventFilter(self, watched, event):
+        from PyQt6.QtCore import QEvent
+        if event.type() == QEvent.Type.DragEnter:
+            if event.mimeData().hasUrls():
+                event.acceptProposedAction()
+                return True
+        elif event.type() == QEvent.Type.DragMove:
+            if event.mimeData().hasUrls():
+                event.acceptProposedAction()
+                return True
+        elif event.type() == QEvent.Type.Drop:
+            if event.mimeData().hasUrls():
+                urls = event.mimeData().urls()
+                for url in urls:
+                    file_path = url.toLocalFile()
+                    if file_path and file_path.lower().endswith(".pdf") and os.path.exists(file_path):
+                        event.acceptProposedAction()
+                        self.start_validation_flow(file_path)
+                        return True
+        return super().eventFilter(watched, event)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            for url in urls:
+                file_path = url.toLocalFile()
+                if file_path and file_path.lower().endswith(".pdf") and os.path.exists(file_path):
+                    event.acceptProposedAction()
+                    self.start_validation_flow(file_path)
+                    return
+        event.ignore()
 
     def update_theme_style(self, theme: str = "light"):
         """Updates HTML UI theme styling ('light' or 'dark')."""
@@ -71,13 +121,15 @@ class UploadStatementWidget(QWidget):
                 self.post_process_action = "excel"
                 
             self.browse_pdf_file()
-        elif cmd == "upload_file_selected":
+        elif cmd in ["upload_file_dropped", "upload_file_selected"]:
             try:
                 import json
-                data = json.loads(raw_payload)
-                self.auto_detect = data.get("autoDetect", True)
-            except Exception:
-                pass
+                data = json.loads(raw_payload) if raw_payload else {}
+                file_path = data.get("path")
+                if file_path and os.path.exists(file_path):
+                    self.start_validation_flow(file_path)
+            except Exception as e:
+                print(f"UploadStatementWidget: Error handling file drop: {e}")
         elif cmd == "upload_cancel":
             self.cancel_processing()
         elif cmd == "upload_module_click":
@@ -286,10 +338,17 @@ class UploadStatementWidget(QWidget):
         from PyQt6.QtCore import QStandardPaths
         doc_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
         
-        bank_clean = "".join(c for c in self.detected_bank if c.isalnum()) or "Bank"
-        date_stamp = datetime.datetime.now().strftime("%Y-%m-%d")
-        default_filename = f"StatementForge_{bank_clean}_{date_stamp}.csv"
-        default_path = os.path.join(doc_dir, default_filename)
+        orig_pdf_path = getattr(self, "file_path", None) or (payload.get("file_path") if payload else None)
+        if orig_pdf_path:
+            pdf_dir = os.path.dirname(orig_pdf_path) or doc_dir
+            base_name, _ = os.path.splitext(os.path.basename(orig_pdf_path))
+            default_filename = f"{base_name}.csv"
+            default_path = os.path.join(pdf_dir, default_filename)
+        else:
+            bank_clean = "".join(c for c in self.detected_bank if c.isalnum()) or "Bank"
+            date_stamp = datetime.datetime.now().strftime("%Y-%m-%d")
+            default_filename = f"StatementForge_{bank_clean}_{date_stamp}.csv"
+            default_path = os.path.join(doc_dir, default_filename)
 
         save_path, _ = QFileDialog.getSaveFileName(
             self, "Save Statement as CSV", default_path, "CSV Files (*.csv)"
@@ -373,10 +432,17 @@ class UploadStatementWidget(QWidget):
         from PyQt6.QtCore import QStandardPaths
         doc_dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
         
-        bank_clean = "".join(c for c in self.detected_bank if c.isalnum()) or "Bank"
-        date_stamp = datetime.datetime.now().strftime("%Y-%m-%d")
-        default_filename = f"StatementForge_{bank_clean}_{date_stamp}.json"
-        default_path = os.path.join(doc_dir, default_filename)
+        orig_pdf_path = getattr(self, "file_path", None) or (payload.get("file_path") if payload else None)
+        if orig_pdf_path:
+            pdf_dir = os.path.dirname(orig_pdf_path) or doc_dir
+            base_name, _ = os.path.splitext(os.path.basename(orig_pdf_path))
+            default_filename = f"{base_name}.json"
+            default_path = os.path.join(pdf_dir, default_filename)
+        else:
+            bank_clean = "".join(c for c in self.detected_bank if c.isalnum()) or "Bank"
+            date_stamp = datetime.datetime.now().strftime("%Y-%m-%d")
+            default_filename = f"StatementForge_{bank_clean}_{date_stamp}.json"
+            default_path = os.path.join(doc_dir, default_filename)
 
         save_path, _ = QFileDialog.getSaveFileName(
             self, "Save Statement as JSON", default_path, "JSON Files (*.json)"
