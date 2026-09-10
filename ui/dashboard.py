@@ -85,7 +85,6 @@ class DashboardScreen(QWidget):
             "ai_auditor": 2,
             "ai_report": 2,
             "history": 3,
-            "reports": 4,
             "settings": 5,
             "generate_excel": 6,
             "budget_planner": 7,
@@ -123,8 +122,6 @@ class DashboardScreen(QWidget):
                 new_widget = self.ai_chatbot_widget
             elif key == "history":
                 new_widget = self.instantiate_history_page()
-            elif key == "reports":
-                new_widget = self.instantiate_reports_page()
             elif key == "settings":
                 from settings.settings_window import SettingsWindow
                 from settings.settings_controller import SettingsController
@@ -178,7 +175,6 @@ class DashboardScreen(QWidget):
             "ai_auditor": 2,
             "ai_report": 2,
             "history": 3,
-            "reports": 4,
             "settings": 5,
             "generate_excel": 6,
             "budget_planner": 7,
@@ -225,6 +221,7 @@ class DashboardScreen(QWidget):
                 self.tally_export_widget.load_statements_dropdown()
             elif key == "admin_panel":
                 if hasattr(self, "admin_panel_widget") and self.admin_panel_widget:
+                    self.admin_panel_widget.switch_tab("overview")
                     self.admin_panel_widget.reload_data()
             elif key in ["admin_users", "admin_statements", "admin_logs"]:
                 if hasattr(self, "admin_panel_widget") and self.admin_panel_widget:
@@ -580,119 +577,7 @@ class DashboardScreen(QWidget):
                     
             self._safe_run_query(db_query, db_callback)
 
-    def instantiate_reports_page(self):
-        """Reports Page presenting downloadable report options."""
-        page = QWidget()
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(32, 24, 32, 32)
-        page_layout.setSpacing(24)
-        
-        header_lbl = QLabel("Financial Reports")
-        header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A;")
-        sub_lbl = QLabel("Analyze transactions and export tax-compliant ledgers.")
-        sub_lbl.setStyleSheet("color: #64748B; font-size: 13px;")
-        
-        page_layout.addWidget(header_lbl)
-        page_layout.addWidget(sub_lbl)
-        
-        # Downloadable Cards List - Full Width Layout
-        reports_list = QWidget()
-        rl_layout = QVBoxLayout(reports_list)
-        rl_layout.setContentsMargins(0, 0, 0, 0)
-        rl_layout.setSpacing(16)
-        
-        reports_data = [
-            ("Profit & Loss Statement", "Detailed revenue vs expenditure breakdown.", "assets/icons/reports.png", "Download PDF", "#EFF6FF", "#2563EB"),
-            ("Duplicate Transaction Log", "Flagged entries audit summary sheet.", "assets/icons/duplicate.png", "View Audit", "#FEF2F2", "#EF4444")
-        ]
-        
-        from PyQt6.QtGui import QCursor
-        for r_title, r_desc, r_icon, action_text, bg_col, txt_col in reports_data:
-            r_card = QFrame()
-            r_card.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;")
-            rc_layout = QHBoxLayout(r_card)
-            rc_layout.setContentsMargins(16, 16, 16, 16)
-            rc_layout.setSpacing(16)
-            
-            # Icon with circular background
-            r_icon_lbl = QLabel()
-            r_icon_lbl.setFixedSize(40, 40)
-            r_icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            r_icon_lbl.setStyleSheet(f"background-color: {bg_col}; border-radius: 20px; border: none;")
-            r_pixmap = QPixmap(r_icon)
-            if not r_pixmap.isNull():
-                r_icon_lbl.setPixmap(r_pixmap.scaled(22, 22, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-            rc_layout.addWidget(r_icon_lbl)
-            
-            # Title & Description
-            text_lay = QVBoxLayout()
-            text_lay.setSpacing(4)
-            card_title = QLabel(r_title)
-            card_title.setStyleSheet("font-weight: 700; font-size: 14px; color: #0F172A;")
-            card_desc = QLabel(r_desc)
-            card_desc.setStyleSheet("font-size: 12px; color: #64748B;")
-            text_lay.addWidget(card_title)
-            text_lay.addWidget(card_desc)
-            rc_layout.addLayout(text_lay, stretch=1)
-            
-            # Download Action Button
-            dl_btn = QPushButton(action_text)
-            dl_btn.setFixedSize(110, 30)
-            dl_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            dl_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {bg_col};
-                    color: {txt_col};
-                    font-weight: 600;
-                    font-size: 12px;
-                    border: none;
-                    border-radius: 6px;
-                }}
-                QPushButton:hover {{
-                    background-color: {txt_col}22;
-                }}
-            """)
-            if r_title == "Duplicate Transaction Log":
-                dl_btn.clicked.connect(lambda checked: self.switch_dashboard_page("duplicate_finder"))
-            else:
-                dl_btn.clicked.connect(lambda checked, t=r_title: self.show_coming_soon(t))
-            rc_layout.addWidget(dl_btn)
 
-            # Email Action Button
-            email_card_btn = QPushButton("✉ Send Email")
-            email_card_btn.setFixedSize(110, 30)
-            email_card_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            email_card_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #F5F3FF;
-                    color: #7C3AED;
-                    font-weight: bold;
-                    font-size: 12px;
-                    border: 1px solid #DDD6FE;
-                    border-radius: 6px;
-                }
-                QPushButton:hover { background-color: #EDE9FE; }
-            """)
-            email_card_btn.clicked.connect(lambda checked, t=r_title: self.open_email_composer_for_report(t))
-            rc_layout.addWidget(email_card_btn)
-
-            rl_layout.addWidget(r_card)
-            
-        rl_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        
-        page_layout.addWidget(reports_list)
-        return page
-
-
-
-    def open_email_composer_for_report(self, report_title):
-        """Opens Email Composer dialog for reports page cards."""
-        from ui.email_composer_dialog import EmailComposerDialog
-        dialog = EmailComposerDialog(
-            report_type=report_title,
-            parent=self
-        )
-        dialog.exec()
 
     def create_settings_page(self):
         """Instantiates the premium MVC Settings view and controller."""

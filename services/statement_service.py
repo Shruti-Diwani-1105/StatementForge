@@ -125,11 +125,12 @@ class ExcelWorker(QObject):
     finished = pyqtSignal(str)            # Emits output Excel file path
     error = pyqtSignal(str)               # Emits error message
 
-    def __init__(self, user_id, payload, history_record_id=None):
+    def __init__(self, user_id, payload, history_record_id=None, custom_output_path=None):
         super().__init__()
         self.user_id = user_id
         self.payload = payload
         self.history_record_id = history_record_id
+        self.custom_output_path = custom_output_path
 
     def run(self):
         try:
@@ -143,7 +144,8 @@ class ExcelWorker(QObject):
                 bank_name=self.payload["bank_name"],
                 account_holder=self.payload["account_holder"],
                 period=self.payload["period"],
-                transactions=self.payload["transactions"]
+                transactions=self.payload["transactions"],
+                custom_output_path=self.custom_output_path
             )
             time.sleep(0.3) # Slower UI animation update feel
             self.step_completed.emit(5, "success")
@@ -374,10 +376,10 @@ class StatementService:
 
 
     @classmethod
-    def start_generate_excel(cls, user_id, payload, history_record_id, on_started, on_step_started, on_step_completed, on_finished, on_error):
+    def start_generate_excel(cls, user_id, payload, history_record_id, on_started, on_step_started, on_step_completed, on_finished, on_error, custom_output_path=None):
         """Spawns an ExcelWorker in a background thread."""
         thread = QThread()
-        worker = ExcelWorker(user_id, payload, history_record_id)
+        worker = ExcelWorker(user_id, payload, history_record_id, custom_output_path=custom_output_path)
         worker.moveToThread(thread)
 
         thread.worker = worker # Keep references to prevent GC

@@ -47,12 +47,12 @@ class ExcelGenerator:
         return val_str
 
     @classmethod
-    def generate_excel(cls, pdf_path, bank_name, account_holder, period, transactions):
+    def generate_excel(cls, pdf_path, bank_name, account_holder, period, transactions, custom_output_path=None):
         """
-        Generates and saves the formatted Excel spreadsheet beside the original PDF.
+        Generates and saves the formatted Excel spreadsheet beside the original PDF or at custom_output_path.
         Handles filename collisions by adding (1), (2), etc.
         Returns the absolute path to the generated Excel file.
         """
         from parser.excel_writer import ExcelWriter
-        return ExcelWriter.write_excel(pdf_path, bank_name, account_holder, period, transactions)
+        return ExcelWriter.write_excel(pdf_path, bank_name, account_holder, period, transactions, custom_output_path=custom_output_path)
 

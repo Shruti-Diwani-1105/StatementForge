@@ -150,6 +150,65 @@ class GenerateExcelWidget(QWidget):
         make_row(grid, 3, "Doc Type:", "lbl_doctype")
 
         left_layout.addWidget(self.details_card)
+
+        # Output Location Option Card
+        from PyQt6.QtWidgets import QCheckBox
+        self.save_opt_card = QFrame()
+        self.save_opt_card.setObjectName("SaveOptCard")
+        self.save_opt_card.setStyleSheet("""
+            QFrame#SaveOptCard {
+                background-color: #F8FAFC;
+                border: 1px solid #E2E8F0;
+                border-radius: 12px;
+            }
+        """)
+        opt_lay = QVBoxLayout(self.save_opt_card)
+        opt_lay.setContentsMargins(16, 14, 16, 14)
+        opt_lay.setSpacing(6)
+
+        self.chk_same_location = QCheckBox("Save Excel at same location as PDF")
+        self.chk_same_location.setChecked(True)
+        self.chk_same_location.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.chk_same_location.setStyleSheet("""
+            QCheckBox {
+                font-size: 13px;
+                font-weight: 600;
+                color: #0F172A;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 1.5px solid #CBD5E1;
+                background-color: #FFFFFF;
+            }
+            QCheckBox::indicator:hover {
+                border-color: #0037b0;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #0037b0;
+                border-color: #0037b0;
+                image: url(assets/icons/check_white.png);
+            }
+        """)
+        self.chk_same_location.toggled.connect(self._on_save_location_toggled)
+        opt_lay.addWidget(self.chk_same_location)
+
+        self.opt_desc_lbl = QLabel("Automatically exports converted spreadsheet beside the source PDF file.")
+        self.opt_desc_lbl.setWordWrap(True)
+        self.opt_desc_lbl.setStyleSheet("""
+            font-size: 12px;
+            color: #64748B;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: transparent;
+            border: none;
+            padding-left: 26px;
+        """)
+        opt_lay.addWidget(self.opt_desc_lbl)
+
+        left_layout.addWidget(self.save_opt_card)
         left_layout.addStretch()
 
         main_layout.addWidget(left_panel)
@@ -518,7 +577,36 @@ class GenerateExcelWidget(QWidget):
             self.file_path, on_started, on_step_started, on_step_completed, on_progress, on_finished, on_error
         )
 
+    def _on_save_location_toggled(self, checked):
+        if checked:
+            self.chk_same_location.setText("Save Excel at same location as PDF")
+            self.opt_desc_lbl.setText("Automatically exports converted spreadsheet beside the source PDF file.")
+        else:
+            self.chk_same_location.setText("Save Excel at custom location")
+            self.opt_desc_lbl.setText("Custom Destination Folder when generating Excel.")
+
     def start_excel_generation(self, user_id):
+        target_output_path = None
+        if hasattr(self, "chk_same_location") and not self.chk_same_location.isChecked():
+            default_name = os.path.splitext(os.path.basename(self.file_path))[0] + ".xlsx" if self.file_path else "Converted_Statement.xlsx"
+            pdf_dir = os.path.dirname(self.file_path) if self.file_path else QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+            default_path = os.path.join(pdf_dir, default_name)
+
+            chosen_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select Save Location for Excel Workbook",
+                default_path,
+                "Excel Files (*.xlsx)"
+            )
+            if not chosen_path:
+                self.lbl_status.setText("Status: Export cancelled (no save location chosen).")
+                self.generate_btn.setEnabled(True)
+                if hasattr(self, "history_record_id"):
+                    HistoryService.update_record_status(self.history_record_id, status="Cancelled")
+                Toast.warning(self, "Excel export cancelled: No save location selected.")
+                return
+            target_output_path = chosen_path
+
         self.lbl_status.setText("Status: Generating stylized Excel sheet...")
         record_id = getattr(self, "history_record_id", None)
 
@@ -561,7 +649,7 @@ class GenerateExcelWidget(QWidget):
             QMessageBox.critical(self, "Excel Compilation Failed", f"Could not create spreadsheet:\n{err}")
 
         self.active_thread = StatementService.start_generate_excel(
-            user_id, self.parsed_payload, record_id, on_started, on_step_started, on_step_completed, on_finished, on_error
+            user_id, self.parsed_payload, record_id, on_started, on_step_started, on_step_completed, on_finished, on_error, custom_output_path=target_output_path
         )
 
     def populate_preview_table(self, transactions):
@@ -660,6 +748,42 @@ class GenerateExcelWidget(QWidget):
                 right_panel.setStyleSheet("QFrame#RightPanel { background-color: #1E293B; border: 1px solid #334155; border-radius: 16px; }")
             
             self.details_card.setStyleSheet("background-color: #334155; border: 1px solid #475569; border-radius: 12px;")
+            if hasattr(self, "save_opt_card"):
+                self.save_opt_card.setStyleSheet("QFrame#SaveOptCard { background-color: #1E293B; border: 1px solid #334155; border-radius: 12px; }")
+            if hasattr(self, "chk_same_location"):
+                self.chk_same_location.setStyleSheet("""
+                    QCheckBox {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #F8FAFC;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                        spacing: 8px;
+                    }
+                    QCheckBox::indicator {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 4px;
+                        border: 1.5px solid #475569;
+                        background-color: #0F172A;
+                    }
+                    QCheckBox::indicator:hover {
+                        border-color: #3B82F6;
+                    }
+                    QCheckBox::indicator:checked {
+                        background-color: #2563EB;
+                        border-color: #2563EB;
+                        image: url(assets/icons/check_white.png);
+                    }
+                """)
+            if hasattr(self, "opt_desc_lbl"):
+                self.opt_desc_lbl.setStyleSheet("""
+                    font-size: 12px;
+                    color: #94A3B8;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                    background: transparent;
+                    border: none;
+                    padding-left: 26px;
+                """)
             self.progress_card.setStyleSheet("background-color: #334155; border: 1px solid #475569; border-radius: 12px;")
             self.preview_table.setStyleSheet("QTableWidget { background-color: #1E293B; border: none; gridline-color: #334155; color: #F8FAFC; }")
             
@@ -687,6 +811,42 @@ class GenerateExcelWidget(QWidget):
                 right_panel.setStyleSheet("QFrame#RightPanel { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; }")
                 
             self.details_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #EFF6FF; border-radius: 12px;")
+            if hasattr(self, "save_opt_card"):
+                self.save_opt_card.setStyleSheet("QFrame#SaveOptCard { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; }")
+            if hasattr(self, "chk_same_location"):
+                self.chk_same_location.setStyleSheet("""
+                    QCheckBox {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #0F172A;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                        spacing: 8px;
+                    }
+                    QCheckBox::indicator {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 4px;
+                        border: 1.5px solid #CBD5E1;
+                        background-color: #FFFFFF;
+                    }
+                    QCheckBox::indicator:hover {
+                        border-color: #0037b0;
+                    }
+                    QCheckBox::indicator:checked {
+                        background-color: #0037b0;
+                        border-color: #0037b0;
+                        image: url(assets/icons/check_white.png);
+                    }
+                """)
+            if hasattr(self, "opt_desc_lbl"):
+                self.opt_desc_lbl.setStyleSheet("""
+                    font-size: 12px;
+                    color: #64748B;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                    background: transparent;
+                    border: none;
+                    padding-left: 26px;
+                """)
             self.progress_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
             self.preview_table.setStyleSheet("QTableWidget { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; color: #0F172A; }")
             

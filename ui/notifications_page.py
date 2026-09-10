@@ -85,10 +85,8 @@ class NotificationsPageWidget(QWidget):
                         p.switch_dashboard_page("history")
                     elif act_type == "review_duplicates" or act_type == "duplicate_finder":
                         p.switch_dashboard_page("duplicate_finder")
-                    elif act_type == "view_report" or act_type == "ai_report":
+                    elif act_type in ["view_report", "ai_report", "reports"]:
                         p.switch_dashboard_page("ai_report")
-                    elif act_type == "reports":
-                        p.switch_dashboard_page("reports")
                     elif target:
                         p.switch_dashboard_page(target)
                     break

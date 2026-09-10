@@ -50,7 +50,7 @@ class WebBridge(QObject):
             # Bypass OTP verification for Admin accounts
             role = str(user_details.get("role", "")).lower() if user_details else ""
             user_email = email.strip().lower()
-            if role in ["admin", "administrator"] or user_email == "xyz@gmail.com":
+            if role in ["admin", "administrator"] or user_email in ["admin@gmail.com", "xyz@gmail.com"]:
                 self.loginSuccess.emit(user_details)
                 return
 
@@ -127,6 +127,27 @@ class WebBridge(QObject):
         """Returns all registered users for admin panel management."""
         from services.admin_service import AdminService
         return AdminService.get_all_users()
+
+    @pyqtSlot(str, str, str, str, str, str, result=dict)
+    def createAdminUser(self, name, email, phone, password, role, status):
+        """Creates a new user from Admin Panel."""
+        from services.admin_service import AdminService
+        success, message = AdminService.create_user(name, email, phone, password, role, status)
+        return {"success": success, "message": message}
+
+    @pyqtSlot(str, str, str, str, str, result=dict)
+    def updateAdminUser(self, email, name, phone, role, status):
+        """Updates user account details from Admin Panel."""
+        from services.admin_service import AdminService
+        success, message = AdminService.update_user(email, name, phone, role, status)
+        return {"success": success, "message": message}
+
+    @pyqtSlot(str, str, result=dict)
+    def resetAdminUserPassword(self, email, new_password):
+        """Resets user password from Admin Panel."""
+        from services.admin_service import AdminService
+        success, message = AdminService.reset_user_password(email, new_password)
+        return {"success": success, "message": message}
 
     @pyqtSlot(str, str, result=dict)
     def updateUserRole(self, email, role):

@@ -10,16 +10,29 @@ class ExcelWriter:
     """Generates professional dual-sheet bank statement Excel spreadsheets."""
 
     @classmethod
-    def write_excel(cls, pdf_path: str, bank_name: str, account_holder: str, period: str, transactions: list) -> str:
+    def write_excel(cls, pdf_path: str, bank_name: str, account_holder: str, period: str, transactions: list, custom_output_path: str = None) -> str:
         """
-        Builds the Excel sheet beside the PDF, handles collisions, styles elements, and returns output path.
+        Builds the Excel sheet beside the PDF (or at custom_output_path), handles collisions, styles elements, and returns output path.
         """
-        base, _ = os.path.splitext(pdf_path)
-        excel_path = base + ".xlsx"
-        counter = 1
-        while os.path.exists(excel_path):
-            excel_path = f"{base}_({counter}).xlsx"
-            counter += 1
+        if custom_output_path:
+            excel_path = custom_output_path
+            if not excel_path.lower().endswith(".xlsx"):
+                excel_path += ".xlsx"
+            out_dir = os.path.dirname(excel_path)
+            if out_dir and not os.path.exists(out_dir):
+                os.makedirs(out_dir, exist_ok=True)
+            base, _ = os.path.splitext(excel_path)
+            counter = 1
+            while os.path.exists(excel_path):
+                excel_path = f"{base}_({counter}).xlsx"
+                counter += 1
+        else:
+            base, _ = os.path.splitext(pdf_path)
+            excel_path = base + ".xlsx"
+            counter = 1
+            while os.path.exists(excel_path):
+                excel_path = f"{base}_({counter}).xlsx"
+                counter += 1
 
         wb = Workbook()
 

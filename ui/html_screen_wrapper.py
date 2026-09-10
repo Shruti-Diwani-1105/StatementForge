@@ -92,6 +92,85 @@ class HtmlScreenWrapper(QWidget):
                 )
             except Exception as e:
                 print(f"Error parsing register payload: {e}")
+        elif cmd == "get_admin_data":
+            from services.admin_service import AdminService
+            users = AdminService.get_all_users()
+            stats = AdminService.get_system_stats()
+            statements = AdminService.get_all_statements()
+            logs = AdminService.get_audit_logs()
+            
+            users_json = json.dumps(users)
+            stats_json = json.dumps(stats)
+            stmts_json = json.dumps(statements)
+            logs_json = json.dumps(logs)
+            
+            js_code = (
+                f"if (typeof renderAdminUsersData === 'function') renderAdminUsersData({users_json}); "
+                f"if (typeof renderAdminStatsData === 'function') renderAdminStatsData({stats_json}); "
+                f"if (typeof renderAdminStatementsData === 'function') renderAdminStatementsData({stmts_json}); "
+                f"if (typeof renderAdminLogsData === 'function') renderAdminLogsData({logs_json});"
+            )
+            self.eval_js(js_code)
+        elif cmd == "create_admin_user":
+            try:
+                data = json.loads(raw_payload)
+                from services.admin_service import AdminService
+                success, msg = AdminService.create_user(
+                    data.get("name", ""), data.get("email", ""), data.get("phone", ""),
+                    data.get("password", ""), data.get("role", "user"), data.get("status", "active")
+                )
+                escaped_msg = msg.replace("'", "\\'").replace("\n", " ")
+                self.eval_js(f"if (typeof onAdminActionComplete === 'function') onAdminActionComplete('add_user', {json.dumps(success)}, '{escaped_msg}');")
+            except Exception as e:
+                print(f"Error handling create_admin_user: {e}")
+        elif cmd == "update_admin_user":
+            try:
+                data = json.loads(raw_payload)
+                from services.admin_service import AdminService
+                success, msg = AdminService.update_user(
+                    data.get("email", ""), data.get("name", ""), data.get("phone", ""),
+                    data.get("role", "user"), data.get("status", "active")
+                )
+                escaped_msg = msg.replace("'", "\\'").replace("\n", " ")
+                self.eval_js(f"if (typeof onAdminActionComplete === 'function') onAdminActionComplete('edit_user', {json.dumps(success)}, '{escaped_msg}');")
+            except Exception as e:
+                print(f"Error handling update_admin_user: {e}")
+        elif cmd == "reset_admin_password":
+            try:
+                data = json.loads(raw_payload)
+                from services.admin_service import AdminService
+                success, msg = AdminService.reset_user_password(data.get("email", ""), data.get("new_password", ""))
+                escaped_msg = msg.replace("'", "\\'").replace("\n", " ")
+                self.eval_js(f"if (typeof onAdminActionComplete === 'function') onAdminActionComplete('reset_pwd', {json.dumps(success)}, '{escaped_msg}');")
+            except Exception as e:
+                print(f"Error handling reset_admin_password: {e}")
+        elif cmd == "update_user_role":
+            try:
+                data = json.loads(raw_payload)
+                from services.admin_service import AdminService
+                success, msg = AdminService.update_user_role(data.get("email", ""), data.get("role", "user"))
+                escaped_msg = msg.replace("'", "\\'").replace("\n", " ")
+                self.eval_js(f"if (typeof onAdminActionComplete === 'function') onAdminActionComplete('role', {json.dumps(success)}, '{escaped_msg}');")
+            except Exception as e:
+                print(f"Error handling update_user_role: {e}")
+        elif cmd == "update_user_status":
+            try:
+                data = json.loads(raw_payload)
+                from services.admin_service import AdminService
+                success, msg = AdminService.update_user_status(data.get("email", ""), data.get("status", "active"))
+                escaped_msg = msg.replace("'", "\\'").replace("\n", " ")
+                self.eval_js(f"if (typeof onAdminActionComplete === 'function') onAdminActionComplete('status', {json.dumps(success)}, '{escaped_msg}');")
+            except Exception as e:
+                print(f"Error handling update_user_status: {e}")
+        elif cmd == "delete_user_account":
+            try:
+                data = json.loads(raw_payload)
+                from services.admin_service import AdminService
+                success, msg = AdminService.delete_user(data.get("email", ""))
+                escaped_msg = msg.replace("'", "\\'").replace("\n", " ")
+                self.eval_js(f"if (typeof onAdminActionComplete === 'function') onAdminActionComplete('delete', {json.dumps(success)}, '{escaped_msg}');")
+            except Exception as e:
+                print(f"Error handling delete_user_account: {e}")
 
     def eval_js(self, script):
         """Executes JavaScript inside the WebEngineView."""
