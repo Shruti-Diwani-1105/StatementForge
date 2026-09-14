@@ -1,51 +1,65 @@
 # 🚀 StatementForge – Automated Bank Statement Parser and Accounting Hub
 
-StatementForge is a modern **cross-platform desktop application** built with **Python** and **PyQt6** that automates the extraction, verification, and conversion of bank statement transactions into clean, standardized Excel reports.
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![GUI Framework](https://img.shields.io/badge/GUI-PyQt6-green.svg)](https://pypi.org/project/PyQt6/)
+[![Database](https://img.shields.io/badge/Database-MongoDB%20Atlas-forestgreen.svg)](https://www.mongodb.com/cloud/atlas)
+[![License](https://img.shields.io/badge/license-Academic%20%2F%20Educational-orange.svg)](#-license)
+
+**StatementForge** is a modern **cross-platform desktop application** built with **Python** and **PyQt6** that automates the extraction, verification, and conversion of bank statement transactions into clean, standardized Excel reports.
 
 The application is designed to reduce manual data entry, improve accuracy, and simplify financial statement processing for accountants, businesses, and individuals.
 
 ---
 
+## 📌 Table of Contents
+
+- [✨ Features](#-features)
+- [🛠 Tech Stack](#-tech-stack)
+- [📂 Project Structure](#-project-structure)
+- [🏗 Application Workflow](#-application-workflow)
+- [📋 Supported Features](#-supported-features)
+- [🏦 Supported Banks](#-supported-banks)
+- [⚙ Installation](#-installation)
+- [☁ MongoDB Atlas Configuration](#-mongodb-atlas-configuration)
+- [🗂 Database Collections](#-database-collections)
+- [🎯 Future Enhancements](#-future-enhancements)
+- [👨‍💻 Team & Authors](#-team--authors)
+- [📄 License](#-license)
+
+---
+
 ## ✨ Features
 
-- 📄 Multi-Bank Statement Support
-- 🤖 AI-Based Bank Statement Detection
-- 🔍 OCR Support for Scanned PDFs (Tesseract OCR)
-- 📑 Digital PDF Parsing (pdfplumber)
-- 📊 Automatic Excel Report Generation
-- 📈 AI Financial Report Generator
-- 💰 GST Report Generator
-- 📤 Tally Export Support
-- 📧 Email Excel Reports
-- 🔄 Duplicate Transaction Detection
-- 📂 Statement History Management
-- 👤 Secure User Authentication
-- ☁ MongoDB Atlas Integration
-- 💻 Modern PyQt6 Desktop Interface
-- 🌙 Offline Processing
-- ⚡ Fast & Accurate Transaction Extraction
+- 📄 **Multi-Bank Statement Support**: Seamlessly processes statements from 15+ leading Indian banks.
+- 🤖 **AI-Based Bank Detection**: Automatically detects bank provider format and transaction structure.
+- 🔍 **Scanned PDF OCR Engine**: Integrated **Tesseract OCR** and **OpenCV** image processing for scanned PDFs.
+- 📑 **Digital PDF Extraction**: Native text and layout extraction using **pdfplumber**.
+- 📊 **Automatic Excel Report Generation**: Generates standardized multi-sheet Excel reports via **openpyxl**.
+- 📈 **AI Financial Report Generator**: Produces automated financial health insights, summaries, and metrics.
+- 💰 **GST Report Generator**: Calculates GST breakdown and reconciliation summaries.
+- 📤 **Tally Export Support**: Formats data for direct import into Tally ERP/Prime.
+- 📧 **Email Integration**: Automated dispatch with attached financial reports.
+- 🔄 **Duplicate Transaction Finder**: Identifies duplicate transactions across statements.
+- 📂 **Statement History & Auditing**: Local and MongoDB cloud statement tracking.
+- 👤 **Secure User Authentication**: Bcrypt password encryption and session management.
+- ☁ **MongoDB Atlas Integration**: Cloud data persistence and history logs.
 
 ---
 
 ## 🛠 Tech Stack
 
-| Category | Technology |
-|----------|------------|
-| Language | Python 3.12+, JS |
-| UI | HTML & CSS |
-| GUI | PyQt6 |
-| Styling | Qt Style Sheets (QSS) |
-| OCR | Tesseract OCR |
-| Image Processing | OpenCV |
-| PDF Extraction | pdfplumber |
-| Excel Generation | openpyxl |
-| Database | MongoDB Atlas |
-| Database Driver | pymongo |
-| Password Hashing | bcrypt |
-| Charts | Matplotlib |
-| Reports | ReportLab |
-| IDE | Visual Studio Code |
-| Version Control | Git & GitHub |
+| Category | Technology | Description |
+| :--- | :--- | :--- |
+| **Language** | Python 3.10+ | Core Application Backend |
+| **GUI Framework** | PyQt6 | Modern Desktop Interface |
+| **Styling & Web Engine** | QSS & PyQt6 WebEngine | Custom SaaS Layouts & Styling |
+| **PDF Extraction** | pdfplumber | Native PDF Document Parsing |
+| **OCR Engine** | Tesseract OCR & OpenCV | Scanned Image / PDF Preprocessing |
+| **Excel Generation** | openpyxl | Automated Excel Report Synthesis |
+| **Database** | MongoDB Atlas (`pymongo`) | Cloud Data Persistence |
+| **Security** | bcrypt | Password Hashing & Keyring Encryption |
+| **Visualizations** | Matplotlib | Financial Summary Charts & Graphs |
+| **PDF Export** | ReportLab & QTextDocument | High-Resolution PDF Exports |
 
 ---
 
@@ -54,23 +68,22 @@ The application is designed to reduce manual data entry, improve accuracy, and s
 ```text
 StatementForge/
 │
-├── assets/
-│   ├── icons/
-│   ├── images/
-│   └── logo.png
+├── assets/                  # Icons, branding images, and logos
+├── controllers/             # Business logic and application controllers
+├── database/                # MongoDB repository access layer & models
+├── models/                  # Core data models and schemas
+├── parser/                  # Bank statement PDF parsers & OCR engine
+├── services/                # Email, AI summary, and export services
+├── styles/                  # Qt Style Sheets (QSS)
+├── ui/                      # PyQt6 UI screens & composer dialogs
+├── utils/                   # Helper utilities and session managers
+├── web/                     # Embedded HTML/JS dashboard & templates
+├── widgets/                 # Custom reusable PyQt6 widgets
 │
-├── controllers/
-├── database/
-├── models/
-├── services/
-├── styles/
-├── ui/
-├── utils/
-├── widgets/
-│
-├── main.py
-├── requirements.txt
-└── README.md
+├── main.py                  # Main Application Entry Point
+├── cli.py                   # Command Line Interface runner
+├── requirements.txt         # Required Python packages
+└── README.md                # Project documentation
 ```
 
 ---
@@ -78,78 +91,90 @@ StatementForge/
 ## 🏗 Application Workflow
 
 ```text
-Splash Screen
-      │
-      ▼
-Welcome Screen
-      │
-      ▼
-Login / Register
-      │
-      ▼
-Dashboard
-      │
-      ▼
-Upload Bank Statement
-      │
-      ▼
-AI Bank Detection
-      │
-      ▼
-PDF Parsing / OCR
-      │
-      ▼
-Transaction Extraction
-      │
-      ▼
-Preview Transactions
-      │
-      ▼
-Generate Excel
-      │
-      ▼
-Save Excel
-      │
-      ▼
-History Saved
+               +-----------------------+
+               |     Splash Screen     |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               |    Welcome Screen     |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               |   Login / Register    |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               |       Dashboard       |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               | Upload Bank Statement |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               |   AI Bank Detection   |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               |   PDF Parsing / OCR   |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               | Transaction Extraction|
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               | Preview Transactions  |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               | Generate & Save Excel |
+               +-----------+-----------+
+                           |
+                           v
+               +-----------------------+
+               | Saved to History & DB |
+               +-----------------------+
 ```
 
 ---
 
 ## 📋 Supported Features
 
-### User Module
-- User Registration
-- Secure Login
-- Password Encryption
-- Profile Management
-- Session Management
+### 👤 User Module
+- User Registration & Authentication
+- Password Hashing (`bcrypt`)
+- Profile Management & Credential Security
+- Session Persistence
 
-### Statement Module
-- Upload PDF Statement
-- Automatic Bank Detection
-- OCR Support
-- Digital PDF Support
-- Transaction Preview
+### 📄 Statement & Parsing Module
+- PDF Bank Statement Upload
+- Automatic Bank Format Detection
+- Digital PDF & Scanned OCR Engine
+- Interactive Transaction Grid & Editing
 
-### Reports
-- Excel Export
-- AI Financial Report
-- GST Report
-- Duplicate Transaction Report
-- Tally Export
-
-### Dashboard
-- Statistics
-- Recent Activity
-- Statement History
-- Reports Summary
+### 📊 Reports & Exports
+- Excel Export (`.xlsx`)
+- AI Financial Analysis Report
+- GST Reconciliation Report
+- Duplicate Transaction Detection Report
+- Tally ERP Format Export
+- Automated Email Center Dispatch
 
 ---
 
 ## 🏦 Supported Banks
 
-- SBI
+- SBI (State Bank of India)
 - HDFC Bank
 - ICICI Bank
 - Axis Bank
@@ -169,25 +194,30 @@ History Saved
 
 ## ⚙ Installation
 
-Clone the repository
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/StatementForge.git
-```
-
-Move into the project folder
-
-```bash
+git clone https://github.com/Shruti-Diwani-1105/StatementForge.git
 cd StatementForge
 ```
 
-Install dependencies
+### 2. Set up virtual environment (Recommended)
+
+```bash
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Run the application
+### 4. Run the application
 
 ```bash
 python main.py
@@ -199,6 +229,7 @@ python main.py
 
 ```text
 PyQt6
+PyQt6-WebEngine
 opencv-python
 pdfplumber
 pytesseract
@@ -209,23 +240,17 @@ reportlab
 matplotlib
 Pillow
 python-dotenv
+keyring
 ```
 
 ---
 
 ## ☁ MongoDB Atlas Configuration
 
-Create a `.env` file in the project root.
+Create a `.env` file in the project root directory:
 
 ```env
-MONGODB_URI=your_mongodb_connection_string
-DATABASE_NAME=statementforge
-```
-
-Example
-
-```env
-MONGODB_URI=mongodb+srv://username:password@statementforge-cluster.mongodb.net/?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority
 DATABASE_NAME=statementforge
 ```
 
@@ -236,59 +261,48 @@ DATABASE_NAME=statementforge
 ```text
 statementforge
 │
-├── users
-├── statements
-├── transactions
-├── reports
-├── ai_reports
-├── gst_reports
-├── login_history
-├── activity_logs
-└── settings
+├── users                # Registered application accounts
+├── statements           # Uploaded statement metadata
+├── transactions         # Parsed transaction line items
+├── reports              # Generated report logs
+├── ai_reports           # AI summary & analysis records
+├── gst_reports          # GST calculation logs
+├── login_history        # Audit logs for user logins
+├── activity_logs       # User action logs
+└── settings             # System & user preference settings
 ```
 
 ---
 
 ## 🎯 Future Enhancements
 
-- AI Transaction Categorization
-- Fraud Detection
-- Multi-language Support
-- Dark Mode
-- Cloud Backup
-- Password Protected PDF Support
-- Drag & Drop PDF Upload
-- PDF Report Generation
-- Multiple Statement Merge
-- Analytics Dashboard
+- [ ] AI Automated Transaction Categorization
+- [ ] Fraud & Anomalous Spiking Detection
+- [ ] Multi-Currency Conversion Support
+- [ ] Cloud Backup & Sync
+- [ ] Password-Protected PDF Auto-Decrypt
+- [ ] Multi-Statement Batch Merging
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 Team & Authors
 
-**Kinjal Rajyaguru**
+**Final Year Engineering Project**  
+**Domain**: FinTech & Business Automation  
 
-**Shruti Diwani**
-
-**Priyanshi Prajapati**
-
-**Sneha Vasava**
-
-
-Final Year Project
-
-**StatementForge – Automated Bank Statement Parser and Accounting Hub**
-
-Domain: **FinTech & Business Automation**
+- **Kinjal Rajyaguru** ([@kinjalrajyaguru27](https://github.com/kinjalrajyaguru27))
+- **Shruti Diwani** ([@Shruti-diwani11](https://github.com/Shruti-diwani11))
+- **Priyanshi Prajapati**
+- **Sneha Vasava**
 
 ---
 
 ## 📄 License
 
-This project is developed for educational and academic purposes.
+This project is developed for educational, academic, and demonstration purposes.
 
 ---
 
-## ⭐ If you like this project
+## ⭐ Support
 
-Give this repository a ⭐ on GitHub.
+If you find **StatementForge** useful, please give this repository a ⭐ on GitHub!
