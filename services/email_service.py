@@ -54,6 +54,7 @@ class EmailService:
         """
         Returns (provider_name, compose_url) for Google Mail, Yahoo Mail, Outlook Web, or Default Mail.
         Auto-detects provider based on recipient or sender_email domain.
+        Safely truncates body length for mailto: URLs to prevent Windows ShellExecute character overflow.
         """
         domain = ""
         email_to_check = (recipient or sender_email or "").strip().lower()
@@ -62,12 +63,12 @@ class EmailService:
 
         to_enc = urllib.parse.quote(recipient.strip())
         su_enc = urllib.parse.quote(subject.strip())
-        body_enc = urllib.parse.quote(body.strip())
         cc_enc = urllib.parse.quote(cc.strip())
         bcc_enc = urllib.parse.quote(bcc.strip())
 
         if "gmail.com" in domain or "google" in domain:
             provider = "Google Mail (Gmail)"
+            body_enc = urllib.parse.quote(body.strip())
             url = f"https://mail.google.com/mail/?view=cm&fs=1&to={to_enc}&su={su_enc}&body={body_enc}"
             if cc_enc:
                 url += f"&cc={cc_enc}"
@@ -75,6 +76,7 @@ class EmailService:
                 url += f"&bcc={bcc_enc}"
         elif "yahoo" in domain:
             provider = "Yahoo Mail"
+            body_enc = urllib.parse.quote(body.strip())
             url = f"https://compose.mail.yahoo.com/?to={to_enc}&subject={su_enc}&body={body_enc}"
             if cc_enc:
                 url += f"&cc={cc_enc}"
@@ -82,6 +84,7 @@ class EmailService:
                 url += f"&bcc={bcc_enc}"
         elif any(d in domain for d in ["outlook", "hotmail", "live", "office365", "microsoft"]):
             provider = "Outlook Web"
+            body_enc = urllib.parse.quote(body.strip())
             url = f"https://outlook.live.com/mail/0/deeplink/compose?to={to_enc}&subject={su_enc}&body={body_enc}"
             if cc_enc:
                 url += f"&cc={cc_enc}"
@@ -89,6 +92,11 @@ class EmailService:
                 url += f"&bcc={bcc_enc}"
         else:
             provider = "Mail App"
+            # Limit mailto: body length to ~1000 chars to avoid exceeding Windows ShellExecute 2048-char URI limit
+            body_text = body.strip()
+            if len(body_text) > 1000:
+                body_text = body_text[:995] + "...\n\n[Full report details attached]"
+            body_enc = urllib.parse.quote(body_text)
             url = f"mailto:{to_enc}?subject={su_enc}&body={body_enc}"
             if cc_enc:
                 url += f"&cc={cc_enc}"
@@ -105,18 +113,30 @@ class EmailService:
         return bool(EMAIL_REGEX.match(email_str.strip()))
 
     @staticmethod
+    def infer_smtp_settings(sender_email: str):
+        """Auto-detects default SMTP host, port, and encryption based on sender domain."""
+        email_lower = (sender_email or "").strip().lower()
+        if "gmail" in email_lower:
+            return "smtp.gmail.com", "587", "STARTTLS"
+        elif "yahoo" in email_lower:
+            return "smtp.mail.yahoo.com", "465", "SSL/TLS"
+        elif any(d in email_lower for d in ["outlook", "hotmail", "live", "office365", "microsoft"]):
+            return "smtp.office365.com", "587", "STARTTLS"
+        return "smtp.gmail.com", "587", "STARTTLS"
+
+    @staticmethod
     def validate_inputs(recipient: str, sender_email: str, smtp_host: str, smtp_port, attachment_paths: list):
         """
         Validates email sending requirements. Returns (is_valid, error_message).
         """
         if not recipient or not recipient.strip():
-            return False, "Recipient email address is required."
+            return False, "Please enter a valid recipient email address."
         
         # Check all recipient emails (comma or semicolon separated)
         recipients = [r.strip() for r in re.split(r"[,;]", recipient) if r.strip()]
         for r in recipients:
             if not EmailService.validate_email_address(r):
-                return False, f"Invalid recipient email format: '{r}'"
+                return False, "Please enter a valid recipient email address."
 
         if not sender_email or not sender_email.strip():
             return False, "Sender email address is not configured."
@@ -125,7 +145,9 @@ class EmailService:
             return False, "Configured sender email address has an invalid format."
 
         if not smtp_host or not smtp_host.strip():
-            return False, "SMTP server host address is missing in Email Configuration."
+            smtp_host, inferred_port, _ = EmailService.infer_smtp_settings(sender_email)
+            if not smtp_port:
+                smtp_port = inferred_port
 
         try:
             port_num = int(str(smtp_port).strip())
@@ -220,6 +242,13 @@ class EmailService:
         Saves result to EmailRepository.
         Returns (success: bool, message: str).
         """
+        if not smtp_host or not smtp_host.strip():
+            smtp_host, inferred_port, inferred_enc = EmailService.infer_smtp_settings(sender_email)
+            if not smtp_port:
+                smtp_port = inferred_port
+            if not encryption_type:
+                encryption_type = inferred_enc
+
         # Validate inputs
         val_ok, val_msg = EmailService.validate_inputs(recipient, sender_email, smtp_host, smtp_port, attachment_paths)
         if not val_ok:
@@ -263,7 +292,17 @@ class EmailService:
                         
                         ctype, encoding = mimetypes.guess_type(path)
                         if ctype is None or encoding is not None:
-                            ctype = 'application/octet-stream'
+                            ext = os.path.splitext(filename)[1].lower()
+                            if ext == '.xlsx':
+                                ctype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                            elif ext == '.xls':
+                                ctype = 'application/vnd.ms-excel'
+                            elif ext == '.pdf':
+                                ctype = 'application/pdf'
+                            elif ext == '.csv':
+                                ctype = 'text/csv'
+                            else:
+                                ctype = 'application/octet-stream'
                         maintype, subtype = ctype.split('/', 1)
 
                         with open(path, 'rb') as fp:
@@ -275,16 +314,26 @@ class EmailService:
                                 filename=filename
                             )
 
+            # Check if password is provided for authentication
+            clean_pwd = (password or "").strip()
+            if not clean_pwd:
+                err_msg = "Unable to send email. Please verify your SMTP authentication credentials or App Password."
+                EmailRepository.save_email_log(
+                    user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc,
+                    subject=subject, report_type=report_type,
+                    attachment_name=", ".join(att_names) if att_names else "",
+                    attachment_paths=attachment_paths, status="Failed", error_message=err_msg
+                )
+                return False, err_msg
+
             # Context setup
             context = ssl.create_default_context()
-            
             enc_upper = str(encryption_type).upper()
             
-            # Perform SMTP connection and send
+            # Perform SMTP connection, login, and send
             if enc_upper == "SSL/TLS" or port_val == 465:
                 with smtplib.SMTP_SSL(smtp_host.strip(), port_val, context=context, timeout=15.0) as server:
-                    if password and password.strip():
-                        server.login(sender_email.strip(), password)
+                    server.login(sender_email.strip(), clean_pwd)
                     server.send_message(msg)
             else:
                 with smtplib.SMTP(smtp_host.strip(), port_val, timeout=15.0) as server:
@@ -292,8 +341,7 @@ class EmailService:
                     if enc_upper != "NONE" and server.has_extn("STARTTLS"):
                         server.starttls(context=context)
                         server.ehlo()
-                    if password and password.strip():
-                        server.login(sender_email.strip(), password)
+                    server.login(sender_email.strip(), clean_pwd)
                     server.send_message(msg)
 
             # Log success
@@ -305,23 +353,53 @@ class EmailService:
             )
             return True, "✓ Report sent successfully."
 
-        except smtplib.SMTPAuthenticationError:
-            err = "Authentication failed. Please verify your sender email and App Password."
-            EmailRepository.save_email_log(user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc, subject=subject, report_type=report_type, attachment_name="", attachment_paths=attachment_paths, status="Failed", error_message=err)
-            return False, f"✕ {err}"
+        except smtplib.SMTPAuthenticationError as e:
+            user_msg = "Unable to send email. Please verify your SMTP authentication settings and try again."
+            tech_detail = f"530 5.7.0 Authentication Required ({e.smtp_code if hasattr(e, 'smtp_code') else 530})"
+            EmailRepository.save_email_log(
+                user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc,
+                subject=subject, report_type=report_type,
+                attachment_name=", ".join(att_names) if att_names else "",
+                attachment_paths=attachment_paths, status="Failed", error_message=f"{user_msg} Details: {tech_detail}"
+            )
+            return False, user_msg
         except smtplib.SMTPConnectError:
-            err = "SMTP Connection failed. Unable to reach host or port."
-            EmailRepository.save_email_log(user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc, subject=subject, report_type=report_type, attachment_name="", attachment_paths=attachment_paths, status="Failed", error_message=err)
-            return False, f"✕ {err}"
+            user_msg = "Unable to send email. SMTP Connection failed. Unable to reach host or port."
+            EmailRepository.save_email_log(
+                user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc,
+                subject=subject, report_type=report_type,
+                attachment_name=", ".join(att_names) if att_names else "",
+                attachment_paths=attachment_paths, status="Failed", error_message=user_msg
+            )
+            return False, user_msg
         except smtplib.SMTPServerDisconnected:
-            err = "SMTP Server disconnected unexpectedly."
-            EmailRepository.save_email_log(user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc, subject=subject, report_type=report_type, attachment_name="", attachment_paths=attachment_paths, status="Failed", error_message=err)
-            return False, f"✕ {err}"
+            user_msg = "Unable to send email. SMTP Server disconnected unexpectedly."
+            EmailRepository.save_email_log(
+                user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc,
+                subject=subject, report_type=report_type,
+                attachment_name=", ".join(att_names) if att_names else "",
+                attachment_paths=attachment_paths, status="Failed", error_message=user_msg
+            )
+            return False, user_msg
         except ssl.SSLError as e:
-            err = f"SSL/TLS Encryption error: {e}"
-            EmailRepository.save_email_log(user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc, subject=subject, report_type=report_type, attachment_name="", attachment_paths=attachment_paths, status="Failed", error_message=err)
-            return False, f"✕ {err}"
+            user_msg = f"Unable to send email. SSL/TLS Encryption error: {e}"
+            EmailRepository.save_email_log(
+                user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc,
+                subject=subject, report_type=report_type,
+                attachment_name=", ".join(att_names) if att_names else "",
+                attachment_paths=attachment_paths, status="Failed", error_message=user_msg
+            )
+            return False, user_msg
         except Exception as e:
-            err = str(e) or "An unknown SMTP network error occurred."
-            EmailRepository.save_email_log(user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc, subject=subject, report_type=report_type, attachment_name="", attachment_paths=attachment_paths, status="Failed", error_message=err)
-            return False, f"✕ {err}"
+            err_text = str(e) or "An unknown SMTP network error occurred."
+            if "530" in err_text or "authentication" in err_text.lower():
+                user_msg = "Unable to send email. Please verify your SMTP authentication settings and try again."
+            else:
+                user_msg = f"Unable to send email: {err_text}"
+            EmailRepository.save_email_log(
+                user_id=user_id, recipient_email=recipient, cc=cc, bcc=bcc,
+                subject=subject, report_type=report_type,
+                attachment_name=", ".join(att_names) if att_names else "",
+                attachment_paths=attachment_paths, status="Failed", error_message=err_text
+            )
+            return False, user_msg

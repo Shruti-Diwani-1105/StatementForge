@@ -162,6 +162,21 @@ function renderBudgetSummaryData(data) {
 
     // 7. Update Pure HTML5 Canvas Charts (Step 11)
     renderCharts(data);
+
+    // 8. Reset AI Summary card when month data loads/changes
+    const aiContainer = document.getElementById('aiSummaryContent');
+    if (aiContainer) {
+        const mKey = getSelectedMonthKey();
+        const monthNames = ["January", "February", "March", "April", "May", "June", 
+                            "July", "August", "September", "October", "November", "December"];
+        let monthLabel = mKey;
+        const parts = mKey.split('-');
+        if (parts.length === 2) {
+            const mIdx = parseInt(parts[1], 10) - 1;
+            if (mIdx >= 0 && mIdx < 12) monthLabel = `${monthNames[mIdx]} ${parts[0]}`;
+        }
+        aiContainer.innerHTML = `<p>Click <strong>"✨ Generate AI Analysis"</strong> to analyze your monthly results for <strong>${monthLabel}</strong> using Google Gemini AI.</p>`;
+    }
 }
 
 function setElementText(id, text) {
@@ -768,9 +783,9 @@ function drawSalaryBreakdownPieChart(data) {
         return;
     }
 
-    const centerX = width * 0.36;
+    const centerX = width * 0.25;
     const centerY = height * 0.5;
-    const radius = Math.min(width, height) * 0.38;
+    const radius = Math.min(width, height) * 0.32;
 
     let startAngle = -Math.PI / 2;
 
@@ -792,17 +807,42 @@ function drawSalaryBreakdownPieChart(data) {
     });
 
     // Legend List on Right Side
-    const legendX = width * 0.68;
-    let legendY = 24;
+    const legendX = Math.max(centerX + radius + 16, width * 0.46);
+    const maxTextWidth = width - legendX - 10;
     ctx.textAlign = 'left';
-    ctx.font = '10px sans-serif';
+    ctx.font = '500 11px sans-serif';
 
-    items.forEach(item => {
+    // Calculate layout for each item (1-line or 2-lines) to center legend vertically
+    const formattedItems = items.map(item => {
+        const fullText = `${item.label} (₹${formatCompactNumber(item.value)})`;
+        const textWidth = ctx.measureText(fullText).width;
+        if (textWidth <= maxTextWidth || maxTextWidth <= 60) {
+            return { ...item, lines: [fullText], height: 22 };
+        } else {
+            return {
+                ...item,
+                lines: [item.label, `(₹${formatCompactNumber(item.value)})`],
+                height: 32
+            };
+        }
+    });
+
+    const totalLegendHeight = formattedItems.reduce((sum, fi) => sum + fi.height, 0);
+    let legendY = Math.max(10, (height - totalLegendHeight) / 2);
+
+    formattedItems.forEach(item => {
         ctx.fillStyle = item.color;
-        ctx.fillRect(legendX, legendY, 10, 10);
+        ctx.fillRect(legendX, legendY + 3, 10, 10);
+
         ctx.fillStyle = textColor;
-        ctx.fillText(`${item.label} (₹${formatCompactNumber(item.value)})`, legendX + 14, legendY + 9);
-        legendY += 20;
+        ctx.textBaseline = 'top';
+        if (item.lines.length === 1) {
+            ctx.fillText(item.lines[0], legendX + 16, legendY + 1);
+        } else {
+            ctx.fillText(item.lines[0], legendX + 16, legendY);
+            ctx.fillText(item.lines[1], legendX + 16, legendY + 14);
+        }
+        legendY += item.height;
     });
 }
 

@@ -5,8 +5,8 @@ import re
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QMessageBox, QFileDialog
 )
-from PyQt6.QtCore import pyqtSignal, QThread, QSize, QTimer
-from PyQt6.QtGui import QTextDocument
+from PyQt6.QtCore import pyqtSignal, QThread, QSize, QTimer, QMarginsF
+from PyQt6.QtGui import QTextDocument, QPageLayout, QPageSize
 from PyQt6.QtPrintSupport import QPrinter
 
 from ui.html_screen_wrapper import HtmlScreenWrapper
@@ -686,32 +686,69 @@ class AIReportWidget(QWidget):
         self.start_prepare_all_reports()
 
     def export_pdf_report(self):
-        """Prints the report viewer HTML contents into a PDF file."""
-        html_content = self.current_report_html
-        if not html_content or "Select a statement" in html_content:
-            QMessageBox.warning(self, "No Report Generated", "Please generate an AI report before exporting a PDF.")
+        """Generates and exports the AI Financial Report to a PDF file."""
+        report_data = getattr(self, "report_data", {})
+        
+        # Build report_data on demand if active_transactions exist but report_data is empty
+        if not report_data or report_data.get("transaction_count", 0) == 0:
+            if hasattr(self, "active_transactions") and self.active_transactions:
+                meta = getattr(self, "active_metadata", {})
+                report_data = GeminiService.build_report_data(
+                    self.active_transactions,
+                    bank_name=meta.get("bank_name", "Bank"),
+                    statement_period=meta.get("period", "Current Period"),
+                    account_holder=meta.get("account_holder", "Account Holder"),
+                    account_number=meta.get("account_number", "N/A"),
+                    currency=meta.get("currency", "INR")
+                )
+                self.report_data = report_data
+
+        if not report_data or report_data.get("transaction_count", 0) == 0:
+            QMessageBox.warning(self, "No Report Available", "Please select a bank statement before exporting a PDF report.")
             return
 
-        filename = f"AI_Financial_Report_{self.active_metadata.get('bank_name')}_{datetime.datetime.now().strftime('%Y%m%d')}.pdf"
+        # Render print-optimized A4 PDF HTML
+        html_content = GeminiService.render_pdf_report_html(report_data)
+
+        # File save dialog
+        bank_clean = str(self.active_metadata.get("bank_name", "Financial")).replace(" ", "_")
+        filename = f"StatementForge_Financial_Report_{bank_clean}_{datetime.datetime.now().strftime('%Y%m%d')}.pdf"
         doc_dir = os.path.expanduser("~/Documents")
+        default_path = os.path.join(doc_dir, filename)
+
         filepath, _ = QFileDialog.getSaveFileName(
-            self, "Save AI Financial Report PDF", os.path.join(doc_dir, filename), "PDF Files (*.pdf)"
+            self, "Save AI Financial Report PDF", default_path, "PDF Files (*.pdf)"
         )
         
+        # Clean exit if user cancels save dialog
         if not filepath:
             return
 
         try:
-            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            printer = QPrinter(QPrinter.PrinterMode.PrinterResolution)
             printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
             printer.setOutputFileName(filepath)
-            printer.setPageMargins(QSize(15, 15), QPrinter.Unit.Millimeter)
+            printer.setResolution(96)
+            
+            page_layout = QPageLayout(
+                QPageSize(QPageSize.PageSizeId.A4),
+                QPageLayout.Orientation.Portrait,
+                QMarginsF(15, 15, 15, 15),
+                QPageLayout.Unit.Millimeter
+            )
+            printer.setPageLayout(page_layout)
             
             doc = QTextDocument()
+            # Crucial: set text width to match printable A4 width in points (prevents shrinking and ensures 100% full scale multi-page layout)
+            printable_width_pt = page_layout.paintRectPoints().width()
+            doc.setTextWidth(printable_width_pt)
             doc.setHtml(html_content)
-            doc.print_(printer)
+            doc.print(printer)
             
-            Toast.success(self, "✓ PDF Report exported successfully!")
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                Toast.success(self, f"✓ Financial report exported successfully!")
+            else:
+                raise IOError("The PDF file could not be written to disk.")
             
             # Auto-create PDF Export Notification
             try:
@@ -722,7 +759,7 @@ class AIReportWidget(QWidget):
                     user_id=user_id,
                     category="parsing_export",
                     title="PDF Export Completed",
-                    message=f"PDF report exported successfully: {os.path.basename(filepath)}",
+                    message=f"Financial report PDF exported successfully: {os.path.basename(filepath)}",
                     action_type="view_report"
                 )
                 p = self.parent()
@@ -734,14 +771,9 @@ class AIReportWidget(QWidget):
             except Exception:
                 pass
 
-            if os.path.exists(filepath):
-                if os.name == 'nt':
-                    os.startfile(filepath)
-                else:
-                    import subprocess
-                    subprocess.run(["open", filepath] if os.name == 'posix' else ["xdg-open", filepath])
         except Exception as e:
-            QMessageBox.critical(self, "Export Failed", f"Could not export PDF report:\n{e}")
+            print(f"PDF export error: {e}")
+            QMessageBox.critical(self, "Export Error", "Unable to export the financial report. Please try again.")
 
     def open_email_composer(self):
         """Opens Email Composer pre-attaching active AI report."""

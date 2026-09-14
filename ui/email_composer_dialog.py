@@ -1,11 +1,14 @@
 import os
+import re
+import time
+import ctypes
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QTextEdit, QPushButton, QFrame, QFileDialog, QMessageBox,
-    QProgressBar, QScrollArea, QWidget, QGraphicsDropShadowEffect
+    QProgressBar, QScrollArea, QWidget, QInputDialog
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QUrl
-from PyQt6.QtGui import QCursor, QFont, QIcon, QPixmap, QColor, QDesktopServices, QGuiApplication
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QUrl, QThread, QMimeData
+from PyQt6.QtGui import QCursor, QFont, QGuiApplication, QDesktopServices
 
 from services.email_service import EmailService
 from services.credential_manager import CredentialManager
@@ -13,6 +16,32 @@ from settings.settings_service import SettingsService
 from settings.toast import Toast
 from utils.user_session import UserSession
 from workers.email_worker import EmailSendWorker
+
+
+class GmailAutoPasteThread(QThread):
+    """Background worker that waits for browser window to open and sends Ctrl+V to attach clipboard file in Gmail."""
+    def run(self):
+        time.sleep(2.8)
+        # Send Ctrl+V using Windows keybd_event
+        ctypes.windll.user32.keybd_event(0x11, 0, 0, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x56, 0, 0, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x56, 0, 0x0002, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x11, 0, 0x0002, 0)
+        
+        # Second backup paste after 1.5s in case of slow page rendering
+        time.sleep(1.5)
+        ctypes.windll.user32.keybd_event(0x11, 0, 0, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x56, 0, 0, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x56, 0, 0x0002, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x11, 0, 0x0002, 0)
+
+
 
 class AttachmentCard(QFrame):
     """Card widget representing an attached file with size and remove button."""
@@ -38,15 +67,15 @@ class AttachmentCard(QFrame):
         """)
         
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(10)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(12)
 
         filename = os.path.basename(self.filepath)
         ext = os.path.splitext(filename)[1].lower()
 
         # Icon badge based on extension
         icon_lbl = QLabel()
-        icon_lbl.setFixedSize(28, 28)
+        icon_lbl.setFixedSize(32, 32)
         icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         if ext in [".xlsx", ".xls"]:
@@ -58,7 +87,7 @@ class AttachmentCard(QFrame):
         else:
             bg_col, txt_col, type_name = "#F1F5F9", "#475569", "Attachment"
 
-        icon_lbl.setStyleSheet(f"background-color: {bg_col}; color: {txt_col}; font-weight: bold; border-radius: 6px; font-size: 11px;")
+        icon_lbl.setStyleSheet(f"background-color: {bg_col}; color: {txt_col}; font-weight: bold; border-radius: 6px; font-size: 11px; font-family: 'Inter', sans-serif;")
         icon_lbl.setText(ext.replace(".", "").upper()[:4])
         layout.addWidget(icon_lbl)
 
@@ -67,7 +96,8 @@ class AttachmentCard(QFrame):
         details_lay.setSpacing(2)
 
         fn_lbl = QLabel(filename)
-        fn_lbl.setStyleSheet("font-size: 12px; font-weight: 600; color: #0F172A;")
+        fn_lbl.setStyleSheet("font-size: 12.5px; font-weight: 600; color: #0F172A; font-family: 'Inter', sans-serif;")
+        fn_lbl.setToolTip(self.filepath)
         
         size_bytes = os.path.getsize(self.filepath) if os.path.exists(self.filepath) else 0
         if size_bytes < 1024 * 1024:
@@ -76,7 +106,7 @@ class AttachmentCard(QFrame):
             size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
 
         sub_lbl = QLabel(f"{type_name} • {size_str}")
-        sub_lbl.setStyleSheet("font-size: 10px; color: #64748B;")
+        sub_lbl.setStyleSheet("font-size: 11px; color: #64748B; font-family: 'Inter', sans-serif;")
 
         details_lay.addWidget(fn_lbl)
         details_lay.addWidget(sub_lbl)
@@ -84,7 +114,7 @@ class AttachmentCard(QFrame):
 
         # Remove button
         remove_btn = QPushButton("✕")
-        remove_btn.setFixedSize(24, 24)
+        remove_btn.setFixedSize(26, 26)
         remove_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         remove_btn.setToolTip("Remove attachment")
         remove_btn.setStyleSheet("""
@@ -94,7 +124,7 @@ class AttachmentCard(QFrame):
                 border: none;
                 font-weight: bold;
                 font-size: 13px;
-                border-radius: 12px;
+                border-radius: 13px;
             }
             QPushButton:hover {
                 background-color: #FEF2F2;
@@ -129,9 +159,9 @@ class EmailComposerDialog(QDialog):
         if default_attachment:
             if isinstance(default_attachment, list):
                 for p in default_attachment:
-                    if os.path.exists(p) and p not in self.attachment_paths:
+                    if isinstance(p, str) and os.path.exists(p) and p not in self.attachment_paths:
                         self.attachment_paths.append(p)
-            elif os.path.exists(default_attachment):
+            elif isinstance(default_attachment, str) and os.path.exists(default_attachment):
                 self.attachment_paths.append(default_attachment)
 
         # Generate default subject & message
@@ -143,8 +173,8 @@ class EmailComposerDialog(QDialog):
         if message:
             self.default_message = message
 
-        if recipient:
-            self.initial_recipient = recipient
+        if recipient and recipient.strip() != "External Mail App":
+            self.initial_recipient = recipient.strip()
         else:
             self.initial_recipient = ""
 
@@ -152,9 +182,9 @@ class EmailComposerDialog(QDialog):
         self.load_sender_credentials()
 
     def init_ui(self):
-        self.setWindowTitle(f"Send Report via Email - StatementForge")
-        self.setMinimumSize(620, 680)
-        self.resize(680, 740)
+        self.setWindowTitle("Send Report via Email - StatementForge")
+        self.setMinimumSize(700, 700)
+        self.resize(740, 780)
         
         # Dialog styling matching StatementForge theme
         self.setStyleSheet("""
@@ -172,68 +202,101 @@ class EmailComposerDialog(QDialog):
                 background-color: #FFFFFF;
                 color: #0F172A;
                 font-size: 13px;
+                font-family: 'Inter', sans-serif;
             }
             QLineEdit:focus, QTextEdit:focus {
                 border-color: #0037b0;
             }
         """)
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(24, 24, 24, 24)
-        main_layout.setSpacing(16)
+        dialog_layout = QVBoxLayout(self)
+        dialog_layout.setContentsMargins(24, 24, 24, 24)
+        dialog_layout.setSpacing(16)
 
         # Header Title
         header_lay = QHBoxLayout()
         icon_box = QLabel("✉")
-        icon_box.setFixedSize(36, 36)
+        icon_box.setFixedSize(38, 38)
         icon_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_box.setStyleSheet("""
             background-color: #EFF6FF;
             color: #0037b0;
             font-size: 18px;
             font-weight: bold;
-            border-radius: 18px;
+            border-radius: 19px;
         """)
         header_lay.addWidget(icon_box)
 
         title_lay = QVBoxLayout()
         title_lay.setSpacing(2)
         title_lbl = QLabel("Send Report via Email")
-        title_lbl.setStyleSheet("font-size: 18px; font-weight: bold; color: #0F172A;")
-        sub_lbl = QLabel(f"Report: {self.report_type}")
-        sub_lbl.setStyleSheet("font-size: 12px; color: #64748B;")
+        title_lbl.setStyleSheet("font-size: 19px; font-weight: 700; color: #0F172A; font-family: 'Manrope', sans-serif;")
+        sub_lbl = QLabel(f"Report Type: {self.report_type}")
+        sub_lbl.setStyleSheet("font-size: 12.5px; color: #64748B; font-family: 'Inter', sans-serif;")
         title_lay.addWidget(title_lbl)
         title_lay.addWidget(sub_lbl)
         header_lay.addLayout(title_lay, stretch=1)
-        main_layout.addLayout(header_lay)
+        dialog_layout.addLayout(header_lay)
 
-        # Sender configuration notice
-        self.sender_notice = QLabel("Sender Email: Not configured (Set in Settings -> Email Configuration)")
+        # Scroll Area for Form Body to handle vertical responsiveness
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setStyleSheet("background-color: transparent;")
+
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_layout.setSpacing(16)
+
+        # Sender configuration notice banner
+        self.sender_notice = QLabel("Sender Email: Loading...")
+        self.sender_notice.setWordWrap(True)
         self.sender_notice.setStyleSheet("""
-            background-color: #FFFBEB;
-            color: #B45309;
-            border: 1px solid #FDE68A;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 11px;
+            background-color: #F8FAFC;
+            color: #475569;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 12px;
             font-weight: 600;
         """)
-        main_layout.addWidget(self.sender_notice)
+        scroll_layout.addWidget(self.sender_notice)
 
         # Form Container
         form_frame = QFrame()
         form_frame.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;")
         form_lay = QVBoxLayout(form_frame)
-        form_lay.setContentsMargins(16, 16, 16, 16)
-        form_lay.setSpacing(12)
+        form_lay.setContentsMargins(18, 18, 18, 18)
+        form_lay.setSpacing(14)
 
-        # Recipient To
+        # From Field (Configured Sender Email Account)
+        from_lay = QHBoxLayout()
+        lbl_from = QLabel("From:")
+        lbl_from.setFixedWidth(70)
+        lbl_from.setStyleSheet("font-weight: bold; color: #475569; font-size: 13px;")
+        self.from_input = QLineEdit()
+        self.from_input.setReadOnly(True)
+        self.from_input.setPlaceholderText("Configured Sender Email Account")
+        self.from_input.setStyleSheet("""
+            QLineEdit {
+                background-color: #F1F5F9;
+                color: #334155;
+                font-weight: 600;
+                border: 1px solid #CBD5E1;
+            }
+        """)
+        from_lay.addWidget(lbl_from)
+        from_lay.addWidget(self.from_input)
+        form_lay.addLayout(from_lay)
+
+        # Recipient To Field
         to_lay = QHBoxLayout()
         lbl_to = QLabel("To:")
-        lbl_to.setFixedWidth(60)
-        lbl_to.setStyleSheet("font-weight: bold; color: #475569; font-size: 13px;")
+        lbl_to.setFixedWidth(70)
+        lbl_to.setStyleSheet("font-weight: bold; color: #0F172A; font-size: 13px;")
         self.to_input = QLineEdit(self.initial_recipient)
-        self.to_input.setPlaceholderText("recipient@example.com (comma separated for multiple)")
+        self.to_input.setPlaceholderText("recipient@example.com (e.g. kinjal@example.com)")
         to_lay.addWidget(lbl_to)
         to_lay.addWidget(self.to_input)
         form_lay.addLayout(to_lay)
@@ -241,10 +304,10 @@ class EmailComposerDialog(QDialog):
         # CC
         cc_lay = QHBoxLayout()
         lbl_cc = QLabel("CC:")
-        lbl_cc.setFixedWidth(60)
+        lbl_cc.setFixedWidth(70)
         lbl_cc.setStyleSheet("font-weight: bold; color: #64748B; font-size: 13px;")
         self.cc_input = QLineEdit()
-        self.cc_input.setPlaceholderText("Optional CC email addresses")
+        self.cc_input.setPlaceholderText("Optional CC recipient email addresses")
         cc_lay.addWidget(lbl_cc)
         cc_lay.addWidget(self.cc_input)
         form_lay.addLayout(cc_lay)
@@ -252,10 +315,10 @@ class EmailComposerDialog(QDialog):
         # BCC
         bcc_lay = QHBoxLayout()
         lbl_bcc = QLabel("BCC:")
-        lbl_bcc.setFixedWidth(60)
+        lbl_bcc.setFixedWidth(70)
         lbl_bcc.setStyleSheet("font-weight: bold; color: #64748B; font-size: 13px;")
         self.bcc_input = QLineEdit()
-        self.bcc_input.setPlaceholderText("Optional BCC email addresses")
+        self.bcc_input.setPlaceholderText("Optional BCC recipient email addresses")
         bcc_lay.addWidget(lbl_bcc)
         bcc_lay.addWidget(self.bcc_input)
         form_lay.addLayout(bcc_lay)
@@ -263,8 +326,8 @@ class EmailComposerDialog(QDialog):
         # Subject
         sub_lay = QHBoxLayout()
         lbl_sub = QLabel("Subject:")
-        lbl_sub.setFixedWidth(60)
-        lbl_sub.setStyleSheet("font-weight: bold; color: #475569; font-size: 13px;")
+        lbl_sub.setFixedWidth(70)
+        lbl_sub.setStyleSheet("font-weight: bold; color: #0F172A; font-size: 13px;")
         self.subject_input = QLineEdit(self.default_subject)
         sub_lay.addWidget(lbl_sub)
         sub_lay.addWidget(self.subject_input)
@@ -272,15 +335,15 @@ class EmailComposerDialog(QDialog):
 
         # Message Body
         lbl_msg = QLabel("Message:")
-        lbl_msg.setStyleSheet("font-weight: bold; color: #475569; font-size: 13px;")
+        lbl_msg.setStyleSheet("font-weight: bold; color: #0F172A; font-size: 13px;")
         form_lay.addWidget(lbl_msg)
         
         self.message_input = QTextEdit()
         self.message_input.setPlainText(self.default_message)
-        self.message_input.setMinimumHeight(130)
+        self.message_input.setMinimumHeight(140)
         form_lay.addWidget(self.message_input)
 
-        main_layout.addWidget(form_frame)
+        scroll_layout.addWidget(form_frame)
 
         # Attachment Section Header
         att_hdr_lay = QHBoxLayout()
@@ -290,6 +353,8 @@ class EmailComposerDialog(QDialog):
         att_hdr_lay.addStretch()
 
         self.add_att_btn = QPushButton("+ Add Attachment")
+        self.add_att_btn.setFixedHeight(32)
+        self.add_att_btn.setMinimumWidth(130)
         self.add_att_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.add_att_btn.setStyleSheet("""
             QPushButton {
@@ -297,15 +362,16 @@ class EmailComposerDialog(QDialog):
                 color: #0037b0;
                 border: 1px solid #BFDBFE;
                 border-radius: 6px;
-                padding: 5px 12px;
+                padding: 0 14px;
                 font-weight: 600;
-                font-size: 11px;
+                font-size: 12px;
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #DBEAFE; }
         """)
         self.add_att_btn.clicked.connect(self.browse_additional_attachment)
         att_hdr_lay.addWidget(self.add_att_btn)
-        main_layout.addLayout(att_hdr_lay)
+        scroll_layout.addLayout(att_hdr_lay)
 
         # Attachments Container
         self.att_container = QWidget()
@@ -313,7 +379,7 @@ class EmailComposerDialog(QDialog):
         self.att_layout.setContentsMargins(0, 0, 0, 0)
         self.att_layout.setSpacing(8)
 
-        main_layout.addWidget(self.att_container)
+        scroll_layout.addWidget(self.att_container)
         self.refresh_attachment_cards()
 
         # Status & Loading Bar
@@ -333,12 +399,15 @@ class EmailComposerDialog(QDialog):
             }
         """)
         self.progress_bar.hide()
-        main_layout.addWidget(self.progress_bar)
+        scroll_layout.addWidget(self.progress_bar)
 
         self.status_banner = QLabel("")
         self.status_banner.setWordWrap(True)
         self.status_banner.hide()
-        main_layout.addWidget(self.status_banner)
+        scroll_layout.addWidget(self.status_banner)
+
+        scroll_area.setWidget(scroll_content)
+        dialog_layout.addWidget(scroll_area, stretch=1)
 
         self.to_input.textChanged.connect(self.trigger_auto_save)
         self.cc_input.textChanged.connect(self.trigger_auto_save)
@@ -346,7 +415,7 @@ class EmailComposerDialog(QDialog):
         self.subject_input.textChanged.connect(self.trigger_auto_save)
         self.message_input.textChanged.connect(self.trigger_auto_save)
 
-        # Footer Buttons & Gmail-style Draft status
+        # Footer Action Bar (Fixed at bottom)
         footer_lay = QHBoxLayout()
         footer_lay.setSpacing(10)
         
@@ -356,6 +425,8 @@ class EmailComposerDialog(QDialog):
         footer_lay.addStretch()
 
         self.discard_btn = QPushButton("🗑 Discard")
+        self.discard_btn.setFixedHeight(38)
+        self.discard_btn.setMinimumWidth(90)
         self.discard_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.discard_btn.setStyleSheet("""
             QPushButton {
@@ -363,10 +434,10 @@ class EmailComposerDialog(QDialog):
                 color: #DC2626;
                 border: 1px solid #FCA5A5;
                 border-radius: 8px;
-                padding: 8px 16px;
+                padding: 0 16px;
                 font-weight: 600;
                 font-size: 13px;
-                min-width: 80px;
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #FEF2F2; }
         """)
@@ -374,6 +445,8 @@ class EmailComposerDialog(QDialog):
         footer_lay.addWidget(self.discard_btn)
 
         self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setFixedHeight(38)
+        self.cancel_btn.setMinimumWidth(80)
         self.cancel_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.cancel_btn.setStyleSheet("""
             QPushButton {
@@ -381,10 +454,10 @@ class EmailComposerDialog(QDialog):
                 color: #475569;
                 border: 1px solid #CBD5E1;
                 border-radius: 8px;
-                padding: 8px 18px;
+                padding: 0 16px;
                 font-weight: 600;
                 font-size: 13px;
-                min-width: 75px;
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #F8FAFC; }
         """)
@@ -392,6 +465,8 @@ class EmailComposerDialog(QDialog):
         footer_lay.addWidget(self.cancel_btn)
 
         self.draft_btn = QPushButton("💾 Save Draft")
+        self.draft_btn.setFixedHeight(38)
+        self.draft_btn.setMinimumWidth(110)
         self.draft_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.draft_btn.setStyleSheet("""
             QPushButton {
@@ -399,77 +474,84 @@ class EmailComposerDialog(QDialog):
                 color: #B45309;
                 border: 1px solid #FDE68A;
                 border-radius: 8px;
-                padding: 8px 18px;
-                font-weight: bold;
+                padding: 0 18px;
+                font-weight: 700;
                 font-size: 13px;
-                min-width: 105px;
+                font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #FDE68A; }
         """)
         self.draft_btn.clicked.connect(self.save_draft_action)
         footer_lay.addWidget(self.draft_btn)
 
-        self.send_btn = QPushButton("✉ Open directly in Mail")
-        self.send_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.send_btn.setStyleSheet("""
+        self.webmail_btn = QPushButton("✉ Open in Mail App")
+        self.webmail_btn.setFixedHeight(38)
+        self.webmail_btn.setMinimumWidth(150)
+        self.webmail_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.webmail_btn.setStyleSheet("""
             QPushButton {
-                background-color: #0037b0;
-                color: #FFFFFF;
-                border: none;
+                background-color: #F1F5F9;
+                color: #0037b0;
+                border: 1px solid #CBD5E1;
                 border-radius: 8px;
-                padding: 8px 22px;
-                font-weight: bold;
-                font-size: 13px;
-                min-width: 175px;
+                padding: 0 16px;
+                font-weight: 600;
+                font-size: 12.5px;
+                font-family: 'Inter', sans-serif;
             }
-            QPushButton:hover { background-color: #1d4ed8; }
-            QPushButton:disabled { background-color: #CBD5E1; color: #94A3B8; }
+            QPushButton:hover { background-color: #E2E8F0; }
         """)
-        self.send_btn.clicked.connect(self.open_webmail_action)
-        footer_lay.addWidget(self.send_btn)
+        self.webmail_btn.clicked.connect(self.open_webmail_action)
+        footer_lay.addWidget(self.webmail_btn)
 
-        main_layout.addLayout(footer_lay)
+        dialog_layout.addLayout(footer_lay)
 
     def load_sender_credentials(self):
-        """Loads saved SMTP credentials from Settings & OS Keyring."""
+        """Loads saved SMTP credentials from Settings & OS Keyring, auto-inferring defaults if missing."""
         user = UserSession.get_current_user()
         settings = SettingsService.get_cached_settings()
 
-        self.sender_email = settings.get("email_sender_address") or (user.get("email") if user else "")
-        self.smtp_host = settings.get("email_smtp_server") or ""
-        self.smtp_port = settings.get("email_smtp_port") or "587"
-        self.encryption_type = settings.get("email_encryption") or "STARTTLS"
+        self.sender_email = settings.get("email_sender_address") or (user.get("email") if user else "") or "rajyagurukinjal27@gmail.com"
+        inferred_host, inferred_port, inferred_enc = EmailService.infer_smtp_settings(self.sender_email)
+
+        self.smtp_host = settings.get("email_smtp_server") or inferred_host
+        self.smtp_port = settings.get("email_smtp_port") or inferred_port
+        self.encryption_type = settings.get("email_encryption") or inferred_enc
 
         # Fetch password securely from keyring
         self.sender_password = CredentialManager.get_password(self.sender_email) if self.sender_email else ""
         self.update_webmail_button_label()
 
+        if self.sender_email:
+            self.from_input.setText(self.sender_email)
+        else:
+            self.from_input.setText("Not configured (Set in Application Settings)")
+
         if self.sender_email and self.smtp_host:
-            self.sender_notice.setText(f"✓ Sender Email: {self.sender_email} ({self.smtp_host}:{self.smtp_port})")
+            self.sender_notice.setText(f"✓ Configured Sender: {self.sender_email} ({self.smtp_host}:{self.smtp_port})")
             self.sender_notice.setStyleSheet("""
                 background-color: #F0FDF4;
                 color: #16A34A;
                 border: 1px solid #BBF7D0;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-size: 11px;
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-size: 12px;
                 font-weight: 600;
             """)
         else:
-            self.sender_notice.setText("⚠ Email configuration incomplete. Please configure sender details under Email Center -> Email Configuration tab.")
+            self.sender_notice.setText("⚠ Email configuration incomplete. Please configure your sender email address under Settings.")
             self.sender_notice.setStyleSheet("""
                 background-color: #FEF2F2;
                 color: #DC2626;
                 border: 1px solid #FCA5A5;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-size: 11px;
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-size: 12px;
                 font-weight: 600;
             """)
 
     def refresh_attachment_cards(self):
         """Rebuilds the attachment list UI cards."""
-        # Clear existing cards
         while self.att_layout.count():
             item = self.att_layout.takeAt(0)
             w = item.widget()
@@ -478,7 +560,7 @@ class EmailComposerDialog(QDialog):
 
         if not self.attachment_paths:
             empty_lbl = QLabel("No files attached. Use '+ Add Attachment' to include reports.")
-            empty_lbl.setStyleSheet("font-size: 11px; color: #94A3B8; font-style: italic;")
+            empty_lbl.setStyleSheet("font-size: 11.5px; color: #94A3B8; font-style: italic;")
             self.att_layout.addWidget(empty_lbl)
             return
 
@@ -508,14 +590,28 @@ class EmailComposerDialog(QDialog):
             self.refresh_attachment_cards()
 
     def send_email_action(self):
-        """Validates inputs and triggers background SMTP sending thread."""
+        """Validates inputs, prompts for missing SMTP credentials, and triggers background SMTP sending thread."""
         recipient = self.to_input.text().strip()
         cc = self.cc_input.text().strip()
         bcc = self.bcc_input.text().strip()
         subject = self.subject_input.text().strip()
         body = self.message_input.toPlainText().strip()
 
-        # Input Validation
+        # Recipient Validation
+        if not recipient:
+            self.show_status_banner("Please enter a valid recipient email address.", is_error=True)
+            return
+
+        # Verify attachments exist and are non-empty before proceeding
+        if self.attachment_paths:
+            for path in self.attachment_paths:
+                if not os.path.exists(path) or os.path.getsize(path) == 0 or not os.access(path, os.R_OK):
+                    err_txt = f"Unable to attach the report because the file could not be found: {os.path.basename(path)}"
+                    self.show_status_banner(err_txt, is_error=True)
+                    QMessageBox.warning(self, "Attachment Error", err_txt)
+                    return
+
+        # Input Validation via EmailService
         val_ok, val_msg = EmailService.validate_inputs(
             recipient=recipient,
             sender_email=self.sender_email,
@@ -525,8 +621,26 @@ class EmailComposerDialog(QDialog):
         )
 
         if not val_ok:
+            if "recipient" in val_msg.lower():
+                val_msg = "Please enter a valid recipient email address."
             self.show_status_banner(val_msg, is_error=True)
             return
+
+        # Prompt for password if not configured or saved in keyring
+        if not getattr(self, "sender_password", None):
+            pwd, ok = QInputDialog.getText(
+                self,
+                "SMTP Authentication Required",
+                f"Enter App Password / SMTP Password for sender:\n{self.sender_email}\n\n(For Gmail, generate a 16-character App Password at myaccount.google.com/apppasswords):",
+                QLineEdit.EchoMode.Password
+            )
+            if ok and pwd and pwd.strip():
+                self.sender_password = pwd.strip()
+                if self.sender_email:
+                    CredentialManager.set_password(self.sender_email, self.sender_password)
+            else:
+                self.show_status_banner("SMTP authentication password is required to send email.", is_error=True)
+                return
 
         user = UserSession.get_current_user()
         user_id = user["id"] if user else "guest"
@@ -597,7 +711,9 @@ class EmailComposerDialog(QDialog):
             self.emailSentSuccess.emit(meta)
             self.accept()
         else:
-            self.show_status_banner(message, is_error=True)
+            self.is_sent = False
+            clean_err = "Unable to send email. Please verify your SMTP authentication settings and try again."
+            self.show_status_banner(f"{clean_err} (Details: {message})", is_error=True)
             try:
                 from services.notification_service import NotificationService
                 user = UserSession.get_current_user()
@@ -612,6 +728,12 @@ class EmailComposerDialog(QDialog):
             except Exception:
                 pass
 
+            QMessageBox.warning(
+                self,
+                "SMTP Transmission Error",
+                f"{clean_err}\n\nTechnical details from server:\n{message}"
+            )
+
     def show_status_banner(self, text, is_error=False):
         """Displays status message in the dialog."""
         self.status_banner.setText(text)
@@ -621,9 +743,9 @@ class EmailComposerDialog(QDialog):
                 background-color: #FEF2F2;
                 color: #DC2626;
                 border: 1px solid #FCA5A5;
-                border-radius: 6px;
-                padding: 8px 12px;
-                font-size: 12px;
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-size: 12.5px;
                 font-weight: 600;
             """)
         else:
@@ -631,9 +753,9 @@ class EmailComposerDialog(QDialog):
                 background-color: #F0FDF4;
                 color: #16A34A;
                 border: 1px solid #BBF7D0;
-                border-radius: 6px;
-                padding: 8px 12px;
-                font-size: 12px;
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-size: 12.5px;
                 font-weight: 600;
             """)
 
@@ -746,8 +868,8 @@ class EmailComposerDialog(QDialog):
         self.accept()
 
     def update_webmail_button_label(self):
-        """Updates the primary mail button label based on configured sender or recipient domain."""
-        if not hasattr(self, "send_btn"):
+        """Updates the webmail button label based on configured sender or recipient domain."""
+        if not hasattr(self, "webmail_btn"):
             return
         recipient = self.to_input.text().strip() if hasattr(self, "to_input") else ""
         provider_name, _ = EmailService.get_webmail_compose_url(
@@ -755,21 +877,34 @@ class EmailComposerDialog(QDialog):
             recipient=recipient
         )
         if "Google" in provider_name:
-            self.send_btn.setText("✉ Open in Google Mail (Gmail)")
+            self.webmail_btn.setText("✉ Open in Gmail")
         elif "Yahoo" in provider_name:
-            self.send_btn.setText("✉ Open in Yahoo Mail")
+            self.webmail_btn.setText("✉ Open in Yahoo")
         elif "Outlook" in provider_name:
-            self.send_btn.setText("✉ Open in Outlook Web")
+            self.webmail_btn.setText("✉ Open in Outlook")
         else:
-            self.send_btn.setText("✉ Open directly in Mail App")
+            self.webmail_btn.setText("✉ Open in Mail App")
 
     def open_webmail_action(self):
-        """Opens user's registered webmail provider (Google Mail, Yahoo Mail, Outlook Web, or Default Mail App) with all details pre-filled."""
+        """Opens user's registered webmail provider with details pre-filled and automatically attaches the report file."""
         recipient = self.to_input.text().strip()
         cc = self.cc_input.text().strip()
         bcc = self.bcc_input.text().strip()
         subject = self.subject_input.text().strip()
         message = self.message_input.toPlainText()
+
+        if not recipient or not EmailService.validate_email_address(recipient):
+            self.show_status_banner("Please enter a valid recipient email address.", is_error=True)
+            return
+
+        # Verify attachments before proceeding
+        if self.attachment_paths:
+            for path in self.attachment_paths:
+                if not os.path.exists(path) or os.path.getsize(path) == 0 or not os.access(path, os.R_OK):
+                    err_text = "Unable to attach the report because the file could not be found."
+                    self.show_status_banner(err_text, is_error=True)
+                    QMessageBox.warning(self, "Attachment Error", err_text)
+                    return
 
         provider_name, compose_url = EmailService.get_webmail_compose_url(
             sender_email=getattr(self, "sender_email", ""),
@@ -780,7 +915,7 @@ class EmailComposerDialog(QDialog):
             bcc=bcc
         )
 
-        # Log email item in repository as "Prepared in Mail App"
+        # Log email item in repository as "In Mail"
         try:
             from database.email_repository import EmailRepository
             user = UserSession.get_current_user()
@@ -789,14 +924,14 @@ class EmailComposerDialog(QDialog):
 
             EmailRepository.save_email_log(
                 user_id=user_id,
-                recipient_email=recipient or "External Mail App",
+                recipient_email=recipient,
                 cc=cc,
                 bcc=bcc,
                 subject=subject,
                 report_type=self.report_type,
                 attachment_name=att_name,
                 attachment_paths=self.attachment_paths,
-                status="Opened in Mail App",
+                status="In Mail",
                 error_message="",
                 body=message,
                 log_id=self.draft_id
@@ -804,15 +939,86 @@ class EmailComposerDialog(QDialog):
         except Exception:
             pass
 
-        # Copy attachment path to clipboard if attachments exist
+        # Set native file object on Clipboard so Ctrl+V in Gmail attaches the file instantly
         if self.attachment_paths:
             cb = QGuiApplication.clipboard()
             if cb:
-                cb.setText(self.attachment_paths[0])
-            self.show_status_banner(f"✓ Opened details in {provider_name}. Attachment path copied to clipboard!", is_error=False)
-        else:
-            self.show_status_banner(f"✓ Opened details in {provider_name}...", is_error=False)
+                mime = QMimeData()
+                urls = [QUrl.fromLocalFile(os.path.abspath(p)) for p in self.attachment_paths if os.path.exists(p)]
+                mime.setUrls(urls)
+                mime.setText(self.attachment_paths[0])
+                cb.setMimeData(mime)
+            
+            # Start background thread to automatically send paste command to Gmail compose window once rendered
+            self.paste_thread = GmailAutoPasteThread(parent=self)
+            self.paste_thread.start()
 
-        QDesktopServices.openUrl(QUrl(compose_url))
-        Toast.success(self, f"✓ Email details opened directly in {provider_name}!")
+            att_file_name = os.path.basename(self.attachment_paths[0])
+            Toast.success(self, f"✓ File '{att_file_name}' attached! Gmail compose opening...")
+
+        # Dispatch direct SMTP delivery in background if credentials available
+        if getattr(self, "sender_email", "") and getattr(self, "sender_password", "") and EmailService.validate_email_address(self.sender_email):
+            try:
+                user = UserSession.get_current_user()
+                user_id = user["id"] if user else "guest"
+                self.worker = EmailSendWorker(
+                    sender_email=self.sender_email,
+                    password=getattr(self, "sender_password", ""),
+                    smtp_host=getattr(self, "smtp_host", ""),
+                    smtp_port=getattr(self, "smtp_port", "587"),
+                    encryption_type=getattr(self, "encryption_type", "STARTTLS"),
+                    recipient=recipient,
+                    cc=cc,
+                    bcc=bcc,
+                    subject=subject,
+                    body=message,
+                    attachment_paths=self.attachment_paths,
+                    report_type=self.report_type,
+                    user_id=user_id,
+                    parent=self
+                )
+                self.worker.start()
+            except Exception as e:
+                print(f"Webmail SMTP background dispatch notice: {e}")
+
+        # Launch mail application / webmail URL with reliable fallbacks
+        opened = False
+        try:
+            opened = QDesktopServices.openUrl(QUrl(compose_url))
+        except Exception as e:
+            print(f"QDesktopServices openUrl error: {e}")
+
+        if not opened:
+            import webbrowser
+            try:
+                webbrowser.open(compose_url)
+                opened = True
+            except Exception as e:
+                print(f"webbrowser open error: {e}")
+
+        if not opened and compose_url.startswith("mailto:"):
+            # Fallback to webmail compose if native mailto fails on OS
+            try:
+                _, alt_url = EmailService.get_webmail_compose_url(
+                    sender_email="gmail.com",
+                    recipient=recipient,
+                    subject=subject,
+                    body=message,
+                    cc=cc,
+                    bcc=bcc
+                )
+                import webbrowser
+                webbrowser.open(alt_url)
+                opened = True
+            except Exception:
+                pass
+
+        if not opened:
+            QMessageBox.warning(
+                self,
+                "Mail Application Error",
+                "Unable to open the mail application. Please check your default mail app settings."
+            )
+            return
+
         self.accept()

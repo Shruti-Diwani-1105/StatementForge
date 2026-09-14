@@ -401,63 +401,137 @@ class BudgetService:
 
     @classmethod
     def generate_ai_summary(cls, user_id, month_key):
-        """Uses GeminiService to analyze the monthly results and generate personalized financial insights."""
+        """Uses GeminiService to analyze the monthly results and generate a concise 8-10 line data-driven financial summary."""
+        import datetime
+        import re
+        from services.gemini_service import GeminiService
+
         summary = cls.get_user_budget(user_id, month_key)
         
-        prompt = f"""
-You are an expert personal financial advisor in StatementForge.
-Analyze the following Monthly Salary & Budget Planner data for {month_key}:
+        # Convert month_key (e.g. "2026-08") to human readable string (e.g. "August 2026")
+        try:
+            dt = datetime.datetime.strptime(month_key, "%Y-%m")
+            month_name = dt.strftime("%B %Y")
+        except Exception:
+            month_name = month_key
 
-Income & Spending Overview:
-- Total Income: ₹{summary['total_income']:,.0f}
-- Planned Expenses: ₹{summary['total_planned_expenses']:,.0f}
-- Actual Expenses: ₹{summary['total_actual_expenses']:,.0f}
-- Planned Savings: ₹{summary['planned_savings']:,.0f}
-- Remaining Budget: ₹{summary['remaining_monthly_budget']:,.0f}
-- Budget Performance Score: {summary['performance_score']}/100
+        total_income = summary.get("total_income", 0.0)
+        total_actual_expenses = summary.get("total_actual_expenses", 0.0)
+        total_planned_expenses = summary.get("total_planned_expenses", 0.0)
+        planned_savings = summary.get("planned_savings", 0.0)
+        performance_score = summary.get("performance_score", 0)
+        actual_surplus = total_income - total_actual_expenses
+
+        # Check for empty / missing data
+        if total_income == 0 and total_actual_expenses == 0 and total_planned_expenses == 0:
+            return f"""
+<div class="ai-summary-content" style="font-size: 13.5px; line-height: 1.65; color: #1E293B; padding: 4px;">
+    <p style="margin:0;">Not enough financial data is available for <strong>{month_name}</strong> to generate a meaningful analysis. Please add your monthly salary, planned budget, and expense records, then click <strong>"✨ Generate AI Analysis"</strong> again.</p>
+</div>
+"""
+
+        # Prepare category variance data
+        comparison = summary.get("comparison", [])
+        over_items = [c for c in comparison if c.get("actual", 0) > c.get("planned", 0)]
+        under_items = [c for c in comparison if c.get("actual", 0) < c.get("planned", 0)]
+        
+        over_items.sort(key=lambda x: (x.get("actual", 0) - x.get("planned", 0)), reverse=True)
+        under_items.sort(key=lambda x: (x.get("planned", 0) - x.get("actual", 0)), reverse=True)
+
+        prompt = f"""
+You are a senior personal financial advisor in StatementForge.
+Analyze the following Monthly Salary & Budget Planner data for **{month_name}**:
+
+Month: {month_name}
+- Total Income / Salary: ₹{total_income:,.0f}
+- Planned Expenses: ₹{total_planned_expenses:,.0f}
+- Actual Expenses: ₹{total_actual_expenses:,.0f}
+- Planned Savings Target: ₹{planned_savings:,.0f}
+- Actual Surplus / Net Savings: ₹{actual_surplus:,.0f}
+- Monthly Budget Performance Score: {performance_score}/100
 
 Category Breakdown (Planned vs Actual):
 """
-        for item in summary["comparison"]:
-            prompt += f"- {item['category']}: Planned ₹{item['planned']:,.0f} | Actual ₹{item['actual']:,.0f} | Result: {item['result']}\n"
+        for item in comparison:
+            prompt += f"- {item['category']}: Planned ₹{item.get('planned', 0):,.0f} | Actual ₹{item.get('actual', 0):,.0f} | Result: {item.get('result', '')}\n"
 
-        prompt += """
-Please provide a clear, professional, user-friendly AI Monthly Summary containing:
-1. An executive 2-sentence breakdown of overall financial performance.
-2. Specific highlights of which categories caused budget variance (over-budget vs savings).
-3. 3 practical, actionable tips for next month to improve savings and control overspending.
-
-Keep the response concise, encouraging, and cleanly formatted using HTML paragraphs (`<p>`), bullet points (`<ul><li>`), and bold text (`<strong>`). Do not include Markdown backticks or `<html>` root tags.
+        prompt += f"""
+CRITICAL REQUIREMENTS FOR THE SUMMARY:
+1. Generate a CONCISE, 8 TO 10 LINE SINGLE FINANCIAL SUMMARY paragraph specifically analyzing {month_name}.
+2. DO NOT include section headers (no "Executive Summary:", no "Category Variance:", no "Actionable Tips:").
+3. DO NOT include bulleted lists (no <ul>, <li>).
+4. Combine the overview, month name ({month_name}), Budget Performance Score ({performance_score}/100), income (₹{total_income:,.0f}), actual expenses (₹{total_actual_expenses:,.0f}), surplus/deficit (₹{actual_surplus:,.0f}), comparison against planned savings target (₹{planned_savings:,.0f}), key category variances, and 1-2 practical actionable advice sentences into one smooth, readable paragraph.
+5. Format with clean HTML (<p> and <strong> tags only). Do NOT use markdown code blocks or ```html wrappers.
+6. Target length: strictly 8 to 10 lines (~130 to 170 words).
 """
+
         try:
-            analysis = GeminiService._call_gemini(prompt, system_instruction="You are an encouraging expert personal financial consultant.")
-            return analysis
+            analysis = GeminiService._call_gemini(prompt, system_instruction="You are a professional, concise, data-driven personal financial consultant.")
+            analysis_clean = cls._clean_ai_summary_output(analysis, month_name)
+            return analysis_clean
         except Exception as e:
-            print(f"BudgetService: AI Summary API call failed ({e}). Returning fallback AI insight.")
-            
-            # Local fallback AI insight
-            over_items = [c for c in summary["comparison"] if c["status"] == "over"]
-            under_items = [c for c in summary["comparison"] if c["status"] == "under"]
-            
-            over_desc = ", ".join([f"<strong>{c['category']}</strong> (exceeded by ₹{(c['actual']-c['planned']):,.0f})" for c in over_items]) if over_items else "None"
-            under_desc = ", ".join([f"<strong>{c['category']}</strong>" for c in under_items]) if under_items else "None"
+            print(f"BudgetService: AI Summary API call failed ({e}). Generating fallback monthly analysis.")
+            return cls._generate_fallback_ai_summary(month_name, summary, total_income, total_actual_expenses, planned_savings, actual_surplus, performance_score, over_items, under_items)
 
-            return f"""
-<div class="ai-summary-content">
-    <p><strong>AI Executive Insight for {month_key}:</strong></p>
-    <p>Your total spending was <strong>₹{summary['total_actual_expenses']:,.0f}</strong> against planned expenses of <strong>₹{summary['total_planned_expenses']:,.0f}</strong>. Your monthly performance score is <strong>{summary['performance_score']}/100</strong>.</p>
-    
-    <p><strong>Key Drivers:</strong></p>
-    <ul>
-        <li>Over-budget categories needing attention: {over_desc}.</li>
-        <li>Categories successfully kept under budget: {under_desc}.</li>
-    </ul>
+    @classmethod
+    def _clean_ai_summary_output(cls, raw_html, month_name):
+        """Cleans AI output formatting, removing unwanted headings, markdown code blocks, or list tags."""
+        import re
+        if not raw_html:
+            return ""
+        
+        # Remove markdown codeblock tags
+        text = raw_html.replace("```html", "").replace("```", "").strip()
+        
+        # Remove headings like "Executive Summary:", "Category Variance Highlights:", "Actionable Tips:"
+        text = re.sub(r'<h3>.*?</h3>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'<h4>.*?</h4>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'<strong>\s*(Executive Summary|Category Variance Highlights|Actionable Tips for Next Month|Summary & Advice)\s*:?\s*</strong>', '', text, flags=re.IGNORECASE)
+        
+        # Replace list items <li> with inline text or paragraphs if any remain
+        text = re.sub(r'</?ul>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'</?ol>', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'<li>', ' ', text, flags=re.IGNORECASE)
+        text = re.sub(r'</li>', '. ', text, flags=re.IGNORECASE)
 
-    <p><strong>Actionable Tips for Next Month:</strong></p>
-    <ul>
-        <li>Set up weekly spending alerts for high-variance categories like Shopping and Travel.</li>
-        <li>Automate your Planned Savings transfer (₹{summary['planned_savings']:,.0f}) on payday (1st of the month).</li>
-        <li>Use the Next Month Budget feature to adjust category limits based on your actual spending patterns.</li>
-    </ul>
+        return f'<div class="ai-summary-content" style="font-size: 13.5px; line-height: 1.65; color: #0F172A; padding: 4px;">{text}</div>'
+
+    @classmethod
+    def _generate_fallback_ai_summary(cls, month_name, summary, inc, exp, planned_sav, surplus, score, over_items, under_items):
+        """Generates a deterministic 8-10 line data-driven summary when API call is unavailable."""
+        over_str = ", ".join([f"<strong>{c['category']}</strong> (exceeded by ₹{c['actual']-c['planned']:,.0f})" for c in over_items[:2]]) if over_items else ""
+        under_str = ", ".join([f"<strong>{c['category']}</strong>" for c in under_items[:3]]) if under_items else ""
+
+        if surplus >= 0:
+            savings_text = f"leaving a net monthly surplus of <strong>₹{surplus:,.0f}</strong>."
+            if surplus >= planned_sav:
+                target_text = f"This performance comfortably exceeded your planned savings target of ₹{planned_sav:,.0f}."
+                advice_text = f"Consider directing the additional surplus of ₹{surplus - planned_sav:,.0f} toward high-yield savings or investment goals."
+            else:
+                target_text = f"However, this fell short of your planned savings target of ₹{planned_sav:,.0f}."
+                advice_text = "Modest adjustments to non-essential spending next month will help align actual savings with your planned target."
+        else:
+            savings_text = f"resulting in a monthly net deficit of <strong>₹{abs(surplus):,.0f}</strong>."
+            target_text = f"Total expenditure exceeded monthly income, missing the planned savings target of ₹{planned_sav:,.0f}."
+            advice_text = "Prioritize trimming top discretionary spending categories immediately to restore a positive monthly cash flow."
+
+        if under_str and over_str:
+            cat_analysis = f"Spending in {under_str} remained comfortably below planned limits, while {over_str} exceeded planned allocations."
+        elif under_str:
+            cat_analysis = f"Expenditure across {under_str} was well controlled and remained below planned budget limits."
+        elif over_str:
+            cat_analysis = f"Spending in {over_str} exceeded planned budget allocations, impacting overall performance."
+        else:
+            cat_analysis = "Category spending closely tracked planned budget targets across the board."
+
+        html = f"""
+<div class="ai-summary-content" style="font-size: 13.5px; line-height: 1.65; color: #0F172A; padding: 4px;">
+    <p style="margin:0;">
+        <strong>{month_name}</strong> was a key performance month, achieving a Budget Performance Score of <strong>{score}/100</strong>. 
+        Your total income was <strong>₹{inc:,.0f}</strong> against total actual spending of <strong>₹{exp:,.0f}</strong>, {savings_text} 
+        {target_text} {cat_analysis} Overall spending discipline played a central role in your monthly results. {advice_text}
+    </p>
 </div>
 """
+        return html
+

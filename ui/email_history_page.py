@@ -3,7 +3,7 @@ import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QComboBox, QPushButton, QFrame, QTableWidget, QTableWidgetItem,
-    QHeaderView, QMessageBox, QSizePolicy, QStackedWidget
+    QHeaderView, QMessageBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QCursor, QFont
@@ -11,13 +11,13 @@ from PyQt6.QtGui import QCursor, QFont
 from database.email_repository import EmailRepository
 from ui.email_composer_dialog import EmailComposerDialog
 from utils.user_session import UserSession
-from ui.email_settings_page import EmailSettingsPage
 
 class EmailHistoryPage(QWidget):
     """
     Unified Email Hub displaying logged sent/failed dispatches and drafts,
-    search/filters, Draft management with receiver ID, and embedded Email Configuration settings.
-    Uses QStackedWidget and modern typography to prevent layout squashing or font clipping.
+    search/filters, and draft/dispatch management.
+    Designed with modern banking SaaS typography and responsive table layout
+    to prevent text clipping or button squashing.
     """
 
     def __init__(self, parent=None):
@@ -29,7 +29,7 @@ class EmailHistoryPage(QWidget):
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(32, 24, 32, 32)
-        main_layout.setSpacing(18)
+        main_layout.setSpacing(20)
 
         # Header Title & New Email Action
         top_hdr_lay = QHBoxLayout()
@@ -39,7 +39,7 @@ class EmailHistoryPage(QWidget):
         self.header_lbl = QLabel("Email Center & Dispatches")
         self.header_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A; font-family: 'Manrope', sans-serif;")
         
-        self.sub_lbl = QLabel("Manage SMTP email settings, review transmission logs, draft reports to recipients, and retry failed dispatches.")
+        self.sub_lbl = QLabel("Manage email transmission logs, draft reports to recipients, and retry failed dispatches.")
         self.sub_lbl.setStyleSheet("color: #64748B; font-size: 13.5px; font-family: 'Inter', sans-serif;")
         
         text_lay.addWidget(self.header_lbl)
@@ -47,7 +47,7 @@ class EmailHistoryPage(QWidget):
         top_hdr_lay.addLayout(text_lay, stretch=1)
 
         self.compose_btn = QPushButton("✉ + Compose Email")
-        self.compose_btn.setFixedHeight(38)
+        self.compose_btn.setFixedHeight(40)
         self.compose_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.compose_btn.setStyleSheet("""
             QPushButton {
@@ -55,8 +55,8 @@ class EmailHistoryPage(QWidget):
                 color: #FFFFFF;
                 border: none;
                 border-radius: 8px;
-                padding: 0 20px;
-                font-weight: bold;
+                padding: 0 22px;
+                font-weight: 700;
                 font-size: 13px;
                 font-family: 'Inter', sans-serif;
             }
@@ -67,81 +67,17 @@ class EmailHistoryPage(QWidget):
 
         main_layout.addLayout(top_hdr_lay)
 
-        # Segmented Navigation Bar (History vs Settings)
-        self.nav_frame = QFrame()
-        self.nav_frame.setStyleSheet("""
-            QFrame {
-                background-color: #F1F5F9;
-                border-radius: 10px;
-                border: 1px solid #E2E8F0;
-            }
-        """)
-        nav_lay = QHBoxLayout(self.nav_frame)
-        nav_lay.setContentsMargins(4, 4, 4, 4)
-        nav_lay.setSpacing(6)
-
-        self.btn_tab_history = QPushButton("📊 History & Dispatches")
-        self.btn_tab_history.setCheckable(True)
-        self.btn_tab_history.setChecked(True)
-        self.btn_tab_history.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        
-        self.btn_tab_config = QPushButton("⚙ Email Configuration")
-        self.btn_tab_config.setCheckable(True)
-        self.btn_tab_config.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-
-        tab_style = """
-            QPushButton {
-                background-color: transparent;
-                color: #64748B;
-                border: none;
-                border-radius: 8px;
-                padding: 8px 18px;
-                font-weight: bold;
-                font-size: 13px;
-                font-family: 'Inter', sans-serif;
-            }
-            QPushButton:checked {
-                background-color: #FFFFFF;
-                color: #0037b0;
-                border: 1px solid #CBD5E1;
-            }
-            QPushButton:hover:!checked {
-                background-color: #E2E8F0;
-                color: #0F172A;
-            }
-        """
-        self.btn_tab_history.setStyleSheet(tab_style)
-        self.btn_tab_config.setStyleSheet(tab_style)
-
-        self.btn_tab_history.clicked.connect(lambda: self.switch_tab(0))
-        self.btn_tab_config.clicked.connect(lambda: self.switch_tab(1))
-
-        nav_lay.addWidget(self.btn_tab_history)
-        nav_lay.addWidget(self.btn_tab_config)
-        nav_lay.addStretch()
-
-        main_layout.addWidget(self.nav_frame)
-
-        # Stack Widget for Tab Switching (Prevents Layout Overlap & Squashing)
-        self.hub_stack = QStackedWidget(self)
-        self.hub_stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-        # TAB 0: HISTORY VIEW
-        self.history_widget = QWidget()
-        hw_lay = QVBoxLayout(self.history_widget)
-        hw_lay.setContentsMargins(0, 0, 0, 0)
-        hw_lay.setSpacing(16)
-
         # Filter Control Bar Card
         self.filter_card = QFrame()
         self.filter_card.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;")
         filter_lay = QHBoxLayout(self.filter_card)
-        filter_lay.setContentsMargins(16, 12, 16, 12)
-        filter_lay.setSpacing(12)
+        filter_lay.setContentsMargins(16, 14, 16, 14)
+        filter_lay.setSpacing(14)
 
         # Search Bar
         self.search_input = QLineEdit()
-        self.search_input.setFixedHeight(36)
+        self.search_input.setFixedHeight(38)
+        self.search_input.setMinimumWidth(260)
         self.search_input.setPlaceholderText("🔍 Search by receiver email or subject...")
         self.search_input.setStyleSheet("""
             QLineEdit {
@@ -153,18 +89,19 @@ class EmailHistoryPage(QWidget):
                 color: #0F172A;
                 font-family: 'Inter', sans-serif;
             }
-            QLineEdit:focus { border-color: #2563EB; }
+            QLineEdit:focus { border-color: #0037b0; background-color: #FFFFFF; }
         """)
         self.search_input.textChanged.connect(self.load_email_history)
         filter_lay.addWidget(self.search_input, stretch=2)
 
         # Report Type Filter
         lbl_r = QLabel("Report:")
-        lbl_r.setStyleSheet("font-weight: 600; font-size: 12.5px; color: #475569; font-family: 'Inter', sans-serif;")
+        lbl_r.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569; font-family: 'Inter', sans-serif;")
         filter_lay.addWidget(lbl_r)
 
         self.report_filter_combo = QComboBox()
-        self.report_filter_combo.setFixedHeight(36)
+        self.report_filter_combo.setFixedHeight(38)
+        self.report_filter_combo.setMinimumWidth(220)
         self.report_filter_combo.addItems([
             "All", "Bank Statement Report", "GST Reconciliation & Analysis Report",
             "AI Financial Analysis Report", "Duplicate Transaction Report", "Excel Export Report"
@@ -173,51 +110,55 @@ class EmailHistoryPage(QWidget):
             QComboBox {
                 border: 1px solid #CBD5E1;
                 border-radius: 8px;
-                padding: 0 10px;
-                font-size: 12.5px;
+                padding: 0 12px;
+                font-size: 13px;
                 background-color: #F8FAFC;
                 color: #0F172A;
                 font-family: 'Inter', sans-serif;
             }
+            QComboBox:focus { border-color: #0037b0; }
         """)
         self.report_filter_combo.currentTextChanged.connect(self.load_email_history)
         filter_lay.addWidget(self.report_filter_combo)
 
         # Status Filter
         lbl_s = QLabel("Status:")
-        lbl_s.setStyleSheet("font-weight: 600; font-size: 12.5px; color: #475569; font-family: 'Inter', sans-serif;")
+        lbl_s.setStyleSheet("font-weight: 600; font-size: 13px; color: #475569; font-family: 'Inter', sans-serif;")
         filter_lay.addWidget(lbl_s)
 
         self.status_filter_combo = QComboBox()
-        self.status_filter_combo.setFixedHeight(36)
+        self.status_filter_combo.setFixedHeight(38)
+        self.status_filter_combo.setMinimumWidth(110)
         self.status_filter_combo.addItems(["All", "Sent", "Failed", "Draft"])
         self.status_filter_combo.setStyleSheet("""
             QComboBox {
                 border: 1px solid #CBD5E1;
                 border-radius: 8px;
-                padding: 0 10px;
-                font-size: 12.5px;
+                padding: 0 12px;
+                font-size: 13px;
                 background-color: #F8FAFC;
                 color: #0F172A;
                 font-family: 'Inter', sans-serif;
             }
+            QComboBox:focus { border-color: #0037b0; }
         """)
         self.status_filter_combo.currentTextChanged.connect(self.load_email_history)
         filter_lay.addWidget(self.status_filter_combo)
 
         # Refresh Button
         self.refresh_btn = QPushButton("↻ Refresh")
-        self.refresh_btn.setFixedHeight(36)
+        self.refresh_btn.setFixedHeight(38)
+        self.refresh_btn.setMinimumWidth(100)
         self.refresh_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.refresh_btn.setStyleSheet("""
             QPushButton {
                 background-color: #EFF6FF;
-                color: #2563EB;
+                color: #0037b0;
                 border: 1px solid #BFDBFE;
                 border-radius: 8px;
-                padding: 0 14px;
+                padding: 0 16px;
                 font-weight: 600;
-                font-size: 12.5px;
+                font-size: 13px;
                 font-family: 'Inter', sans-serif;
             }
             QPushButton:hover { background-color: #DBEAFE; }
@@ -225,7 +166,7 @@ class EmailHistoryPage(QWidget):
         self.refresh_btn.clicked.connect(self.load_email_history)
         filter_lay.addWidget(self.refresh_btn)
 
-        hw_lay.addWidget(self.filter_card)
+        main_layout.addWidget(self.filter_card)
 
         # History Table Container
         self.table_container = QFrame()
@@ -240,37 +181,29 @@ class EmailHistoryPage(QWidget):
         self.table.setHorizontalHeaderLabels(["Date", "Receiver ID (Recipient)", "Report Type", "Subject", "Status", "Action"])
 
         header = self.table.horizontalHeader()
-        header.setFixedHeight(42)
+        header.setFixedHeight(44)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Interactive)
 
         self.table.setColumnWidth(0, 150)
-        self.table.setColumnWidth(1, 200)
-        self.table.setColumnWidth(2, 200)
-        self.table.setColumnWidth(3, 180)
-        self.table.setColumnWidth(4, 120)
-        self.table.setColumnWidth(5, 160)
+        self.table.setColumnWidth(1, 210)
+        self.table.setColumnWidth(2, 210)
+        self.table.setColumnWidth(3, 210)
+        self.table.setColumnWidth(4, 140)
+        self.table.setColumnWidth(5, 185)
 
-        self.table.verticalHeader().setDefaultSectionSize(48)
+        self.table.verticalHeader().setDefaultSectionSize(54)
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
 
         self.apply_table_style()
         tc_layout.addWidget(self.table)
-        hw_lay.addWidget(self.table_container)
-
-        self.hub_stack.addWidget(self.history_widget)
-
-        # TAB 1: EMAIL CONFIGURATION VIEW
-        self.config_page = EmailSettingsPage(self)
-        self.hub_stack.addWidget(self.config_page)
-
-        main_layout.addWidget(self.hub_stack)
+        main_layout.addWidget(self.table_container)
 
     def apply_table_style(self):
         if self.current_theme == "dark":
@@ -296,7 +229,7 @@ class EmailHistoryPage(QWidget):
                     border-right: 1px solid #1E293B;
                 }
                 QTableWidget::item {
-                    padding: 8px 12px;
+                    padding: 10px 14px;
                     border-bottom: 1px solid #334155;
                 }
                 QTableWidget::item:hover { background-color: #334155; }
@@ -324,7 +257,7 @@ class EmailHistoryPage(QWidget):
                     border-right: 1px solid #F1F5F9;
                 }
                 QTableWidget::item {
-                    padding: 8px 12px;
+                    padding: 10px 14px;
                     border-bottom: 1px solid #F1F5F9;
                 }
                 QTableWidget::item:hover { background-color: #F8FAFC; }
@@ -333,20 +266,6 @@ class EmailHistoryPage(QWidget):
     def apply_theme(self, theme):
         self.current_theme = theme.lower().strip() if isinstance(theme, str) else "light"
         self.apply_table_style()
-        if hasattr(self, "config_page") and self.config_page:
-            self.config_page.apply_theme(self.current_theme)
-
-    def switch_tab(self, index):
-        """Switches between Email History (0) and Email Configuration (1)."""
-        if index == 0:
-            self.btn_tab_history.setChecked(True)
-            self.btn_tab_config.setChecked(False)
-            self.hub_stack.setCurrentIndex(0)
-            self.load_email_history()
-        else:
-            self.btn_tab_history.setChecked(False)
-            self.btn_tab_config.setChecked(True)
-            self.hub_stack.setCurrentIndex(1)
 
     def open_new_composer(self):
         """Opens a blank Email Composer dialog."""
@@ -393,55 +312,78 @@ class EmailHistoryPage(QWidget):
 
             item_date = QTableWidgetItem(date_str)
             item_date.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            item_date.setToolTip(date_str)
             self.table.setItem(row_idx, 0, item_date)
 
             # 2. Recipient
             recip = log.get("recipient_email", "")
             item_recip = QTableWidgetItem(recip)
             item_recip.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            item_recip.setToolTip(recip)
             self.table.setItem(row_idx, 1, item_recip)
 
             # 3. Report Type
             rtype = log.get("report_type", "Report")
             item_rtype = QTableWidgetItem(rtype)
             item_rtype.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            item_rtype.setToolTip(rtype)
             self.table.setItem(row_idx, 2, item_rtype)
 
             # 4. Subject
             subj = log.get("subject", "")
             item_subj = QTableWidgetItem(subj)
             item_subj.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            item_subj.setToolTip(subj)
             self.table.setItem(row_idx, 3, item_subj)
 
             # 5. Status Badge
-            status = log.get("status", "Sent")
+            status_raw = log.get("status", "Sent")
+            if "Opened" in status_raw or "Mail" in status_raw or status_raw == "In Mail":
+                display_status = "In Mail"
+            else:
+                display_status = status_raw
+
             status_container = QWidget()
+            status_container.setStyleSheet("background: transparent; border: none;")
             sc_layout = QHBoxLayout(status_container)
-            sc_layout.setContentsMargins(4, 4, 4, 4)
+            sc_layout.setContentsMargins(0, 0, 0, 0)
             sc_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            badge = QLabel(status)
-            badge.setFixedSize(85, 24)
+            badge = QLabel(display_status)
+            badge.setFixedHeight(24)
             badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            if status == "Sent":
+            if display_status == "Sent":
                 badge.setStyleSheet("""
-                    background-color: #ECFDF5;
-                    color: #059669;
+                    background-color: #F0FDF4;
+                    color: #16A34A;
                     font-weight: 600;
                     font-size: 11px;
-                    border-radius: 12px;
-                    border: 1px solid #A7F3D0;
+                    border-radius: 6px;
+                    border: 1px solid #BBF7D0;
+                    padding: 0 10px;
                     font-family: 'Inter', sans-serif;
                 """)
-            elif status == "Draft":
+            elif display_status == "Draft":
                 badge.setStyleSheet("""
-                    background-color: #FFFBEB;
-                    color: #D97706;
+                    background-color: #F8FAFC;
+                    color: #475569;
                     font-weight: 600;
                     font-size: 11px;
-                    border-radius: 12px;
-                    border: 1px solid #FDE68A;
+                    border-radius: 6px;
+                    border: 1px solid #CBD5E1;
+                    padding: 0 10px;
+                    font-family: 'Inter', sans-serif;
+                """)
+            elif display_status == "In Mail":
+                badge.setStyleSheet("""
+                    background-color: #EFF6FF;
+                    color: #0037b0;
+                    font-weight: 600;
+                    font-size: 11px;
+                    border-radius: 6px;
+                    border: 1px solid #BFDBFE;
+                    padding: 0 10px;
                     font-family: 'Inter', sans-serif;
                 """)
             else:
@@ -450,90 +392,96 @@ class EmailHistoryPage(QWidget):
                     color: #DC2626;
                     font-weight: 600;
                     font-size: 11px;
-                    border-radius: 12px;
+                    border-radius: 6px;
                     border: 1px solid #FECACA;
+                    padding: 0 10px;
                     font-family: 'Inter', sans-serif;
                 """)
             sc_layout.addWidget(badge)
             self.table.setCellWidget(row_idx, 4, status_container)
 
-            # 6. Action Buttons
+            # 6. Action Buttons Container
             action_container = QWidget()
+            action_container.setStyleSheet("background: transparent; border: none;")
             ac_layout = QHBoxLayout(action_container)
-            ac_layout.setContentsMargins(4, 4, 4, 4)
+            ac_layout.setContentsMargins(0, 2, 0, 2)
             ac_layout.setSpacing(6)
             ac_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            if status == "Draft":
-                edit_btn = QPushButton("✏ Edit")
-                edit_btn.setFixedSize(64, 24)
+            if display_status == "Draft":
+                edit_btn = QPushButton("Edit")
+                edit_btn.setFixedHeight(28)
                 edit_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
                 edit_btn.setStyleSheet("""
                     QPushButton {
-                        background-color: #FFFBEB;
-                        color: #D97706;
-                        border: 1px solid #FDE68A;
+                        background-color: #FFFFFF;
+                        color: #0037b0;
+                        border: 1px solid #CBD5E1;
                         border-radius: 6px;
                         font-weight: 600;
-                        font-size: 11px;
+                        font-size: 11.5px;
+                        padding: 0 12px;
                         font-family: 'Inter', sans-serif;
                     }
-                    QPushButton:hover { background-color: #FDE68A; }
+                    QPushButton:hover { background-color: #EFF6FF; border-color: #0037b0; }
                 """)
                 edit_btn.clicked.connect(lambda checked, l=log: self.retry_email(l))
                 ac_layout.addWidget(edit_btn)
-            elif status == "Failed":
+            elif display_status == "Failed":
                 retry_btn = QPushButton("Retry")
-                retry_btn.setFixedSize(60, 24)
+                retry_btn.setFixedHeight(28)
                 retry_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
                 retry_btn.setStyleSheet("""
                     QPushButton {
-                        background-color: #FEF2F2;
-                        color: #DC2626;
-                        border: 1px solid #FECACA;
+                        background-color: #FFFFFF;
+                        color: #0037b0;
+                        border: 1px solid #CBD5E1;
                         border-radius: 6px;
                         font-weight: 600;
-                        font-size: 11px;
+                        font-size: 11.5px;
+                        padding: 0 12px;
                         font-family: 'Inter', sans-serif;
                     }
-                    QPushButton:hover { background-color: #FEE2E2; }
+                    QPushButton:hover { background-color: #EFF6FF; border-color: #0037b0; }
                 """)
                 retry_btn.clicked.connect(lambda checked, l=log: self.retry_email(l))
                 ac_layout.addWidget(retry_btn)
             else:
                 resend_btn = QPushButton("Resend")
-                resend_btn.setFixedSize(62, 24)
+                resend_btn.setFixedHeight(28)
                 resend_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
                 resend_btn.setStyleSheet("""
                     QPushButton {
-                        background-color: #EFF6FF;
-                        color: #2563EB;
-                        border: 1px solid #BFDBFE;
+                        background-color: #FFFFFF;
+                        color: #0037b0;
+                        border: 1px solid #CBD5E1;
                         border-radius: 6px;
                         font-weight: 600;
-                        font-size: 11px;
+                        font-size: 11.5px;
+                        padding: 0 12px;
                         font-family: 'Inter', sans-serif;
                     }
-                    QPushButton:hover { background-color: #DBEAFE; }
+                    QPushButton:hover { background-color: #EFF6FF; border-color: #0037b0; }
                 """)
                 resend_btn.clicked.connect(lambda checked, l=log: self.retry_email(l))
                 ac_layout.addWidget(resend_btn)
 
             # Delete Log Button
             del_btn = QPushButton("Delete")
-            del_btn.setFixedSize(58, 24)
+            del_btn.setFixedHeight(28)
             del_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             del_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #FEF2F2;
+                    background-color: #FFFFFF;
                     color: #DC2626;
                     border: 1px solid #FECDD3;
                     border-radius: 6px;
                     font-weight: 600;
-                    font-size: 11px;
+                    font-size: 11.5px;
+                    padding: 0 12px;
                     font-family: 'Inter', sans-serif;
                 }
-                QPushButton:hover { background-color: #FEE2E2; }
+                QPushButton:hover { background-color: #FEF2F2; border-color: #DC2626; }
             """)
             log_id = log.get("id")
             del_btn.clicked.connect(lambda checked, lid=log_id: self.delete_email_log(lid))
@@ -560,7 +508,10 @@ class EmailHistoryPage(QWidget):
 
     def retry_email(self, log_entry):
         att_paths_raw = log_entry.get("attachment_paths", "")
-        att_paths = [p.strip() for p in att_paths_raw.split(";") if p.strip() and os.path.exists(p.strip())]
+        if isinstance(att_paths_raw, list):
+            att_paths = [p for p in att_paths_raw if isinstance(p, str) and os.path.exists(p)]
+        else:
+            att_paths = [p.strip() for p in str(att_paths_raw).split(";") if p.strip() and os.path.exists(p.strip())]
         default_att = att_paths if att_paths else None
 
         dialog = EmailComposerDialog(

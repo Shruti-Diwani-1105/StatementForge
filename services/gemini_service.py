@@ -1730,6 +1730,252 @@ Return JSON only."""
         return cls.clean_html_response(html)
 
     @classmethod
+    def render_pdf_report_html(cls, report_data: dict) -> str:
+        """
+        Renders a clean, print-optimized HTML report specifically designed for
+        QTextDocument PDF export on A4 paper at 100% full scale readability.
+        """
+        import datetime
+        if not report_data or report_data.get("transaction_count", 0) == 0:
+            return "<html><body><h2 style='color:#0F172A;'>StatementForge Financial Report</h2><p style='color:#64748B;'>No valid transaction data available.</p></body></html>"
+
+        symbol = "₹ " if report_data.get("currency") == "INR" else ("$ " if report_data.get("currency") == "USD" else report_data.get("currency", "₹") + " ")
+        total_credits = report_data.get("total_credits", 0.0)
+        total_debits = report_data.get("total_debits", 0.0)
+        net_savings = report_data.get("net_savings", 0.0)
+        savings_rate = report_data.get("savings_rate", 0.0)
+        daily_burn = report_data.get("average_daily_burn", 0.0)
+
+        risk_info = report_data.get("risk_analysis", {})
+        score = risk_info.get("score", 0)
+        rating = risk_info.get("rating", "UNKNOWN")
+
+        top_cat_name = report_data["spending_categories"][0]["category"] if report_data.get("spending_categories") else "N/A"
+
+        # Build Spending Categories Table rows
+        cat_rows = ""
+        for cat in report_data.get("spending_categories", [])[:8]:
+            cat_rows += f"""
+            <tr>
+                <td style="padding: 7px 10px; border-bottom: 1px solid #E2E8F0; font-size: 10pt;">{cat.get('category', '')}</td>
+                <td style="padding: 7px 10px; border-bottom: 1px solid #E2E8F0; font-size: 10pt; text-align: right; font-weight: bold; color: #7C3AED;">{symbol}{cat.get('amount', 0.0):,.2f}</td>
+                <td style="padding: 7px 10px; border-bottom: 1px solid #E2E8F0; font-size: 10pt; text-align: right;">{cat.get('percentage', 0.0):.1f}%</td>
+            </tr>
+            """
+
+        # Build Top Outflows Table rows
+        tx_rows = ""
+        for tx in report_data.get("top_transactions", [])[:10]:
+            amt_val = tx.get("amount", 0.0)
+            tx_rows += f"""
+            <tr>
+                <td style="padding: 6px 8px; border-bottom: 1px solid #E2E8F0; font-size: 9.5pt;">{tx.get('date', '')}</td>
+                <td style="padding: 6px 8px; border-bottom: 1px solid #E2E8F0; font-size: 9.5pt;">{tx.get('narration', '')[:50]}</td>
+                <td style="padding: 6px 8px; border-bottom: 1px solid #E2E8F0; font-size: 9.5pt; text-align: right; font-weight: bold; color: #DC2626;">{symbol}{amt_val:,.2f}</td>
+                <td style="padding: 6px 8px; border-bottom: 1px solid #E2E8F0; font-size: 9.5pt;">{tx.get('ref_no', '-')}</td>
+            </tr>
+            """
+
+        # Build Recommendations list items
+        recs_list = "".join([f"<li style='margin-bottom: 8px; font-size: 10.5pt; color: #1E293B;'>{r}</li>" for r in report_data.get("recommendations", [])])
+
+        savings_color = "#059669" if net_savings >= 0 else "#DC2626"
+        risk_color = "#DC2626" if score >= 60 else ("#D97706" if score >= 30 else "#059669")
+
+        gen_date = datetime.datetime.now().strftime("%B %d, %Y")
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    body {{
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #0F172A;
+        background-color: #FFFFFF;
+        margin: 0;
+        padding: 0;
+        font-size: 11pt;
+        line-height: 1.5;
+    }}
+    .header {{
+        border-bottom: 2.5pt solid #2563EB;
+        padding-bottom: 10px;
+        margin-bottom: 16px;
+    }}
+    .title {{
+        font-size: 20pt;
+        font-weight: bold;
+        color: #0F172A;
+        margin: 0 0 4px 0;
+    }}
+    .subtitle {{
+        font-size: 10pt;
+        color: #64748B;
+        margin: 0;
+    }}
+    .section-heading {{
+        font-size: 13pt;
+        font-weight: bold;
+        color: #1E293B;
+        background-color: #F1F5F9;
+        padding: 6px 10px;
+        margin-top: 18px;
+        margin-bottom: 8px;
+        border-left: 4pt solid #2563EB;
+    }}
+    .box {{
+        background-color: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        font-size: 10.5pt;
+    }}
+    table {{
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 14px;
+    }}
+    th {{
+        background-color: #1E293B;
+        color: #FFFFFF;
+        font-size: 10pt;
+        font-weight: bold;
+        padding: 7px 9px;
+        text-align: left;
+    }}
+    .kpi-table td {{
+        padding: 8px 10px;
+        border: 1px solid #E2E8F0;
+        font-size: 10.5pt;
+    }}
+    .footer {{
+        margin-top: 28px;
+        border-top: 1px solid #CBD5E1;
+        padding-top: 8px;
+        font-size: 9pt;
+        color: #94A3B8;
+        text-align: center;
+    }}
+</style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">StatementForge — AI Financial &amp; Forensic Report</div>
+        <div class="subtitle">
+            <strong>Account Holder:</strong> {report_data.get('account_holder', 'Account Owner')} &nbsp;|&nbsp;
+            <strong>Bank:</strong> {report_data.get('bank_name', 'Bank')} &nbsp;|&nbsp;
+            <strong>Account #:</strong> {report_data.get('account_number', 'N/A')} &nbsp;|&nbsp;
+            <strong>Period:</strong> {report_data.get('statement_period', 'Current Period')} &nbsp;|&nbsp;
+            <strong>Generated:</strong> {gen_date}
+        </div>
+    </div>
+
+    <div class="section-heading">1. Executive Summary</div>
+    <div class="box">
+        Statement ledger contains <strong>{report_data.get('transaction_count', 0)}</strong> transactions. 
+        Total inflow credits of <strong style="color:#059669;">{symbol}{total_credits:,.2f}</strong> 
+        against total outflow debits of <strong style="color:#DC2626;">{symbol}{total_debits:,.2f}</strong>, 
+        resulting in net savings of <strong style="color:{savings_color};">{symbol}{net_savings:,.2f}</strong> 
+        ({savings_rate:.1f}% savings rate) and average daily burn rate of <strong>{symbol}{daily_burn:,.2f}</strong>.
+    </div>
+
+    <div class="section-heading">2. Income &amp; Expenses Snapshot</div>
+    <table class="kpi-table">
+        <tr>
+            <td style="background-color:#F8FAFC;"><strong>Total Inflow (Credits)</strong></td>
+            <td style="color:#059669; font-weight:bold; text-align:right;">{symbol}{total_credits:,.2f}</td>
+            <td style="background-color:#F8FAFC;"><strong>Total Outflow (Debits)</strong></td>
+            <td style="color:#DC2626; font-weight:bold; text-align:right;">{symbol}{total_debits:,.2f}</td>
+        </tr>
+        <tr>
+            <td style="background-color:#F8FAFC;"><strong>Net Savings</strong></td>
+            <td style="color:{savings_color}; font-weight:bold; text-align:right;">{symbol}{net_savings:,.2f}</td>
+            <td style="background-color:#F8FAFC;"><strong>Savings Rate</strong></td>
+            <td style="font-weight:bold; text-align:right;">{savings_rate:.1f}%</td>
+        </tr>
+        <tr>
+            <td style="background-color:#F8FAFC;"><strong>Avg Daily Burn</strong></td>
+            <td style="font-weight:bold; text-align:right;">{symbol}{daily_burn:,.2f}</td>
+            <td style="background-color:#F8FAFC;"><strong>Audit Risk Score</strong></td>
+            <td style="color:{risk_color}; font-weight:bold; text-align:right;">{score}/100 ({rating})</td>
+        </tr>
+    </table>
+
+    <div class="section-heading">3. Spending Assessment &amp; Top Outflows</div>
+    {f'<table><tr><th>Category</th><th style="text-align:right;">Total Outflow</th><th style="text-align:right;">% of Total</th></tr>{cat_rows}</table>' if cat_rows else ''}
+    
+    <div style="font-size:10.5pt; font-weight:bold; color:#1E293B; margin-top:10px; margin-bottom:4px;">Top Individual Outflow Transactions:</div>
+    {f'<table><tr><th>Date</th><th>Narration / Description</th><th style="text-align:right;">Amount</th><th>Ref No</th></tr>{tx_rows}</table>' if tx_rows else ''}
+
+    <div class="section-heading">4. Audit &amp; Forensic Risk Assessment</div>
+    <div class="box" style="border-left: 4pt solid {risk_color};">
+        <div style="font-size:11.5pt; font-weight:bold; color:#0F172A; margin-bottom:4px;">
+            Audit Risk Score: <span style="color:{risk_color};">{score}/100 — {rating}</span>
+        </div>
+        <div>
+            <strong>Duplicate Anomaly Risk:</strong> {risk_info.get('duplicate_risk', 'Low')} &nbsp;|&nbsp;
+            <strong>Liquidity Buffer Risk:</strong> {risk_info.get('liquidity_risk', 'Low')} &nbsp;|&nbsp;
+            <strong>Velocity Risk:</strong> {risk_info.get('velocity_risk', 'Low')}
+        </div>
+    </div>
+
+    <div class="section-heading">5. Key Recommendations</div>
+    <div class="box">
+        <ol style="margin: 0; padding-left: 18px;">
+            {recs_list}
+        </ol>
+    </div>
+
+    <div class="section-heading">6. Final Financial Snapshot</div>
+    <table class="kpi-table">
+        <tr>
+            <th>METRIC</th>
+            <th style="text-align:right;">AMOUNT / SCORE</th>
+            <th>STATUS</th>
+        </tr>
+        <tr>
+            <td><strong>TOTAL INCOME</strong></td>
+            <td style="color:#059669; font-weight:bold; text-align:right;">{symbol}{total_credits:,.2f}</td>
+            <td style="color:#059669; font-weight:bold;">CONFIRMED INFLOW</td>
+        </tr>
+        <tr>
+            <td><strong>TOTAL EXPENSES</strong></td>
+            <td style="color:#DC2626; font-weight:bold; text-align:right;">{symbol}{total_debits:,.2f}</td>
+            <td style="color:#DC2626; font-weight:bold;">TOTAL OUTFLOW</td>
+        </tr>
+        <tr>
+            <td><strong>NET SAVINGS</strong></td>
+            <td style="color:{savings_color}; font-weight:bold; text-align:right;">{symbol}{net_savings:,.2f}</td>
+            <td style="color:{savings_color}; font-weight:bold;">{'NET POSITIVE' if net_savings >= 0 else 'DEFICIT'}</td>
+        </tr>
+        <tr>
+            <td><strong>SAVINGS RATE</strong></td>
+            <td style="font-weight:bold; text-align:right;">{savings_rate:.1f}%</td>
+            <td>TARGET &gt; 20%</td>
+        </tr>
+        <tr>
+            <td><strong>TOP SPENDING CATEGORY</strong></td>
+            <td style="font-weight:bold; text-align:right; color:#7C3AED;">{top_cat_name}</td>
+            <td>PRIMARY EXPENSE DRIVER</td>
+        </tr>
+        <tr>
+            <td><strong>AUDIT RISK SCORE</strong></td>
+            <td style="color:{risk_color}; font-weight:bold; text-align:right;">{score}/100</td>
+            <td style="color:{risk_color}; font-weight:bold;">{rating}</td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Generated by StatementForge AI Financial Auditor &nbsp;•&nbsp; Confidential Financial Document
+    </div>
+</body>
+</html>"""
+        return html
+
+
+
+    @classmethod
     def chat_with_statement(cls, transactions, chat_history, user_message, currency="INR") -> str:
         """Answers contextual questions regarding transactions while preserving history with retries and fallback."""
         max_retries = 2

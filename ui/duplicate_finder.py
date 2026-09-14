@@ -21,7 +21,7 @@ from settings.toast import Toast
 class DuplicateFinderWidget(QWidget):
     """
     Dedicated, Big-4 style Duplicate Finder & Audit Hub.
-    Allows users to load single or multi-statement history logs or upload new PDFs,
+    Allows users to load single or multi-statement history logs,
     run multi-criteria duplicate detection, visually audit clusters, and export reports.
     """
     closed = pyqtSignal()
@@ -88,7 +88,21 @@ class DuplicateFinderWidget(QWidget):
             }
         """)
 
-        main_layout = QVBoxLayout(self)
+        # Outer layout on self (enables natural full-page scrolling)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        # Full-page main scroll area
+        self.main_scroll = QScrollArea()
+        self.main_scroll.setWidgetResizable(True)
+        self.main_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.main_scroll.setStyleSheet("background: transparent;")
+
+        scroll_content = QWidget()
+        scroll_content.setStyleSheet("background: transparent;")
+        
+        main_layout = QVBoxLayout(scroll_content)
         main_layout.setContentsMargins(32, 24, 32, 32)
         main_layout.setSpacing(20)
 
@@ -138,7 +152,7 @@ class DuplicateFinderWidget(QWidget):
         main_layout.addWidget(header_widget)
 
         # ==========================================
-        # 2. STATEMENT SOURCE & SCAN CONFIG CARD
+        # 2. SCAN CONTROLS CARD (INTEGRATED STATEMENT SELECTION)
         # ==========================================
         config_card = QFrame()
         config_card.setObjectName("ConfigCard")
@@ -157,19 +171,19 @@ class DuplicateFinderWidget(QWidget):
 
         cfg_layout = QVBoxLayout(config_card)
         cfg_layout.setContentsMargins(22, 18, 22, 18)
-        cfg_layout.setSpacing(16)
+        cfg_layout.setSpacing(14)
 
-        # Source Selection Row
-        src_row = QHBoxLayout()
-        src_row.setSpacing(12)
+        # Row 1: Statement Selection & Scan Criteria
+        row1 = QHBoxLayout()
+        row1.setSpacing(16)
 
-        src_label = QLabel("Statement Source:")
-        src_label.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
-        src_row.addWidget(src_label)
+        stmt_label = QLabel("Statement:")
+        stmt_label.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
+        row1.addWidget(stmt_label)
 
         self.history_combo = QComboBox()
-        self.history_combo.setMinimumWidth(300)
-        self.history_combo.setFixedHeight(34)
+        self.history_combo.setMinimumWidth(320)
+        self.history_combo.setFixedHeight(36)
         self.history_combo.setStyleSheet("""
             QComboBox {
                 background-color: #F8FAFC;
@@ -178,8 +192,8 @@ class DuplicateFinderWidget(QWidget):
                 padding: 0px 12px;
                 font-size: 12px;
                 color: #0F172A;
-                min-height: 34px;
-                max-height: 34px;
+                min-height: 36px;
+                max-height: 36px;
             }
             QComboBox:hover {
                 border-color: #2563EB;
@@ -191,123 +205,45 @@ class DuplicateFinderWidget(QWidget):
             }
         """)
         self.history_combo.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        src_row.addWidget(self.history_combo)
+        row1.addWidget(self.history_combo)
 
-        btn_style_secondary = """
-            QPushButton {
-                background-color: #FFFFFF;
-                color: #334155;
-                border: 1px solid #CBD5E1;
-                border-radius: 6px;
-                padding: 0px 14px;
-                font-size: 12px;
-                font-weight: 600;
-                min-height: 34px;
-                max-height: 34px;
-            }
-            QPushButton:hover {
-                background-color: #F8FAFC;
-                border-color: #94A3B8;
-            }
-        """
+        # Separator space
+        row1.addSpacing(16)
 
-        btn_style_primary = """
-            QPushButton {
-                background-color: #2563EB;
-                color: #FFFFFF;
-                border: none;
-                border-radius: 6px;
-                padding: 0px 14px;
-                font-size: 12px;
-                font-weight: 600;
-                min-height: 34px;
-                max-height: 34px;
-            }
-            QPushButton:hover {
-                background-color: #1D4ED8;
-            }
-        """
+        rules_label = QLabel("Scan Criteria:")
+        rules_label.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
+        row1.addWidget(rules_label)
 
-        self.btn_load_history = QPushButton("Load Selected")
-        self.btn_load_history.setFixedHeight(34)
-        self.btn_load_history.setStyleSheet(btn_style_secondary)
-        self.btn_load_history.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_load_history.clicked.connect(self.load_from_history)
-        src_row.addWidget(self.btn_load_history)
+        self.chk_exact = QCheckBox("Exact Match (100%)")
+        self.chk_exact.setChecked(True)
+        row1.addWidget(self.chk_exact)
 
-        self.btn_multi_audit = QPushButton("Cross-Statement Scan")
-        self.btn_multi_audit.setFixedHeight(34)
-        self.btn_multi_audit.setStyleSheet(btn_style_secondary)
-        self.btn_multi_audit.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_multi_audit.clicked.connect(self.load_all_history_statements)
-        src_row.addWidget(self.btn_multi_audit)
+        self.chk_potential = QCheckBox("Potential / Fuzzy Match")
+        self.chk_potential.setChecked(True)
+        row1.addWidget(self.chk_potential)
 
-        self.btn_upload = QPushButton("Upload New PDF")
-        self.btn_upload.setFixedHeight(34)
-        self.btn_upload.setStyleSheet(btn_style_primary)
-        self.btn_upload.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_upload.clicked.connect(self.upload_new_statement)
-        src_row.addWidget(self.btn_upload)
-
-        src_row.addStretch()
-        cfg_layout.addLayout(src_row)
+        row1.addStretch()
+        cfg_layout.addLayout(row1)
 
         # Divider line
         div_line = QFrame()
         div_line.setFrameShape(QFrame.Shape.HLine)
-        div_line.setStyleSheet("color: #F1F5F9;")
+        div_line.setStyleSheet("color: #F1F5F9; border: none; background-color: #F1F5F9; max-height: 1px;")
         cfg_layout.addWidget(div_line)
 
-        # Rules Options Row
-        rules_row = QHBoxLayout()
-        rules_row.setSpacing(20)
+        # Row 2: Similarity and Primary Scan Button
+        row2 = QHBoxLayout()
+        row2.setSpacing(16)
 
-        rules_label = QLabel("Scan Criteria:")
-        rules_label.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
-        rules_row.addWidget(rules_label)
-
-        self.chk_exact = QCheckBox("Exact Match (100%)")
-        self.chk_exact.setChecked(True)
-        rules_row.addWidget(self.chk_exact)
-
-        self.chk_potential = QCheckBox("Potential / Fuzzy Match")
-        self.chk_potential.setChecked(True)
-        rules_row.addWidget(self.chk_potential)
-
-        # Date Window
-        date_win_lbl = QLabel("Date Window:")
-        date_win_lbl.setStyleSheet("color: #475569; font-size: 12px; font-weight: 600;")
-        rules_row.addWidget(date_win_lbl)
-
-        self.combo_date_win = QComboBox()
-        self.combo_date_win.addItems(["Same Date (0 days)", "± 1 Day", "± 2 Days", "± 3 Days"])
-        self.combo_date_win.setCurrentIndex(2) # Default ±2 days
-        self.combo_date_win.setFixedWidth(145)
-        self.combo_date_win.setFixedHeight(34)
-        self.combo_date_win.setStyleSheet("""
-            QComboBox {
-                background-color: #F8FAFC;
-                border: 1px solid #CBD5E1;
-                border-radius: 6px;
-                padding: 0px 10px;
-                font-size: 12px;
-                color: #0F172A;
-                min-height: 34px;
-                max-height: 34px;
-            }
-        """)
-        rules_row.addWidget(self.combo_date_win)
-
-        # Similarity Threshold
         sim_lbl = QLabel("Similarity:")
         sim_lbl.setStyleSheet("color: #475569; font-size: 12px; font-weight: 600;")
-        rules_row.addWidget(sim_lbl)
+        row2.addWidget(sim_lbl)
 
         self.combo_sim = QComboBox()
         self.combo_sim.addItems(["Strict (85%)", "Standard (75%)", "Flexible (60%)"])
-        self.combo_sim.setCurrentIndex(1)
-        self.combo_sim.setFixedWidth(135)
-        self.combo_sim.setFixedHeight(34)
+        self.combo_sim.setCurrentIndex(1) # Default Standard 75%
+        self.combo_sim.setFixedWidth(140)
+        self.combo_sim.setFixedHeight(36)
         self.combo_sim.setStyleSheet("""
             QComboBox {
                 background-color: #F8FAFC;
@@ -316,22 +252,38 @@ class DuplicateFinderWidget(QWidget):
                 padding: 0px 10px;
                 font-size: 12px;
                 color: #0F172A;
-                min-height: 34px;
-                max-height: 34px;
+                min-height: 36px;
+                max-height: 36px;
             }
         """)
-        rules_row.addWidget(self.combo_sim)
+        row2.addWidget(self.combo_sim)
 
-        self.btn_run_scan = QPushButton("Run Scan")
-        self.btn_run_scan.setFixedWidth(110)
-        self.btn_run_scan.setFixedHeight(34)
+        row2.addStretch()
+
+        self.btn_run_scan = QPushButton("Scan")
+        self.btn_run_scan.setFixedWidth(120)
+        self.btn_run_scan.setFixedHeight(36)
         self.btn_run_scan.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.btn_run_scan.setStyleSheet(btn_style_primary)
+        self.btn_run_scan.setStyleSheet("""
+            QPushButton {
+                background-color: #2563EB;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 0px 18px;
+                font-size: 13px;
+                font-weight: 700;
+                min-height: 36px;
+                max-height: 36px;
+            }
+            QPushButton:hover {
+                background-color: #1D4ED8;
+            }
+        """)
         self.btn_run_scan.clicked.connect(self.run_duplicate_scan)
-        rules_row.addWidget(self.btn_run_scan)
+        row2.addWidget(self.btn_run_scan)
 
-        rules_row.addStretch()
-        cfg_layout.addLayout(rules_row)
+        cfg_layout.addLayout(row2)
 
         main_layout.addWidget(config_card)
 
@@ -368,44 +320,33 @@ class DuplicateFinderWidget(QWidget):
         self.search_input.textChanged.connect(self.render_clusters)
         filter_lay.addWidget(self.search_input)
 
-        self.filter_type_combo = QComboBox()
-        self.filter_type_combo.addItems(["All Match Types", "Exact Match Only", "Potential Match Only", "Cross-Statement Only"])
-        self.filter_type_combo.setFixedWidth(180)
-        self.filter_type_combo.setFixedHeight(36)
-        self.filter_type_combo.currentIndexChanged.connect(self.render_clusters)
-        filter_lay.addWidget(self.filter_type_combo)
-
         filter_lay.addStretch()
 
         # Preset Auto-Resolution Action Buttons
-        btn_resolve_first = SecondaryButton("Keep First Entry")
-        btn_resolve_first.setFixedHeight(36)
-        btn_resolve_first.clicked.connect(lambda: self.apply_preset_resolution("keep_first"))
-        filter_lay.addWidget(btn_resolve_first)
+        self.btn_resolve_first = SecondaryButton("Keep First Entry")
+        self.btn_resolve_first.setFixedHeight(36)
+        self.btn_resolve_first.setEnabled(False)
+        self.btn_resolve_first.clicked.connect(lambda: self.apply_preset_resolution("keep_first"))
+        filter_lay.addWidget(self.btn_resolve_first)
 
-        btn_resolve_last = SecondaryButton("Keep Last Entry")
-        btn_resolve_last.setFixedHeight(36)
-        btn_resolve_last.clicked.connect(lambda: self.apply_preset_resolution("keep_last"))
-        filter_lay.addWidget(btn_resolve_last)
+        self.btn_resolve_last = SecondaryButton("Keep Last Entry")
+        self.btn_resolve_last.setFixedHeight(36)
+        self.btn_resolve_last.setEnabled(False)
+        self.btn_resolve_last.clicked.connect(lambda: self.apply_preset_resolution("keep_last"))
+        filter_lay.addWidget(self.btn_resolve_last)
 
         main_layout.addWidget(filter_card)
 
         # ==========================================
-        # 5. SCROLLABLE DUPLICATE CLUSTERS AREA
+        # 5. DUPLICATE CLUSTERS CONTAINER (FULL PAGE EXPANDING)
         # ==========================================
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.scroll_area.setStyleSheet("background: transparent;")
-
-        self.scroll_container = QWidget()
-        self.scroll_container.setStyleSheet("background: transparent;")
-        self.clusters_layout = QVBoxLayout(self.scroll_container)
+        self.clusters_container = QWidget()
+        self.clusters_container.setStyleSheet("background: transparent;")
+        self.clusters_layout = QVBoxLayout(self.clusters_container)
         self.clusters_layout.setContentsMargins(0, 0, 0, 0)
         self.clusters_layout.setSpacing(16)
 
-        self.scroll_area.setWidget(self.scroll_container)
-        main_layout.addWidget(self.scroll_area, stretch=1)
+        main_layout.addWidget(self.clusters_container)
 
         # ==========================================
         # 6. BOTTOM ACTION & EXPORT BAR
@@ -416,7 +357,7 @@ class DuplicateFinderWidget(QWidget):
         bot_layout.setContentsMargins(20, 10, 20, 10)
         bot_layout.setSpacing(16)
 
-        self.resolution_status_lbl = QLabel("No audit scan performed yet.")
+        self.resolution_status_lbl = QLabel("Select a statement and click Scan to begin.")
         self.resolution_status_lbl.setStyleSheet("""
             background-color: #F1F5F9;
             color: #1E293B;
@@ -492,8 +433,12 @@ class DuplicateFinderWidget(QWidget):
 
         main_layout.addWidget(bottom_bar)
 
-        # Initial load of history dropdown
+        self.main_scroll.setWidget(scroll_content)
+        outer_layout.addWidget(self.main_scroll)
+
+        # Initial population of history statement dropdown & initial layout rendering
         self.load_history_dropdown()
+        self.render_clusters()
 
     # --- UI Helpers ---
 
@@ -538,7 +483,7 @@ class DuplicateFinderWidget(QWidget):
         return card
 
     def load_history_dropdown(self):
-        """Populates statement history dropdown."""
+        """Populates statement history dropdown cleanly with distinguishable statement entries."""
         user = UserSession.get_current_user()
         user_id = user["id"] if user else None
         
@@ -548,6 +493,7 @@ class DuplicateFinderWidget(QWidget):
         logs = HistoryService.get_history_logs(user_id)
         completed_logs = [l for l in logs if l.get("status") == "Completed" and l.get("excel_path")]
 
+        seen_keys = set()
         for log in completed_logs:
             clean_log = {}
             for k, v in log.items():
@@ -560,160 +506,58 @@ class DuplicateFinderWidget(QWidget):
             date_str = str(clean_log.get("upload_date") or "")[:10]
             tx_count = clean_log.get("total_transactions", 0)
             excel_path = clean_log.get("excel_path", "")
-            disp = f"{bank} ({date_str}) - {tx_count} txs"
+            pdf_name = os.path.basename(clean_log.get("pdf_filename") or excel_path or "")
+
+            # Create clean, unique display label
+            disp = f"{bank} ({date_str}) - {tx_count} txs [{pdf_name}]" if pdf_name else f"{bank} ({date_str}) - {tx_count} txs"
+            
+            # Avoid duplicate identical entries in dropdown
+            unique_key = (bank, date_str, tx_count, excel_path)
+            if unique_key in seen_keys:
+                continue
+            seen_keys.add(unique_key)
+
             self.history_combo.addItem(disp, clean_log)
 
-    def load_from_history(self):
-        """Loads transaction data from selected history item excel file."""
+    def run_duplicate_scan(self):
+        """Runs the DuplicateFinderService analysis strictly against the selected statement."""
         log = self.history_combo.currentData()
-        if not log:
-            Toast.display_toast(self, "Please select a valid statement from history.", toast_type="warning")
-            return
+        
+        if log:
+            excel_path = log.get("excel_path", "")
+            if not os.path.exists(excel_path):
+                Toast.display_toast(self, "Associated statement file could not be found.", toast_type="error")
+                return
 
-        excel_path = log.get("excel_path", "")
-        if not os.path.exists(excel_path):
-            Toast.display_toast(self, "Associated statement file could not be found.", toast_type="error")
-            return
-
-        transactions = self._read_transactions_from_excel(excel_path)
-        if not transactions:
-            Toast.display_toast(self, "Could not extract transactions from statement Excel file.", toast_type="error")
-            return
-
-        payload = {
-            "file_name": os.path.basename(excel_path),
-            "bank_name": log.get("bank_name", "Bank"),
-            "transactions": transactions
-        }
-        self.loaded_statements = [payload]
-        Toast.display_toast(self, f"Loaded {len(transactions)} transactions from history.", toast_type="success")
-        self.run_duplicate_scan()
-
-    def load_all_history_statements(self):
-        """Loads transactions from ALL completed history logs for multi-statement cross audit."""
-        user = UserSession.get_current_user()
-        user_id = user["id"] if user else None
-        logs = HistoryService.get_history_logs(user_id)
-        completed_logs = [l for l in logs if l.get("status") == "Completed" and l.get("excel_path")]
-
-        if not completed_logs:
-            Toast.display_toast(self, "No completed statements available in history.", toast_type="warning")
-            return
-
-        payloads = []
-        for log in completed_logs:
-            path = log.get("excel_path", "")
-            if os.path.exists(path):
-                txs = self._read_transactions_from_excel(path)
-                if txs:
-                    payloads.append({
-                        "file_name": os.path.basename(path),
-                        "bank_name": log.get("bank_name", "Bank"),
-                        "transactions": txs
-                    })
-
-        if not payloads:
-            Toast.display_toast(self, "Failed to read history statement files.", toast_type="error")
-            return
-
-        self.loaded_statements = payloads
-        total_tx = sum(len(p["transactions"]) for p in payloads)
-        Toast.display_toast(self, f"Loaded {len(payloads)} statements ({total_tx} total transactions) for Cross Audit.", toast_type="success")
-        self.run_duplicate_scan()
-
-    def upload_new_statement(self):
-        """Allows user to upload and parse a PDF directly into Duplicate Finder."""
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select Bank Statement PDF", "", "PDF Files (*.pdf)")
-        if not file_path:
-            return
-
-        from parser.parser import PDFStatementParser
-        try:
-            payload = PDFStatementParser.parse(file_path)
-            txs = payload.get("transactions", [])
-            if not txs:
-                Toast.display_toast(self, "No transactions extracted from uploaded PDF.", toast_type="warning")
+            transactions = self._read_transactions_from_excel(excel_path)
+            if not transactions:
+                Toast.display_toast(self, "Could not extract transactions from selected statement Excel file.", toast_type="error")
                 return
 
             self.loaded_statements = [{
-                "file_name": os.path.basename(file_path),
-                "bank_name": payload.get("bank_name", "Bank"),
-                "transactions": txs
+                "file_name": os.path.basename(excel_path),
+                "bank_name": log.get("bank_name", "Bank"),
+                "transactions": transactions
             }]
-            Toast.display_toast(self, f"Parsed {len(txs)} transactions from PDF.", toast_type="success")
-            self.run_duplicate_scan()
-        except Exception as e:
-            QMessageBox.critical(self, "Parsing Error", f"Failed to parse uploaded PDF statement:\n{e}")
-
-    def _read_transactions_from_excel(self, excel_path):
-        """Reads transactions back from an openpyxl Excel file."""
-        import openpyxl
-        try:
-            wb = openpyxl.load_workbook(excel_path, data_only=True)
-            sheet = wb["Transactions"] if "Transactions" in wb.sheetnames else wb.active
-            txs = []
-            header_found = False
-            col_map = {}
-
-            for row in sheet.iter_rows(values_only=True):
-                if not row:
-                    continue
-                row_str = [str(c).lower().strip() if c is not None else "" for c in row]
-                
-                # Check for header row
-                if not header_found and any(h in name for name in row_str for h in ["date", "narration", "description"]):
-                    header_found = True
-                    for i, name in enumerate(row_str):
-                        if "date" in name and "value" not in name: col_map["date"] = i
-                        elif "narration" in name or "particular" in name or "description" in name: col_map["narration"] = i
-                        elif "debit" in name or "withdrawal" in name: col_map["debit"] = i
-                        elif "credit" in name or "deposit" in name: col_map["credit"] = i
-                        elif "balance" in name: col_map["balance"] = i
-                        elif "ref" in name or "cheque" in name or "chq" in name: col_map["ref_no"] = i
-                    continue
-
-                if header_found and "date" in col_map:
-                    date_val = str(row[col_map["date"]]).strip() if len(row) > col_map["date"] and row[col_map["date"]] is not None else ""
-                    if not date_val or date_val.lower() in ["date", "none", "null", ""] or "total" in date_val.lower():
-                        continue
-
-                    narr_val = str(row[col_map["narration"]]).strip() if "narration" in col_map and len(row) > col_map["narration"] and row[col_map["narration"]] is not None else ""
-                    deb_val = str(row[col_map["debit"]]).strip() if "debit" in col_map and len(row) > col_map["debit"] and row[col_map["debit"]] is not None else ""
-                    cred_val = str(row[col_map["credit"]]).strip() if "credit" in col_map and len(row) > col_map["credit"] and row[col_map["credit"]] is not None else ""
-                    bal_val = str(row[col_map["balance"]]).strip() if "balance" in col_map and len(row) > col_map["balance"] and row[col_map["balance"]] is not None else ""
-                    ref_val = str(row[col_map["ref_no"]]).strip() if "ref_no" in col_map and len(row) > col_map["ref_no"] and row[col_map["ref_no"]] is not None else ""
-
-                    txs.append({
-                        "date": date_val,
-                        "narration": narr_val,
-                        "debit": deb_val if deb_val.lower() != "none" else "",
-                        "credit": cred_val if cred_val.lower() != "none" else "",
-                        "balance": bal_val if bal_val.lower() != "none" else "",
-                        "ref_no": ref_val if ref_val.lower() != "none" else ""
-                    })
-
-            return txs
-        except Exception as e:
-            print(f"Error reading excel: {e}")
-            return []
-
-    # --- Scanning & Cluster Rendering ---
-
-    def run_duplicate_scan(self):
-        """Runs the DuplicateFinderService analysis with current UI rules."""
-        if not self.loaded_statements:
-            Toast.display_toast(self, "Please select or upload a statement first.", toast_type="warning")
+        elif self.loaded_statements:
+            # Re-scan currently loaded statement (e.g. passed directly via Upload Statement)
+            pass
+        else:
+            Toast.display_toast(self, "Please select a bank statement from the dropdown first.", toast_type="warning")
             return
 
-        date_win_map = [0, 1, 2, 3]
         sim_map = [0.85, 0.75, 0.60]
 
         options = {
             "exact_match": self.chk_exact.isChecked(),
             "potential_match": self.chk_potential.isChecked(),
-            "date_window_days": date_win_map[self.combo_date_win.currentIndex()],
+            "date_window_days": 2,
             "similarity_threshold": sim_map[self.combo_sim.currentIndex()]
         }
+
+        # Clear previous analysis state completely before running new scan
+        self.analysis_result = None
+        self.user_decisions = {}
 
         if len(self.loaded_statements) == 1:
             self.analysis_result = DuplicateFinderService.analyze_statement(
@@ -726,18 +570,35 @@ class DuplicateFinderWidget(QWidget):
                 options
             )
 
-        # Default resolution decision: Keep first entry
+        # Default resolution decision: Keep first entry for each cluster
         clusters = self.analysis_result.get("clusters", [])
         self.user_decisions = DuplicateFinderService.apply_auto_resolution(clusters, strategy="keep_first")
 
         self.update_kpi_cards()
         self.render_clusters()
+        Toast.display_toast(self, "Duplicate scan completed successfully.", toast_type="success")
 
     def update_kpi_cards(self):
+        """Updates summary KPI cards and footer audit status string."""
         if not self.analysis_result:
+            # Initial state
+            val_total = self.card_total_tx.findChild(QLabel, "KpiValueLabel")
+            if val_total: val_total.setText("0")
+
+            val_clusters = self.card_dup_clusters.findChild(QLabel, "KpiValueLabel")
+            if val_clusters: val_clusters.setText("0")
+
+            val_amt = self.card_flagged_amt.findChild(QLabel, "KpiValueLabel")
+            if val_amt: val_amt.setText("₹ 0.00")
+
+            val_score = self.card_clean_score.findChild(QLabel, "KpiValueLabel")
+            if val_score: val_score.setText("100%")
+
+            self.resolution_status_lbl.setText("Select a statement and click Scan to begin.")
             return
 
         stats = self.analysis_result.get("stats", {})
+        dup_clusters_count = stats.get("duplicate_clusters", 0)
         
         # Total Tx
         val_total = self.card_total_tx.findChild(QLabel, "KpiValueLabel")
@@ -745,22 +606,28 @@ class DuplicateFinderWidget(QWidget):
 
         # Clusters
         val_clusters = self.card_dup_clusters.findChild(QLabel, "KpiValueLabel")
-        if val_clusters: val_clusters.setText(str(stats.get("duplicate_clusters", 0)))
+        if val_clusters: val_clusters.setText(str(dup_clusters_count))
 
-        # Amount
+        # Flagged Amount
+        flagged_amt = stats.get('flagged_debit_sum', 0.0) + stats.get('flagged_credit_sum', 0.0)
         val_amt = self.card_flagged_amt.findChild(QLabel, "KpiValueLabel")
-        if val_amt: val_amt.setText(f"₹ {stats.get('flagged_debit_sum', 0.0) + stats.get('flagged_credit_sum', 0.0):,.2f}")
+        if val_amt: val_amt.setText(f"₹ {flagged_amt:,.2f}")
 
-        # Score
+        # Cleanliness Score
+        clean_score = stats.get('cleanliness_score', 100.0)
         val_score = self.card_clean_score.findChild(QLabel, "KpiValueLabel")
-        if val_score: val_score.setText(f"{stats.get('cleanliness_score', 100.0)}%")
+        if val_score: val_score.setText(f"{clean_score}%")
 
         removals_count = sum(1 for v in self.user_decisions.values() if v == "remove")
-        self.resolution_status_lbl.setText(f"Audit Complete: {stats.get('duplicate_clusters', 0)} duplicate clusters detected. {removals_count} entries flagged for removal.")
+
+        if dup_clusters_count == 0:
+            self.resolution_status_lbl.setText("Audit Complete: No duplicate transactions detected.")
+        else:
+            self.resolution_status_lbl.setText(f"Audit Complete: {dup_clusters_count} duplicate clusters detected. {removals_count} entries flagged for removal.")
 
     def render_clusters(self):
-        """Clears and re-renders cluster cards based on search query and filter selection."""
-        # Clear existing layout safely
+        """Clears and re-renders cluster cards or empty state based on current scan results and search query."""
+        # Clear existing cluster layout widgets safely
         if hasattr(self, "clusters_layout") and self.clusters_layout is not None:
             while self.clusters_layout.count():
                 item = self.clusters_layout.takeAt(0)
@@ -769,34 +636,73 @@ class DuplicateFinderWidget(QWidget):
                     w.setParent(None)
                     w.deleteLater()
 
-        if not self.analysis_result or not self.analysis_result.get("clusters"):
+        # State 1: No scan run yet
+        if not self.analysis_result:
             empty_card = QFrame()
-            empty_card.setStyleSheet("background-color: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 12px; padding: 40px;")
+            empty_card.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 40px;")
             empty_lay = QVBoxLayout(empty_card)
-            empty_lbl = QLabel("✨ Clean Statement: No duplicate transaction anomalies detected.")
-            empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            empty_lbl.setStyleSheet("font-size: 15px; font-weight: 600; color: #16A34A;")
-            empty_lay.addWidget(empty_lbl)
+            empty_lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_lay.setSpacing(8)
+
+            title_lbl = QLabel("Select Statement & Click Scan")
+            title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            title_lbl.setStyleSheet("font-size: 16px; font-weight: 700; color: #0F172A;")
+            
+            sub_lbl = QLabel("Select a bank statement from the dropdown above and click Scan to run duplicate detection.")
+            sub_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            sub_lbl.setStyleSheet("font-size: 13px; color: #64748B;")
+
+            empty_lay.addWidget(title_lbl)
+            empty_lay.addWidget(sub_lbl)
             self.clusters_layout.addWidget(empty_card)
-            self.clusters_layout.addStretch()
+            
+            self.btn_resolve_first.setEnabled(False)
+            self.btn_resolve_last.setEnabled(False)
             return
 
+        clusters = self.analysis_result.get("clusters", [])
+
+        # State 2: Scan complete with 0 duplicates found
+        if not clusters or len(clusters) == 0:
+            empty_card = QFrame()
+            empty_card.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 44px;")
+            empty_lay = QVBoxLayout(empty_card)
+            empty_lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_lay.setSpacing(10)
+
+            badge_lbl = QLabel("✨ STATEMENT AUDIT CLEAN")
+            badge_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            badge_lbl.setStyleSheet("font-size: 11px; font-weight: 800; color: #16A34A; background-color: #DCFCE7; padding: 4px 12px; border-radius: 12px;")
+
+            title_lbl = QLabel("No duplicate transactions found")
+            title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            title_lbl.setStyleSheet("font-size: 17px; font-weight: 700; color: #0F172A; margin-top: 4px;")
+
+            sub_lbl = QLabel("This statement was scanned successfully and no duplicate anomalies matched the selected criteria.")
+            sub_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            sub_lbl.setStyleSheet("font-size: 13px; color: #64748B;")
+
+            empty_lay.addWidget(badge_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
+            empty_lay.addWidget(title_lbl)
+            empty_lay.addWidget(sub_lbl)
+            self.clusters_layout.addWidget(empty_card)
+
+            self.btn_resolve_first.setEnabled(False)
+            self.btn_resolve_last.setEnabled(False)
+            return
+
+        # State 3: Clusters exist - Enable preset resolution buttons
+        self.btn_resolve_first.setEnabled(True)
+        self.btn_resolve_last.setEnabled(True)
+
         search_query = self.search_input.text().lower().strip()
-        filter_idx = self.filter_type_combo.currentIndex() # 0: All, 1: Exact, 2: Potential, 3: Cross
 
         rendered_count = 0
-        for cluster in self.analysis_result.get("clusters", []):
-            m_type = cluster["match_type"]
-
-            # Filter Check
-            if filter_idx == 1 and m_type != "Exact Match": continue
-            if filter_idx == 2 and m_type != "Potential Duplicate": continue
-            if filter_idx == 3 and m_type != "Cross-Statement Duplicate": continue
-
+        for cluster in clusters:
             # Search Check
             if search_query:
                 match_found = False
-                if search_query in cluster["title"].lower() or search_query in cluster["reason"].lower():
+                if search_query in cluster["title"].lower() or search_query in cluster.get("reason", "").lower():
                     match_found = True
                 else:
                     for it in cluster["items"]:
@@ -815,12 +721,14 @@ class DuplicateFinderWidget(QWidget):
             rendered_count += 1
 
         if rendered_count == 0:
-            no_match_lbl = QLabel("No duplicate clusters match your search/filter criteria.")
+            no_match_card = QFrame()
+            no_match_card.setStyleSheet("background-color: #FFFFFF; border: 1px dashed #CBD5E1; border-radius: 10px; padding: 24px;")
+            no_lay = QVBoxLayout(no_match_card)
+            no_match_lbl = QLabel("No duplicate clusters match your search query.")
             no_match_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            no_match_lbl.setStyleSheet("font-size: 13px; color: #64748B; padding: 20px;")
-            self.clusters_layout.addWidget(no_match_lbl)
-
-        self.clusters_layout.addStretch()
+            no_match_lbl.setStyleSheet("font-size: 13px; color: #64748B;")
+            no_lay.addWidget(no_match_lbl)
+            self.clusters_layout.addWidget(no_match_card)
 
     def _build_cluster_card(self, cluster):
         m_type = cluster.get("match_type", "")
@@ -852,8 +760,8 @@ class DuplicateFinderWidget(QWidget):
 
         badge = QLabel(m_type.upper())
         badge.setStyleSheet(f"""
-            background-color: {cluster['badge_bg']};
-            color: {cluster['badge_color']};
+            background-color: {cluster.get('badge_bg', '#E0F2FE')};
+            color: {cluster.get('badge_color', '#0369A1')};
             font-weight: 800;
             font-size: 10px;
             letter-spacing: 0.5px;
@@ -977,12 +885,14 @@ class DuplicateFinderWidget(QWidget):
         return card
 
     def _on_item_action_changed(self, item_id, idx):
+        """Handles manual Keep/Remove toggle for an individual transaction row."""
         self.user_decisions[item_id] = "keep" if idx == 0 else "remove"
         removals_count = sum(1 for v in self.user_decisions.values() if v == "remove")
-        self.resolution_status_lbl.setText(f"Audit Updated: {removals_count} duplicate entries flagged for removal.")
+        dup_clusters_count = self.analysis_result.get("stats", {}).get("duplicate_clusters", 0) if self.analysis_result else 0
+        self.resolution_status_lbl.setText(f"Audit Updated: {dup_clusters_count} duplicate clusters detected. {removals_count} entries flagged for removal.")
 
     def apply_preset_resolution(self, strategy):
-        """Applies auto-resolution preset across all clusters."""
+        """Applies auto-resolution preset (keep_first or keep_last) across all active clusters."""
         if not self.analysis_result or not self.analysis_result.get("clusters"):
             return
         
@@ -992,12 +902,80 @@ class DuplicateFinderWidget(QWidget):
         self.render_clusters()
         self.update_kpi_cards()
 
+    def _read_transactions_from_excel(self, excel_path):
+        """Reads transactions from an Excel (.xlsx), JSON (.json), or CSV file."""
+        if not excel_path or not os.path.exists(excel_path):
+            return []
+        
+        # Handle JSON statement files
+        if excel_path.endswith(".json"):
+            try:
+                with open(excel_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        return data
+                    elif isinstance(data, dict):
+                        return data.get("transactions", [])
+            except Exception as e:
+                print(f"Error reading statement JSON: {e}")
+                return []
+
+        import openpyxl
+        try:
+            wb = openpyxl.load_workbook(excel_path, data_only=True)
+            sheet = wb["Transactions"] if "Transactions" in wb.sheetnames else wb.active
+            txs = []
+            header_found = False
+            col_map = {}
+
+            for row in sheet.iter_rows(values_only=True):
+                if not row:
+                    continue
+                row_str = [str(c).lower().strip() if c is not None else "" for c in row]
+                
+                # Check for header row
+                if not header_found and any(h in name for name in row_str for h in ["date", "narration", "description"]):
+                    header_found = True
+                    for i, name in enumerate(row_str):
+                        if "date" in name and "value" not in name: col_map["date"] = i
+                        elif "narration" in name or "particular" in name or "description" in name: col_map["narration"] = i
+                        elif "debit" in name or "withdrawal" in name: col_map["debit"] = i
+                        elif "credit" in name or "deposit" in name: col_map["credit"] = i
+                        elif "balance" in name: col_map["balance"] = i
+                        elif "ref" in name or "cheque" in name or "chq" in name: col_map["ref_no"] = i
+                    continue
+
+                if header_found and "date" in col_map:
+                    date_val = str(row[col_map["date"]]).strip() if len(row) > col_map["date"] and row[col_map["date"]] is not None else ""
+                    if not date_val or date_val.lower() in ["date", "none", "null", ""] or "total" in date_val.lower():
+                        continue
+
+                    narr_val = str(row[col_map["narration"]]).strip() if "narration" in col_map and len(row) > col_map["narration"] and row[col_map["narration"]] is not None else ""
+                    deb_val = str(row[col_map["debit"]]).strip() if "debit" in col_map and len(row) > col_map["debit"] and row[col_map["debit"]] is not None else ""
+                    cred_val = str(row[col_map["credit"]]).strip() if "credit" in col_map and len(row) > col_map["credit"] and row[col_map["credit"]] is not None else ""
+                    bal_val = str(row[col_map["balance"]]).strip() if "balance" in col_map and len(row) > col_map["balance"] and row[col_map["balance"]] is not None else ""
+                    ref_val = str(row[col_map["ref_no"]]).strip() if "ref_no" in col_map and len(row) > col_map["ref_no"] and row[col_map["ref_no"]] is not None else ""
+
+                    txs.append({
+                        "date": date_val,
+                        "narration": narr_val,
+                        "debit": deb_val if deb_val.lower() != "none" else "",
+                        "credit": cred_val if cred_val.lower() != "none" else "",
+                        "balance": bal_val if bal_val.lower() != "none" else "",
+                        "ref_no": ref_val if ref_val.lower() != "none" else ""
+                    })
+
+            return txs
+        except Exception as e:
+            print(f"Error reading statement excel: {e}")
+            return []
+
     # --- Export Actions ---
 
     def export_audit_excel(self):
-        """Exports detailed Excel Audit Report."""
+        """Exports detailed Excel Audit Report for the active scan."""
         if not self.analysis_result or not self.analysis_result.get("clusters"):
-            Toast.display_toast(self, "No scan results available to export.", toast_type="warning")
+            Toast.display_toast(self, "No duplicate scan results available to export.", toast_type="warning")
             return
 
         out_path, _ = QFileDialog.getSaveFileName(self, "Save Duplicate Audit Report", "Duplicate_Transaction_Audit_Report.xlsx", "Excel Files (*.xlsx)")
@@ -1014,9 +992,9 @@ class DuplicateFinderWidget(QWidget):
             QMessageBox.critical(self, "Export Error", f"Failed to export audit report:\n{e}")
 
     def export_cleaned_excel(self):
-        """Exports clean statement Excel file with selected duplicates removed."""
+        """Exports clean statement Excel file with user-flagged duplicates removed."""
         if not self.analysis_result or not self.analysis_result.get("annotated_transactions"):
-            Toast.display_toast(self, "No statement data loaded for export.", toast_type="warning")
+            Toast.display_toast(self, "No statement scan data loaded for export.", toast_type="warning")
             return
 
         annotated = self.analysis_result.get("annotated_transactions", [])
