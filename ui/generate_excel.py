@@ -632,11 +632,24 @@ class GenerateExcelWidget(QWidget):
             self.load_recent_generated_sheets()
             self.processingCompleted.emit()
             
+            pdf_name = os.path.basename(self.file_path) if self.file_path else "Statement PDF"
+            try:
+                from services.notification_service import NotificationService
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="parsing_export",
+                    title="Excel Export Completed",
+                    message=f"Excel report for statement '{pdf_name}' generated successfully to {os.path.basename(excel_path)}."
+                )
+            except Exception as e:
+                print(f"GenerateExcel notification error: {e}")
+
             p = self.parent()
             while p:
                 if hasattr(p, "update_dashboard_stats"):
                     p.update_dashboard_stats()
-                    break
+                if hasattr(p, "update_notification_badge"):
+                    p.update_notification_badge()
                 p = p.parent()
                 
             Toast.success(self, "✓ Excel workbook compiled successfully!")
@@ -646,6 +659,19 @@ class GenerateExcelWidget(QWidget):
             self.generate_btn.setEnabled(True)
             if hasattr(self, "history_record_id"):
                 HistoryService.update_record_status(self.history_record_id, status="Failed")
+            
+            pdf_name = os.path.basename(self.file_path) if self.file_path else "Statement PDF"
+            try:
+                from services.notification_service import NotificationService
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="error",
+                    title="Excel Export Failed",
+                    message=f"Excel export failed for statement '{pdf_name}': {err}"
+                )
+            except Exception:
+                pass
+
             QMessageBox.critical(self, "Excel Compilation Failed", f"Could not create spreadsheet:\n{err}")
 
         self.active_thread = StatementService.start_generate_excel(

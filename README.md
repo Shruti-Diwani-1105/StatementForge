@@ -36,7 +36,6 @@ The application is designed to reduce manual data entry, improve accuracy, and s
 - 📑 **Digital PDF Extraction**: Native text and layout extraction using **pdfplumber**.
 - 📊 **Automatic Excel Report Generation**: Generates standardized multi-sheet Excel reports via **openpyxl**.
 - 📈 **AI Financial Report Generator**: Produces automated financial health insights, summaries, and metrics.
-- 💰 **GST Report Generator**: Calculates GST breakdown and reconciliation summaries.
 - 📤 **Tally Export Support**: Formats data for direct import into Tally ERP/Prime.
 - 📧 **Email Integration**: Automated dispatch with attached financial reports.
 - 🔄 **Duplicate Transaction Finder**: Identifies duplicate transactions across statements.

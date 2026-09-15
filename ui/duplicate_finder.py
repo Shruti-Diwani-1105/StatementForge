@@ -169,17 +169,14 @@ class DuplicateFinderWidget(QWidget):
         shadow.setOffset(0, 3)
         config_card.setGraphicsEffect(shadow)
 
-        cfg_layout = QVBoxLayout(config_card)
-        cfg_layout.setContentsMargins(22, 18, 22, 18)
-        cfg_layout.setSpacing(14)
+        cfg_layout = QHBoxLayout(config_card)
+        cfg_layout.setContentsMargins(22, 16, 22, 16)
+        cfg_layout.setSpacing(16)
 
-        # Row 1: Statement Selection & Scan Criteria
-        row1 = QHBoxLayout()
-        row1.setSpacing(16)
-
+        # 1. Statement Selection
         stmt_label = QLabel("Statement:")
         stmt_label.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
-        row1.addWidget(stmt_label)
+        cfg_layout.addWidget(stmt_label)
 
         self.history_combo = QComboBox()
         self.history_combo.setMinimumWidth(320)
@@ -205,39 +202,12 @@ class DuplicateFinderWidget(QWidget):
             }
         """)
         self.history_combo.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        row1.addWidget(self.history_combo)
+        cfg_layout.addWidget(self.history_combo, 1)
 
-        # Separator space
-        row1.addSpacing(16)
-
-        rules_label = QLabel("Scan Criteria:")
-        rules_label.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
-        row1.addWidget(rules_label)
-
-        self.chk_exact = QCheckBox("Exact Match (100%)")
-        self.chk_exact.setChecked(True)
-        row1.addWidget(self.chk_exact)
-
-        self.chk_potential = QCheckBox("Potential / Fuzzy Match")
-        self.chk_potential.setChecked(True)
-        row1.addWidget(self.chk_potential)
-
-        row1.addStretch()
-        cfg_layout.addLayout(row1)
-
-        # Divider line
-        div_line = QFrame()
-        div_line.setFrameShape(QFrame.Shape.HLine)
-        div_line.setStyleSheet("color: #F1F5F9; border: none; background-color: #F1F5F9; max-height: 1px;")
-        cfg_layout.addWidget(div_line)
-
-        # Row 2: Similarity and Primary Scan Button
-        row2 = QHBoxLayout()
-        row2.setSpacing(16)
-
+        # 2. Similarity Dropdown
         sim_lbl = QLabel("Similarity:")
-        sim_lbl.setStyleSheet("color: #475569; font-size: 12px; font-weight: 600;")
-        row2.addWidget(sim_lbl)
+        sim_lbl.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
+        cfg_layout.addWidget(sim_lbl)
 
         self.combo_sim = QComboBox()
         self.combo_sim.addItems(["Strict (85%)", "Standard (75%)", "Flexible (60%)"])
@@ -255,11 +225,19 @@ class DuplicateFinderWidget(QWidget):
                 min-height: 36px;
                 max-height: 36px;
             }
+            QComboBox:hover {
+                border-color: #2563EB;
+                background-color: #FFFFFF;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
         """)
-        row2.addWidget(self.combo_sim)
+        self.combo_sim.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        cfg_layout.addWidget(self.combo_sim)
 
-        row2.addStretch()
-
+        # 3. Primary Scan Button
         self.btn_run_scan = QPushButton("Scan")
         self.btn_run_scan.setFixedWidth(120)
         self.btn_run_scan.setFixedHeight(36)
@@ -281,9 +259,7 @@ class DuplicateFinderWidget(QWidget):
             }
         """)
         self.btn_run_scan.clicked.connect(self.run_duplicate_scan)
-        row2.addWidget(self.btn_run_scan)
-
-        cfg_layout.addLayout(row2)
+        cfg_layout.addWidget(self.btn_run_scan)
 
         main_layout.addWidget(config_card)
 
@@ -522,16 +498,26 @@ class DuplicateFinderWidget(QWidget):
     def run_duplicate_scan(self):
         """Runs the DuplicateFinderService analysis strictly against the selected statement."""
         log = self.history_combo.currentData()
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else "guest"
         
+        pdf_name = "Statement PDF"
+        if log:
+            pdf_name = os.path.basename(log.get("pdf_filename") or log.get("excel_path") or "Statement PDF")
+            if pdf_name.endswith(".xlsx"):
+                pdf_name = pdf_name[:-5] + ".pdf"
+
         if log:
             excel_path = log.get("excel_path", "")
             if not os.path.exists(excel_path):
                 Toast.display_toast(self, "Associated statement file could not be found.", toast_type="error")
+                self._notify_duplicate_failure(user_id, pdf_name, "Associated statement file could not be found.")
                 return
 
             transactions = self._read_transactions_from_excel(excel_path)
             if not transactions:
                 Toast.display_toast(self, "Could not extract transactions from selected statement Excel file.", toast_type="error")
+                self._notify_duplicate_failure(user_id, pdf_name, "Could not extract transactions from Excel.")
                 return
 
             self.loaded_statements = [{
@@ -541,7 +527,8 @@ class DuplicateFinderWidget(QWidget):
             }]
         elif self.loaded_statements:
             # Re-scan currently loaded statement (e.g. passed directly via Upload Statement)
-            pass
+            if "file_name" in self.loaded_statements[0]:
+                pdf_name = self.loaded_statements[0]["file_name"].replace(".xlsx", ".pdf")
         else:
             Toast.display_toast(self, "Please select a bank statement from the dropdown first.", toast_type="warning")
             return
@@ -549,8 +536,8 @@ class DuplicateFinderWidget(QWidget):
         sim_map = [0.85, 0.75, 0.60]
 
         options = {
-            "exact_match": self.chk_exact.isChecked(),
-            "potential_match": self.chk_potential.isChecked(),
+            "exact_match": True,
+            "potential_match": True,
             "date_window_days": 2,
             "similarity_threshold": sim_map[self.combo_sim.currentIndex()]
         }
@@ -577,6 +564,41 @@ class DuplicateFinderWidget(QWidget):
         self.update_kpi_cards()
         self.render_clusters()
         Toast.display_toast(self, "Duplicate scan completed successfully.", toast_type="success")
+
+        try:
+            from services.notification_service import NotificationService
+            NotificationService.create_notification(
+                user_id=user_id,
+                category="ai_risk",
+                title="Duplicate Finder Scan Completed",
+                message=f"Duplicate scan completed for statement '{pdf_name}'. Found {len(clusters)} duplicate cluster(s)."
+            )
+            p = self.parent()
+            while p:
+                if hasattr(p, "update_notification_badge"):
+                    p.update_notification_badge()
+                    break
+                p = p.parent()
+        except Exception as e:
+            print(f"DuplicateFinder notification error: {e}")
+
+    def _notify_duplicate_failure(self, user_id, pdf_name, err_reason):
+        try:
+            from services.notification_service import NotificationService
+            NotificationService.create_notification(
+                user_id=user_id,
+                category="error",
+                title="Duplicate Finder Scan Failed",
+                message=f"Duplicate scan failed for statement '{pdf_name}': {err_reason}"
+            )
+            p = self.parent()
+            while p:
+                if hasattr(p, "update_notification_badge"):
+                    p.update_notification_badge()
+                    break
+                p = p.parent()
+        except Exception:
+            pass
 
     def update_kpi_cards(self):
         """Updates summary KPI cards and footer audit status string."""

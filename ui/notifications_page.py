@@ -191,17 +191,8 @@ class NotificationsPageWidget(QWidget):
             unread_class = "unread" if not is_read else ""
             unread_dot_html = '<span class="unread-dot-badge"></span>' if not is_read else ''
 
-            # Action buttons
+            # Action buttons (Only Mark as Read and Dismiss allowed)
             actions_html = ""
-            if action_type == "view_statement":
-                actions_html += f'<button type="button" class="btn-card-action btn-action-primary" onclick="sendAppCommand(\'notifications_action\', \'view_statement:{action_url}\')">View Statement</button>'
-            elif action_type == "review_duplicates":
-                actions_html += f'<button type="button" class="btn-card-action btn-action-primary" onclick="sendAppCommand(\'notifications_action\', \'review_duplicates:{action_url}\')">Review Duplicates</button>'
-            elif action_type == "view_report":
-                actions_html += f'<button type="button" class="btn-card-action btn-action-primary" onclick="sendAppCommand(\'notifications_action\', \'view_report:{action_url}\')">View Report</button>'
-            elif action_type:
-                actions_html += f'<button type="button" class="btn-card-action btn-action-primary" onclick="sendAppCommand(\'notifications_action\', \'{action_type}:{action_url}\')">Open</button>'
-
             if not is_read:
                 actions_html += f'<button type="button" class="btn-card-action btn-action-secondary" onclick="sendAppCommand(\'notifications_mark_read\', \'{nid}\')">Mark as Read</button>'
 

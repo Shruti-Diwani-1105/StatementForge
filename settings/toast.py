@@ -168,17 +168,24 @@ class Toast(QWidget):
         
         self.update_position()
         
-        if hasattr(self.parent_widget, "installEventFilter"):
-            self.parent_widget.installEventFilter(self)
+        p = self.parentWidget() or getattr(self, "parent_widget", None)
+        if p and hasattr(p, "installEventFilter"):
+            p.installEventFilter(self)
+
+    def get_parent_target(self):
+        return self.parentWidget() or getattr(self, "parent_widget", None)
 
     def update_position(self):
         """Places toast in the bottom-right corner, handling vertical stacking of active toasts."""
-        parent_rect = self.parent_widget.rect()
+        p = self.get_parent_target()
+        if not p:
+            return
+        parent_rect = p.rect()
         target_x = max(24, parent_rect.right() - self.width() - 24)
         
         offset = 0
-        if hasattr(self.parent_widget, "_active_toasts"):
-            active = [t for t in self.parent_widget._active_toasts if t.isVisible() and t != self]
+        if hasattr(p, "_active_toasts"):
+            active = [t for t in p._active_toasts if t.isVisible() and t != self]
             for t in active:
                 offset += t.height() + 10
                 
@@ -186,7 +193,8 @@ class Toast(QWidget):
         self.move(target_x, target_y)
 
     def eventFilter(self, watched, event):
-        if watched == self.parent_widget and event.type() == event.Type.Resize:
+        p = self.get_parent_target()
+        if p and watched == p and event.type() == event.Type.Resize:
             self.update_position()
         return super().eventFilter(watched, event)
 
@@ -221,8 +229,9 @@ class Toast(QWidget):
         if not self.isVisible():
             return
             
-        if hasattr(self.parent_widget, "_active_toasts") and self in self.parent_widget._active_toasts:
-            self.parent_widget._active_toasts.remove(self)
+        p = self.get_parent_target()
+        if p and hasattr(p, "_active_toasts") and self in p._active_toasts:
+            p._active_toasts.remove(self)
 
         self.anim_out_op = QPropertyAnimation(self.opacity_effect, b"opacity")
         self.anim_out_op.setDuration(220)

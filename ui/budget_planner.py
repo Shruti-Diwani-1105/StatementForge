@@ -71,6 +71,17 @@ class BudgetPlannerWidget(QWidget):
                 if month_key and raw_budget:
                     BudgetService.save_user_budget(user_id, month_key, raw_budget)
                     self.load_budget_data(month_key)
+                    try:
+                        from services.notification_service import NotificationService
+                        NotificationService.create_notification(
+                            user_id=user_id,
+                            category="parsing_export",
+                            title="Monthly Budget Saved",
+                            message=f"Monthly Salary & Budget updated successfully for period '{month_key}'."
+                        )
+                        self.sync_topbar_badge()
+                    except Exception:
+                        pass
             except Exception as e:
                 print(f"Error saving budget payload: {e}")
 
@@ -184,10 +195,41 @@ class BudgetPlannerWidget(QWidget):
                 escaped_html = html_res.replace("\n", "").replace("'", "\\'")
                 js_script = f"if (typeof displayAISummary === 'function') displayAISummary('{escaped_html}');"
                 self.html_wrapper.eval_js(js_script)
+                try:
+                    from services.notification_service import NotificationService
+                    NotificationService.create_notification(
+                        user_id=user_id,
+                        category="ai_risk",
+                        title="Monthly Budget Analysis Completed",
+                        message=f"AI Monthly Salary & Budget analysis generated successfully for period '{month_key}'."
+                    )
+                    self.sync_topbar_badge()
+                except Exception:
+                    pass
+            else:
+                try:
+                    from services.notification_service import NotificationService
+                    NotificationService.create_notification(
+                        user_id=user_id,
+                        category="error",
+                        title="Monthly Budget Analysis Failed",
+                        message=f"AI Monthly Salary & Budget analysis failed for period '{month_key}'."
+                    )
+                    self.sync_topbar_badge()
+                except Exception:
+                    pass
 
         worker = BudgetQueryWorker("ai_summary", query_fn, self)
         worker.result_ready.connect(callback_fn)
         worker.start()
+
+    def sync_topbar_badge(self):
+        p = self.parent()
+        while p:
+            if hasattr(p, "update_notification_badge"):
+                p.update_notification_badge()
+                break
+            p = p.parent()
 
     def update_theme_style(self, theme):
         """Propagates active theme settings to the HTML container."""

@@ -382,12 +382,12 @@ class UploadStatementWidget(QWidget):
             
             try:
                 from services.notification_service import NotificationService
+                pdf_name = os.path.basename(self.file_path) if getattr(self, "file_path", None) else "Statement PDF"
                 NotificationService.create_notification(
                     user_id=user_id,
                     category="parsing_export",
                     title="CSV Export Completed",
-                    message=f"CSV exported successfully to {os.path.basename(csv_path)} ({tx_len} transactions).",
-                    action_type="view_statement"
+                    message=f"CSV exported successfully for statement '{pdf_name}' to {os.path.basename(csv_path)} ({tx_len} transactions)."
                 )
             except Exception as e:
                 print(f"CSV Export notification error: {e}")
@@ -416,6 +416,17 @@ class UploadStatementWidget(QWidget):
         def on_error(err):
             self.reset_to_upload()
             escaped_err = str(err).replace("'", "\\'").replace("\n", " ")
+            try:
+                from services.notification_service import NotificationService
+                pdf_name = os.path.basename(self.file_path) if getattr(self, "file_path", None) else "Statement PDF"
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="error",
+                    title="CSV Export Failed",
+                    message=f"CSV export failed for statement '{pdf_name}': {escaped_err}"
+                )
+            except Exception:
+                pass
             self.html_wrapper.eval_js(f"alert('CSV export failed: {escaped_err}');")
 
         StatementService.start_generate_csv(
@@ -476,12 +487,12 @@ class UploadStatementWidget(QWidget):
             
             try:
                 from services.notification_service import NotificationService
+                pdf_name = os.path.basename(self.file_path) if getattr(self, "file_path", None) else "Statement PDF"
                 NotificationService.create_notification(
                     user_id=user_id,
                     category="parsing_export",
                     title="JSON Export Completed",
-                    message=f"JSON exported successfully to {os.path.basename(json_path)} ({tx_len} transactions).",
-                    action_type="view_statement"
+                    message=f"JSON exported successfully for statement '{pdf_name}' to {os.path.basename(json_path)} ({tx_len} transactions)."
                 )
             except Exception as e:
                 print(f"JSON Export notification error: {e}")
@@ -510,6 +521,17 @@ class UploadStatementWidget(QWidget):
         def on_error(err):
             self.reset_to_upload()
             escaped_err = str(err).replace("'", "\\'").replace("\n", " ")
+            try:
+                from services.notification_service import NotificationService
+                pdf_name = os.path.basename(self.file_path) if getattr(self, "file_path", None) else "Statement PDF"
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="error",
+                    title="JSON Export Failed",
+                    message=f"JSON export failed for statement '{pdf_name}': {escaped_err}"
+                )
+            except Exception:
+                pass
             self.html_wrapper.eval_js(f"alert('JSON export failed: {escaped_err}');")
 
         StatementService.start_generate_json(
@@ -547,15 +569,13 @@ class UploadStatementWidget(QWidget):
                     user_id=user_id,
                     category="parsing_export",
                     title="Statement Parsing Completed",
-                    message=f"Your statement '{file_name}' ({bank_name}, {tx_len} transactions) was parsed successfully.",
-                    action_type="view_statement"
+                    message=f"Your statement '{file_name}' ({bank_name}, {tx_len} transactions) was parsed successfully."
                 )
                 NotificationService.create_notification(
                     user_id=user_id,
                     category="parsing_export",
                     title="Excel Export Completed",
-                    message=f"Excel workbook generated successfully: {os.path.basename(excel_path)}",
-                    action_type="view_statement"
+                    message=f"Excel workbook generated successfully for statement '{file_name}': {os.path.basename(excel_path)}"
                 )
             except Exception as e:
                 print(f"UploadStatementWidget: Notification trigger error: {e}")

@@ -687,12 +687,12 @@ class EmailComposerDialog(QDialog):
                 from services.notification_service import NotificationService
                 user = UserSession.get_current_user()
                 u_id = user["id"] if user else "guest"
+                att_name = os.path.basename(self.attachment_paths[0]) if self.attachment_paths else "Report Attachment"
                 NotificationService.create_notification(
                     user_id=u_id,
-                    category="parsing_export",
+                    category="email",
                     title="Email Sent Successfully",
-                    message=f"Financial Report dispatched to '{meta['recipient']}'.",
-                    action_type="email_history"
+                    message=f"Financial report email for statement attachment '{att_name}' dispatched successfully to '{meta['recipient']}'."
                 )
                 p = self.parent()
                 while p:
@@ -718,13 +718,19 @@ class EmailComposerDialog(QDialog):
                 from services.notification_service import NotificationService
                 user = UserSession.get_current_user()
                 u_id = user["id"] if user else "guest"
+                att_name = os.path.basename(self.attachment_paths[0]) if self.attachment_paths else "Report Attachment"
                 NotificationService.create_notification(
                     user_id=u_id,
-                    category="parsing_export",
+                    category="error",
                     title="Email Delivery Failed",
-                    message=f"Email delivery failed to '{meta.get('recipient')}': {message}",
-                    action_type="email_history"
+                    message=f"Email delivery failed for statement attachment '{att_name}' to '{meta.get('recipient')}': {message}"
                 )
+                p = self.parent()
+                while p:
+                    if hasattr(p, "update_notification_badge"):
+                        p.update_notification_badge()
+                        break
+                    p = p.parent()
             except Exception:
                 pass
 
@@ -786,6 +792,7 @@ class EmailComposerDialog(QDialog):
         user_id = user.get("id") or user.get("username") if user else "guest"
         att_name = os.path.basename(self.attachment_paths[0]) if self.attachment_paths else "No attachment"
 
+        was_new = (self.draft_id is None)
         self.draft_id = EmailRepository.save_email_log(
             user_id=user_id,
             recipient_email=recipient,
@@ -801,6 +808,24 @@ class EmailComposerDialog(QDialog):
             log_id=self.draft_id
         )
         self.draft_status_lbl.setText("Draft saved")
+
+        if was_new:
+            try:
+                from services.notification_service import NotificationService
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="email",
+                    title="Email Draft Created",
+                    message=f"Email draft created for statement attachment '{att_name}' (Recipient: '{recipient or 'Unspecified'}')."
+                )
+                p = self.parent()
+                while p:
+                    if hasattr(p, "update_notification_badge"):
+                        p.update_notification_badge()
+                        break
+                    p = p.parent()
+            except Exception:
+                pass
 
     def discard_draft_action(self):
         """Discards current draft and deletes it from repository if stored."""

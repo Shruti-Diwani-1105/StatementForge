@@ -336,15 +336,61 @@ class AIReportWidget(QWidget):
 
             Toast.success(self, "✓ Analysis Ready")
 
+            try:
+                from services.notification_service import NotificationService
+                user = UserSession.get_current_user()
+                user_id = user["id"] if user else "guest"
+                pdf_name = self.get_active_pdf_name()
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="ai_risk",
+                    title="AI Financial Report Generated",
+                    message=f"AI Financial Audit & Insight Report generated successfully for statement '{pdf_name}'."
+                )
+                self.sync_topbar_badge()
+            except Exception:
+                pass
+
         def handle_error(err_msg):
             self.html_wrapper.eval_js("setLoading(false);")
             self.prepare_thread = None
             error_html = f"<div style='color:#EF4444; font-family: \"Inter\", sans-serif; font-size:14px; padding:20px;'><b>AI Report Preparation Failed</b><br><br>{err_msg}</div>"
             self.html_wrapper.eval_js(f"setReportHtml({json.dumps(error_html)});")
 
+            try:
+                from services.notification_service import NotificationService
+                user = UserSession.get_current_user()
+                user_id = user["id"] if user else "guest"
+                pdf_name = self.get_active_pdf_name()
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="error",
+                    title="AI Financial Report Failed",
+                    message=f"AI Financial Report generation failed for statement '{pdf_name}': {err_msg}"
+                )
+                self.sync_topbar_badge()
+            except Exception:
+                pass
+
         self.prepare_thread.finished.connect(handle_finished)
         self.prepare_thread.error.connect(handle_error)
         self.prepare_thread.start()
+
+    def sync_topbar_badge(self):
+        p = self.parent()
+        while p:
+            if hasattr(p, "update_notification_badge"):
+                p.update_notification_badge()
+                break
+            p = p.parent()
+
+    def get_active_pdf_name(self):
+        if getattr(self, "active_excel_path", None):
+            base = os.path.basename(self.active_excel_path)
+            if base.endswith(".xlsx"):
+                return base[:-5] + ".pdf"
+            return base
+        return "Statement PDF"
 
     def update_metrics_ui(self):
         """Fills UI metric values from single source of truth report_data into HTML."""
@@ -755,24 +801,33 @@ class AIReportWidget(QWidget):
                 from services.notification_service import NotificationService
                 user = UserSession.get_current_user()
                 user_id = user["id"] if user else "guest"
+                pdf_name = self.get_active_pdf_name()
                 NotificationService.create_notification(
                     user_id=user_id,
                     category="parsing_export",
                     title="PDF Export Completed",
-                    message=f"Financial report PDF exported successfully: {os.path.basename(filepath)}",
-                    action_type="view_report"
+                    message=f"Financial report PDF exported successfully for statement '{pdf_name}': {os.path.basename(filepath)}"
                 )
-                p = self.parent()
-                while p:
-                    if hasattr(p, "update_notification_badge"):
-                        p.update_notification_badge()
-                        break
-                    p = p.parent()
+                self.sync_topbar_badge()
             except Exception:
                 pass
 
         except Exception as e:
             print(f"PDF export error: {e}")
+            try:
+                from services.notification_service import NotificationService
+                user = UserSession.get_current_user()
+                user_id = user["id"] if user else "guest"
+                pdf_name = self.get_active_pdf_name()
+                NotificationService.create_notification(
+                    user_id=user_id,
+                    category="error",
+                    title="PDF Export Failed",
+                    message=f"Financial report PDF export failed for statement '{pdf_name}': {e}"
+                )
+                self.sync_topbar_badge()
+            except Exception:
+                pass
             QMessageBox.critical(self, "Export Error", "Unable to export the financial report. Please try again.")
 
     def open_email_composer(self):
