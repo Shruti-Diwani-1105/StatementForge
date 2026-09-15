@@ -14,37 +14,70 @@ class AdminService:
         return AuthDB.get_all_users()
 
     @classmethod
+    def log_activity(cls, user, action, details):
+        """Logs an administrative or security activity event."""
+        db = MongoDBService.get_db()
+        if db is not None:
+            try:
+                db["activity_logs"].insert_one({
+                    "user": user,
+                    "action": action,
+                    "details": details,
+                    "timestamp": datetime.datetime.now()
+                })
+                return True
+            except Exception as e:
+                print(f"AdminService: Error logging activity ({e})")
+        return False
+
+    @classmethod
     def create_user(cls, name, email, phone, password, role="user", status="active"):
         """Registers a new user from the Admin Panel."""
         success = AuthDB.register_user(name, email, phone, password, role, status)
         if success:
+            cls.log_activity("admin@gmail.com", "Account Created", f"Created account for {email} ({role})")
             return True, "User account created successfully!"
         return False, "An account with this email address already exists."
 
     @classmethod
     def update_user(cls, email, name, phone, role, status):
         """Updates user details from the Admin Panel."""
-        return AuthDB.update_user_by_admin(email, name, phone, role, status)
+        res, msg = AuthDB.update_user_by_admin(email, name, phone, role, status)
+        if res:
+            cls.log_activity("admin@gmail.com", "Profile Updated", f"Updated profile for {email}")
+        return res, msg
 
     @classmethod
     def reset_user_password(cls, email, new_password):
         """Resets user password from the Admin Panel."""
-        return AuthDB.reset_password(email, new_password)
+        res, msg = AuthDB.reset_password(email, new_password)
+        if res:
+            cls.log_activity("admin@gmail.com", "Password Reset", f"Reset password for {email}")
+        return res, msg
 
     @classmethod
     def update_user_role(cls, email, role):
         """Updates user role to admin or user."""
-        return AuthDB.update_user_role(email, role)
+        res, msg = AuthDB.update_user_role(email, role)
+        if res:
+            cls.log_activity("admin@gmail.com", "Role Update", f"Changed role for {email} to {role}")
+        return res, msg
 
     @classmethod
     def update_user_status(cls, email, status):
         """Updates user status to active or disabled."""
-        return AuthDB.update_user_status(email, status)
+        res, msg = AuthDB.update_user_status(email, status)
+        if res:
+            cls.log_activity("admin@gmail.com", "Status Change", f"Updated status for {email} to {status}")
+        return res, msg
 
     @classmethod
     def delete_user(cls, email):
         """Deletes user account."""
-        return AuthDB.delete_user(email)
+        res, msg = AuthDB.delete_user(email)
+        if res:
+            cls.log_activity("admin@gmail.com", "Account Deleted", f"Deleted account for {email}")
+        return res, msg
 
     @classmethod
     def get_system_stats(cls):
@@ -131,11 +164,17 @@ class AdminService:
                 if "activity_logs" in db.list_collection_names():
                     cursor = db["activity_logs"].find({}).sort("timestamp", -1).limit(limit)
                     for doc in cursor:
+                        raw_ts = doc.get("timestamp", "")
+                        if isinstance(raw_ts, datetime.datetime):
+                            ts_str = raw_ts.strftime("%Y-%m-%d %H:%M:%S")
+                        else:
+                            ts_str = str(raw_ts).replace("T", " ").split(".")[0]
+
                         logs.append({
                             "user": doc.get("user", "System"),
                             "action": doc.get("action", "Event"),
                             "details": doc.get("details", ""),
-                            "timestamp": doc.get("timestamp", "").strftime("%Y-%m-%d %H:%M:%S") if isinstance(doc.get("timestamp"), datetime.datetime) else str(doc.get("timestamp", ""))
+                            "timestamp": ts_str
                         })
                     if logs:
                         return logs
@@ -146,10 +185,12 @@ class AdminService:
         now = datetime.datetime.now()
         users = AuthDB.get_all_users()
         for u in users[:5]:
+            raw_login = u.get("last_login", now.strftime("%Y-%m-%d %H:%M:%S"))
+            login_ts = str(raw_login).replace("T", " ").split(".")[0]
             logs.append({
                 "user": u.get("email", "System"),
                 "action": "User Login",
                 "details": f"Authenticated successfully as {u.get('role', 'user')}",
-                "timestamp": u.get("last_login", now.strftime("%Y-%m-%d %H:%M:%S"))
+                "timestamp": login_ts
             })
         return logs

@@ -63,7 +63,7 @@ function switchTab(tabName) {
         const targetEl = document.getElementById('tab-logs');
         if (targetEl) targetEl.style.display = 'block';
 
-        if (titleEl) titleEl.textContent = 'Security & Activity Logs';
+        if (titleEl) titleEl.textContent = 'Activity Logs';
         if (descEl) descEl.textContent = 'System access logs, authentication history, and administrative activity.';
         if (cardUsers) cardUsers.style.display = 'flex';
         if (cardActive) cardActive.style.display = 'flex';
@@ -152,7 +152,33 @@ function renderStatementsTable(statements) {
     });
 }
 
+let allAuditLogsData = [];
+
 window.renderAdminLogsData = function(logs) {
+    allAuditLogsData = logs || [];
+    applyLogFilters();
+};
+
+function applyLogFilters() {
+    const query = (document.getElementById('log-search-input')?.value || '').toLowerCase().trim();
+    const actionVal = document.getElementById('log-action-filter')?.value || 'all';
+
+    const filtered = allAuditLogsData.filter(l => {
+        const matchesSearch = !query || 
+            (l.user && l.user.toLowerCase().includes(query)) || 
+            (l.action && l.action.toLowerCase().includes(query)) ||
+            (l.details && l.details.toLowerCase().includes(query));
+
+        const matchesAction = (actionVal === 'all') ||
+            (l.action && l.action.toLowerCase().includes(actionVal.toLowerCase()));
+
+        return matchesSearch && matchesAction;
+    });
+
+    renderLogsTable(filtered);
+}
+
+function renderLogsTable(logs) {
     const tbody = document.getElementById('audit-table-body');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -164,15 +190,27 @@ window.renderAdminLogsData = function(logs) {
 
     logs.forEach(log => {
         const tr = document.createElement('tr');
+        const actionStr = (log.action || 'Event').toLowerCase();
+        let badgeClass = 'badge-role-user';
+        if (actionStr.includes('login') || actionStr.includes('create')) {
+            badgeClass = 'badge-status-active';
+        } else if (actionStr.includes('password') || actionStr.includes('role') || actionStr.includes('status') || actionStr.includes('profile')) {
+            badgeClass = 'badge-role-admin';
+        } else if (actionStr.includes('delete') || actionStr.includes('disable')) {
+            badgeClass = 'badge-status-disabled';
+        }
+
+        const cleanTs = log.timestamp ? String(log.timestamp).replace('T', ' ').split('.')[0] : 'N/A';
+
         tr.innerHTML = `
-            <td>${escapeHtml(log.timestamp)}</td>
+            <td style="font-size:12px; color:var(--text-muted);">${escapeHtml(cleanTs)}</td>
             <td><strong>${escapeHtml(log.user)}</strong></td>
-            <td><span class="badge badge-status-active">${escapeHtml(log.action)}</span></td>
+            <td><span class="badge ${badgeClass}">${escapeHtml(log.action)}</span></td>
             <td>${escapeHtml(log.details)}</td>
         `;
         tbody.appendChild(tr);
     });
-};
+}
 
 window.onAdminActionComplete = function(actionType, success, message) {
     if (message) showToast(message);
@@ -220,6 +258,12 @@ function initAdminPanel() {
 
     if (stmtSearch) stmtSearch.addEventListener('input', applyStatementFilters);
     if (bankFilter) bankFilter.addEventListener('change', applyStatementFilters);
+
+    const logSearch = document.getElementById('log-search-input');
+    const actionFilter = document.getElementById('log-action-filter');
+
+    if (logSearch) logSearch.addEventListener('input', applyLogFilters);
+    if (actionFilter) actionFilter.addEventListener('change', applyLogFilters);
 }
 
 function applyUserFilters() {

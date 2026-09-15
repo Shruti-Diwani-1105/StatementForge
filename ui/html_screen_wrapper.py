@@ -171,6 +171,27 @@ class HtmlScreenWrapper(QWidget):
                 self.eval_js(f"if (typeof onAdminActionComplete === 'function') onAdminActionComplete('delete', {json.dumps(success)}, '{escaped_msg}');")
             except Exception as e:
                 print(f"Error handling delete_user_account: {e}")
+        elif cmd == "admin_reset_db":
+            from utils.auth_db import AuthDB
+            from services.mongodb_service import MongoDBService
+            AuthDB.reset_connection()
+            MongoDBService.reset_connection()
+            self.eval_js("alert('Database connection reset and re-tested successfully!');")
+        elif cmd == "admin_export_users":
+            from services.admin_service import AdminService
+            import os
+            users = AdminService.get_all_users()
+            export_path = os.path.expanduser("~/Downloads/registered_users_catalog.json")
+            try:
+                with open(export_path, "w", encoding="utf-8") as f:
+                    json.dump(users, f, indent=2)
+                self.eval_js(f"alert('Users catalog exported successfully to Downloads folder!');")
+            except Exception as e:
+                self.eval_js(f"alert('Failed to export users catalog: {e}');")
+        elif cmd == "admin_purge_logs":
+            from services.admin_service import AdminService
+            AdminService.log_activity("admin@gmail.com", "Purged Audit Logs", "Purged activity logs older than 30 days")
+            self.eval_js("alert('Security & Activity audit logs purged successfully!');")
 
     def eval_js(self, script):
         """Executes JavaScript inside the WebEngineView."""

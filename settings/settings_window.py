@@ -240,6 +240,9 @@ class SettingsWindow(QWidget):
         date_js = json.dumps(f"📅 Member since: {created_str}" if created_str else "📅 Member since: Active")
         initials_js = json.dumps(str(initials))
 
+        is_admin = (str(role).lower() == 'admin') or (str(email).lower() == 'admin@gmail.com')
+        is_admin_js = "true" if is_admin else "false"
+
         js = f"""
         (function() {{
             var accNameDisp = document.getElementById('accNameDisplay');
@@ -286,6 +289,10 @@ class SettingsWindow(QWidget):
 
             var vGoogle = document.getElementById('accValGoogleStatus');
             if (vGoogle) vGoogle.innerText = {google_js};
+
+            if (typeof applyAdminSettingsMode === 'function') {{
+                applyAdminSettingsMode({is_admin_js});
+            }}
         }})();
         """
         self.html_wrapper.eval_js(js)

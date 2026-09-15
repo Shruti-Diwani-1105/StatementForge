@@ -30,6 +30,10 @@
                 <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 About
             </button>
+            <button type="button" class="nav-pill" id="pill-admin" onclick="switchSettingsTab('admin')">
+                <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                System Admin
+            </button>
         </nav>
 
         <!-- 2. SCROLLABLE CONTENT AREA -->
@@ -193,14 +197,6 @@
                             <span class="info-value" id="accValPhone">Not specified</span>
                         </div>
                         <div class="info-cell">
-                            <span class="info-label">Job Title</span>
-                            <span class="info-value" id="accValJob">Not specified</span>
-                        </div>
-                        <div class="info-cell">
-                            <span class="info-label">Department</span>
-                            <span class="info-value" id="accValDept">Not specified</span>
-                        </div>
-                        <div class="info-cell">
                             <span class="info-label">Timezone</span>
                             <span class="info-value" id="accValTimezone">UTC (Coordinated Universal Time)</span>
                         </div>
@@ -208,11 +204,6 @@
                             <span class="info-label">Account Status</span>
                             <span class="info-value text-green">Active • Verified</span>
                         </div>
-                    </div>
-                    
-                    <div class="info-cell-full mt-14">
-                        <span class="info-label">Biography</span>
-                        <div class="info-value-box" id="accValBio">No biography added yet.</div>
                     </div>
                 </div>
 
@@ -474,6 +465,87 @@
                 </div>
             </section>
 
+            <!-- TAB 6: SYSTEM ADMIN CONTROLS -->
+            <section class="tab-panel" id="panel-admin">
+                <header class="panel-header">
+                    <h2 class="panel-title">System Admin Controls</h2>
+                    <p class="panel-subtitle">Manage essential system security policies, database health, and data maintenance tools.</p>
+                </header>
+
+                <!-- 1. System Security & Database Health -->
+                <div class="settings-card" style="margin-bottom: 16px;">
+                    <h3 class="card-section-title">System Security &amp; Database Connection</h3>
+                    <p class="card-section-subtitle">Monitor database cluster status and configure global user authentication policies.</p>
+
+                    <div class="form-group-list mt-14">
+                        <div class="form-row-item">
+                            <div class="form-row-info">
+                                <label class="form-row-label">MongoDB Atlas Connection</label>
+                                <p class="form-row-desc">Status of cloud database connection cluster.</p>
+                            </div>
+                            <div class="form-row-control" style="display: flex; gap: 10px; align-items: center;">
+                                <span class="badge badge-status-active" id="adminDbStatusBadge">🟢 Connected (Atlas)</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="if(typeof sendAppCommand==='function') sendAppCommand('admin_reset_db', {})">Reconnect / Test</button>
+                            </div>
+                        </div>
+
+                        <div class="form-row-item">
+                            <div class="form-row-info">
+                                <label class="form-row-label">Mandatory OTP Verification for Users</label>
+                                <p class="form-row-desc">Require email OTP verification upon user login.</p>
+                            </div>
+                            <div class="form-row-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="adminOtpPolicyCheckbox" checked onchange="notifyFieldChange('admin_otp_required', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-row-item">
+                            <div class="form-row-info">
+                                <label class="form-row-label">Admin OTP Bypass</label>
+                                <p class="form-row-desc">Allow administrative login bypass for direct system access.</p>
+                            </div>
+                            <div class="form-row-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="adminBypassOtpCheckbox" checked onchange="notifyFieldChange('admin_bypass_otp', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Data Maintenance & Exports -->
+                <div class="settings-card">
+                    <h3 class="card-section-title">Data Maintenance &amp; Exports</h3>
+                    <p class="card-section-subtitle">Export user catalog reports or purge historical audit logs.</p>
+
+                    <div class="form-group-list mt-14">
+                        <div class="form-row-item">
+                            <div class="form-row-info">
+                                <label class="form-row-label">Export Registered Users Catalog</label>
+                                <p class="form-row-desc">Download registered user directory metadata as JSON report.</p>
+                            </div>
+                            <div class="form-row-control">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="if(typeof sendAppCommand==='function') sendAppCommand('admin_export_users', {})">Export Users Catalog</button>
+                            </div>
+                        </div>
+
+                        <div class="form-row-item">
+                            <div class="form-row-info">
+                                <label class="form-row-label">Purge Activity Audit Logs</label>
+                                <p class="form-row-desc">Clear historical activity logs older than 30 days.</p>
+                            </div>
+                            <div class="form-row-control">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="if(confirm('Are you sure you want to purge audit logs older than 30 days?') && typeof sendAppCommand==='function') sendAppCommand('admin_purge_logs', {})">Purge Audit Logs</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
 
     </div>
@@ -492,6 +564,28 @@
             // Scroll content area back to top when switching tabs
             const contentArea = document.getElementById('settingsContentArea');
             if (contentArea) contentArea.scrollTop = 0;
+        }
+
+        function applyAdminSettingsMode(isAdmin) {
+            const pillbar = document.querySelector('.settings-nav-pillbar');
+            const allPills = ['pill-general', 'pill-appearance', 'pill-notifications', 'pill-about', 'pill-admin'];
+            if (isAdmin) {
+                if (pillbar) pillbar.style.display = 'none';
+                allPills.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = 'none';
+                });
+                const accPill = document.getElementById('pill-account');
+                if (accPill) accPill.style.display = 'inline-flex';
+
+                switchSettingsTab('account');
+            } else {
+                if (pillbar) pillbar.style.display = 'flex';
+                allPills.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && id !== 'pill-admin') el.style.display = 'inline-flex';
+                });
+            }
         }
 
         function selectThemeMode(mode, isProgrammatic) {

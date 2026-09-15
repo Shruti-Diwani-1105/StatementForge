@@ -71,7 +71,7 @@
                 <span>📁 Statement Audit Log</span>
             </button>
             <button class="tab-btn" data-tab="tab-logs">
-                <span>🛡️ Security & Activity Logs</span>
+                <span>🛡️ Activity Logs</span>
             </button>
         </div>
 
@@ -156,11 +156,23 @@
             </div>
         </div>
 
-        <!-- TAB 3: ACTIVITY & SECURITY LOGS -->
+        <!-- TAB 3: ACTIVITY LOGS -->
         <div id="tab-logs" class="tab-content" style="display:none;">
             <div class="admin-card">
                 <div class="card-header-bar">
-                    <h2>Security & Audit Trail</h2>
+                    <h2>Activity &amp; Audit Trail</h2>
+                    <div class="search-filter-box">
+                        <input type="text" id="log-search-input" class="search-input" placeholder="Search by user or event details...">
+                        <select id="log-action-filter" class="select-filter">
+                            <option value="all">All Events</option>
+                            <option value="login">User Login</option>
+                            <option value="password">Password Reset</option>
+                            <option value="role">Role Update</option>
+                            <option value="status">Status Change</option>
+                            <option value="create">Account Created</option>
+                            <option value="delete">Account Deleted</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">
