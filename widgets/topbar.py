@@ -62,6 +62,7 @@ class TopBar(QFrame):
             self.update_theme_icon(current_theme)
             if hasattr(self, "profile_name") and self.profile_name:
                 self.update_profile(self.profile_name)
+            self.update_notification_badge()
 
     def _handle_title_changed(self, title: str):
         """Processes document.title IPC commands sent from HTML."""
@@ -79,6 +80,12 @@ class TopBar(QFrame):
         elif cmd == "topbar_search_submit":
             self.search_submitted.emit(payload)
         elif cmd == "topbar_notification":
+            from utils.user_session import UserSession
+            user = UserSession.get_current_user()
+            role = str(user.get("role", "") if user else "").lower()
+            email = str(user.get("email", "") if user else "").lower()
+            if role == "admin" or email == "admin@gmail.com":
+                return
             p = self.parent()
             while p:
                 if hasattr(p, "switch_dashboard_page"):
@@ -93,13 +100,28 @@ class TopBar(QFrame):
             from utils.user_session import UserSession
             user = UserSession.get_current_user()
             user_id = user["id"] if user else "guest"
+            role = str(user.get("role", "") if user else "").lower()
+            email = str(user.get("email", "") if user else "").lower()
+            is_admin = (role == "admin") or (email == "admin@gmail.com")
+
+            if is_admin:
+                js = """
+                (function(){
+                    var btn = document.getElementById('btn-notifications');
+                    if (btn) btn.style.display = 'none';
+                })();
+                """
+                self.web_view.page().runJavaScript(js)
+                return
+
             count = NotificationService.get_unread_count(user_id)
-            
             badge_text = str(count) if count > 0 else ""
             display_style = "flex" if count > 0 else "none"
-            
+
             js = f"""
             (function(){{
+                var btn = document.getElementById('btn-notifications');
+                if (btn) btn.style.display = 'flex';
                 var badge = document.querySelector('.notification-badge-dot');
                 if (badge) {{
                     badge.innerText = '{badge_text}';
@@ -153,13 +175,22 @@ class TopBar(QFrame):
         escaped_name = name.replace("'", "\\'")
         color = getattr(self, "profile_color", "#0037b0") or "#0037b0"
 
+        from utils.user_session import UserSession
+        user = UserSession.get_current_user()
+        role = str(user.get("role", "") if user else "").lower()
+        email = str(user.get("email", "") if user else "").lower()
+        is_admin = (role == "admin") or (email == "admin@gmail.com")
+        btn_display = "none" if is_admin else "flex"
+
         script = f"""
         var nameEl = document.getElementById('user-name');
         var avatarEl = document.getElementById('user-avatar');
+        var notifBtn = document.getElementById('btn-notifications');
         if (nameEl) nameEl.textContent = '{escaped_name}';
         if (avatarEl) {{
             avatarEl.textContent = '{initial}';
             avatarEl.style.backgroundColor = '{color}';
         }}
+        if (notifBtn) notifBtn.style.display = '{btn_display}';
         """
         self.web_view.page().runJavaScript(script)

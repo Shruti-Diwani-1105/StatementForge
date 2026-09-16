@@ -189,6 +189,14 @@ class DashboardScreen(QWidget):
             "admin_logs": 13
         }
         if key in mapping:
+            if key == "notifications":
+                from utils.user_session import UserSession
+                user = UserSession.get_current_user()
+                role = str(user.get("role", "") if user else "").lower()
+                email = str(user.get("email", "") if user else "").lower()
+                if role == "admin" or email == "admin@gmail.com":
+                    return
+
             self.ensure_page_loaded(key)
             self.page_stack.setCurrentIndex(mapping[key])
             
