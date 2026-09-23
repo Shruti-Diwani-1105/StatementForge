@@ -149,7 +149,7 @@ class Sidebar(QFrame):
     def set_active_page(self, key):
         """Sets a specific sidebar button as checked programmatically in HTML."""
         self.current_key = key
-        script = f"document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active')); var el = document.getElementById('nav-{key}'); if (el) el.classList.add('active');"
+        script = f"if (typeof setActiveNav === 'function') {{ setActiveNav('{key}'); }} else {{ document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active')); document.querySelectorAll('[data-nav-key=\"{key}\"], [id=\"nav-{key}\"], [id=\"nav-{key}-user\"], [id=\"nav-{key}-admin\"]').forEach(el => el.classList.add('active')); }}"
         self.web_view.page().runJavaScript(script)
 
     def update_theme_styles(self, theme):

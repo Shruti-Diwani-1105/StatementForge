@@ -33,7 +33,7 @@
             <!-- STANDARD USER MENU ITEMS -->
             <ul class="nav-list user-nav">
                 <li class="nav-item">
-                    <button type="button" class="nav-button active" id="nav-dashboard" data-tooltip="Dashboard" onclick="sendAppCommand('nav', 'dashboard')">
+                    <button type="button" class="nav-button active" id="nav-dashboard" data-nav-key="dashboard" data-tooltip="Dashboard" onclick="setActiveNav('dashboard'); sendAppCommand('nav', 'dashboard')">
                         <span class="icon-container">
                             <img src="../assets/icons/dashboard.png" alt="Dashboard" class="nav-icon">
                         </span>
@@ -41,7 +41,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-budget_planner" data-tooltip="Monthly Salary & Budget Planner" onclick="sendAppCommand('nav', 'budget_planner')">
+                    <button type="button" class="nav-button" id="nav-budget_planner" data-nav-key="budget_planner" data-tooltip="Monthly Salary & Budget Planner" onclick="setActiveNav('budget_planner'); sendAppCommand('nav', 'budget_planner')">
                         <span class="icon-container">
                             <img src="../assets/icons/budget.png" alt="Monthly Salary & Budget Planner" class="nav-icon">
                         </span>
@@ -49,7 +49,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-upload" data-tooltip="Upload Statement" onclick="sendAppCommand('nav', 'upload')">
+                    <button type="button" class="nav-button" id="nav-upload" data-nav-key="upload" data-tooltip="Upload Statement" onclick="setActiveNav('upload'); sendAppCommand('nav', 'upload')">
                         <span class="icon-container">
                             <img src="../assets/icons/upload.png" alt="Upload Statement" class="nav-icon">
                         </span>
@@ -57,7 +57,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-generate_excel" data-tooltip="Generate Excel" onclick="sendAppCommand('nav', 'generate_excel')">
+                    <button type="button" class="nav-button" id="nav-generate_excel" data-nav-key="generate_excel" data-tooltip="Generate Excel" onclick="setActiveNav('generate_excel'); sendAppCommand('nav', 'generate_excel')">
                         <span class="icon-container">
                             <img src="../assets/icons/excel.png" alt="Generate Excel" class="nav-icon">
                         </span>
@@ -65,7 +65,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-ai_report" data-tooltip="AI Financial Report" onclick="sendAppCommand('nav', 'ai_report')">
+                    <button type="button" class="nav-button" id="nav-ai_report" data-nav-key="ai_report" data-tooltip="AI Financial Report" onclick="setActiveNav('ai_report'); sendAppCommand('nav', 'ai_report')">
                         <span class="icon-container">
                             <img src="../assets/icons/ai_report.png" alt="AI Financial Report" class="nav-icon">
                         </span>
@@ -73,7 +73,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-ai_chatbot" data-tooltip="AI Chatbot" onclick="sendAppCommand('nav', 'ai_chatbot')">
+                    <button type="button" class="nav-button" id="nav-ai_chatbot" data-nav-key="ai_chatbot" data-tooltip="AI Chatbot" onclick="setActiveNav('ai_chatbot'); sendAppCommand('nav', 'ai_chatbot')">
                         <span class="icon-container">
                             <img src="../assets/icons/chatbot.png" alt="AI Chatbot" class="nav-icon">
                         </span>
@@ -81,7 +81,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-duplicate_finder" data-tooltip="Duplicate Finder" onclick="sendAppCommand('nav', 'duplicate_finder')">
+                    <button type="button" class="nav-button" id="nav-duplicate_finder" data-nav-key="duplicate_finder" data-tooltip="Duplicate Finder" onclick="setActiveNav('duplicate_finder'); sendAppCommand('nav', 'duplicate_finder')">
                         <span class="icon-container">
                             <img src="../assets/icons/duplicate.png" alt="Duplicate Finder" class="nav-icon">
                         </span>
@@ -89,7 +89,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-history" data-tooltip="Statement History" onclick="sendAppCommand('nav', 'history')">
+                    <button type="button" class="nav-button" id="nav-history" data-nav-key="history" data-tooltip="Statement History" onclick="setActiveNav('history'); sendAppCommand('nav', 'history')">
                         <span class="icon-container">
                             <img src="../assets/icons/history.png" alt="Statement History" class="nav-icon">
                         </span>
@@ -97,7 +97,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-email_history" data-tooltip="Email Center" onclick="sendAppCommand('nav', 'email_history')">
+                    <button type="button" class="nav-button" id="nav-email_history" data-nav-key="email_history" data-tooltip="Email Center" onclick="setActiveNav('email_history'); sendAppCommand('nav', 'email_history')">
                         <span class="icon-container">
                             <img src="../assets/icons/email.png" alt="Email Center" class="nav-icon">
                         </span>
@@ -106,7 +106,7 @@
                 </li>
 
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-settings" data-tooltip="Settings" onclick="sendAppCommand('nav', 'settings')">
+                    <button type="button" class="nav-button" id="nav-settings-user" data-nav-key="settings" data-tooltip="Settings" onclick="setActiveNav('settings'); sendAppCommand('nav', 'settings')">
                         <span class="icon-container">
                             <img src="../assets/icons/settings.png" alt="Settings" class="nav-icon">
                         </span>
@@ -118,7 +118,7 @@
             <!-- ADMIN EXCLUSIVE MENU ITEMS -->
             <ul class="nav-list admin-nav" style="display:none;">
                 <li class="nav-item">
-                    <button type="button" class="nav-button active" id="nav-admin_panel" data-tooltip="Admin Control Center" onclick="sendAppCommand('nav', 'admin_panel')">
+                    <button type="button" class="nav-button active" id="nav-admin_panel" data-nav-key="admin_panel" data-tooltip="Admin Control Center" onclick="setActiveNav('admin_panel'); sendAppCommand('nav', 'admin_panel')">
                         <span class="icon-container">
                             <img src="../assets/icons/admin.png" alt="Admin Control Center" class="nav-icon">
                         </span>
@@ -126,7 +126,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-admin_users" data-tooltip="User Accounts" onclick="sendAppCommand('nav', 'admin_users')">
+                    <button type="button" class="nav-button" id="nav-admin_users" data-nav-key="admin_users" data-tooltip="User Accounts" onclick="setActiveNav('admin_users'); sendAppCommand('nav', 'admin_users')">
                         <span class="icon-container">
                             <img src="../assets/icons/profile.png" alt="User Accounts" class="nav-icon">
                         </span>
@@ -134,7 +134,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-admin_statements" data-tooltip="Statement Audit Log" onclick="sendAppCommand('nav', 'admin_statements')">
+                    <button type="button" class="nav-button" id="nav-admin_statements" data-nav-key="admin_statements" data-tooltip="Statement Audit Log" onclick="setActiveNav('admin_statements'); sendAppCommand('nav', 'admin_statements')">
                         <span class="icon-container">
                             <img src="../assets/icons/history.png" alt="Statement Audit Log" class="nav-icon">
                         </span>
@@ -142,7 +142,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-admin_logs" data-tooltip="Activity Logs" onclick="sendAppCommand('nav', 'admin_logs')">
+                    <button type="button" class="nav-button" id="nav-admin_logs" data-nav-key="admin_logs" data-tooltip="Activity Logs" onclick="setActiveNav('admin_logs'); sendAppCommand('nav', 'admin_logs')">
                         <span class="icon-container">
                             <img src="../assets/icons/bell.png" alt="Activity Logs" class="nav-icon">
                         </span>
@@ -150,7 +150,7 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button type="button" class="nav-button" id="nav-settings" data-tooltip="Settings" onclick="sendAppCommand('nav', 'settings')">
+                    <button type="button" class="nav-button" id="nav-settings-admin" data-nav-key="settings" data-tooltip="Settings" onclick="setActiveNav('settings'); sendAppCommand('nav', 'settings')">
                         <span class="icon-container">
                             <img src="../assets/icons/settings.png" alt="Settings" class="nav-icon">
                         </span>
@@ -172,6 +172,14 @@
     </aside>
 
     <script>
+        function setActiveNav(key) {
+            if (!key) return;
+            const targetKey = String(key).toLowerCase();
+            document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
+            const selector = `[data-nav-key="${targetKey}"], [id="nav-${targetKey}"], [id="nav-${targetKey}-user"], [id="nav-${targetKey}-admin"]`;
+            document.querySelectorAll(selector).forEach(el => el.classList.add('active'));
+        }
+
         function setUserRole(role) {
             const r = String(role || '').toLowerCase();
             const isAdmin = (r === 'admin' || r === 'administrator');
