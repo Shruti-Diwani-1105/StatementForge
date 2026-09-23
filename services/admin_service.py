@@ -84,25 +84,15 @@ class AdminService:
         """Calculates system metrics including user counts, statement counts, and database status."""
         users = AuthDB.get_all_users()
         total_users = len(users)
-        active_users = sum(1 for u in users if u.get("status", "active") == "active")
-        admin_count = sum(1 for u in users if u.get("role") == "admin")
+        active_users = sum(1 for u in users if str(u.get("status", "active")).lower() == "active")
+        admin_count = sum(1 for u in users if str(u.get("role", "")).lower() in ["admin", "administrator"])
 
         db = MongoDBService.get_db()
         db_connected = (db is not None)
         
-        total_statements = 0
-        total_transactions = 0
-        statements_collection = MongoDBService.get_collection()
-        
-        if statements_collection is not None:
-            try:
-                total_statements = statements_collection.count_documents({})
-                pipeline = [{"$group": {"_id": None, "total": {"$sum": "$total_transactions"}}}]
-                agg = list(statements_collection.aggregate(pipeline))
-                if agg:
-                    total_transactions = agg[0].get("total", 0)
-            except Exception as e:
-                print(f"AdminService: Error aggregating statement metrics ({e})")
+        all_stmts = cls.get_all_statements(limit=500)
+        total_statements = len(all_stmts)
+        total_transactions = sum(int(s.get("total_transactions", 0)) for s in all_stmts)
 
         return {
             "total_users": total_users,
@@ -116,26 +106,52 @@ class AdminService:
 
     @classmethod
     def get_all_statements(cls, limit=50):
-        """Fetches statement logs across all users."""
-        col = MongoDBService.get_collection()
+        """Fetches statement logs across all users (MongoDB + Local History)."""
         statements = []
+        seen_ids = set()
+
+        # 1. Fetch from MongoDB
+        col = MongoDBService.get_collection()
         if col is not None:
             try:
                 cursor = col.find({}).sort("upload_date", -1).limit(limit)
                 for doc in cursor:
+                    doc_id = str(doc.get("_id", ""))
+                    seen_ids.add(doc_id)
                     statements.append({
-                        "id": str(doc.get("_id", "")),
-                        "user_id": doc.get("user_id", "Unknown"),
+                        "id": doc_id,
+                        "user_id": doc.get("user_id") or doc.get("user") or doc.get("email") or "admin@gmail.com",
                         "bank_name": doc.get("bank_name", "Unknown Bank"),
-                        "statement_period": doc.get("statement_period", "N/A"),
-                        "total_transactions": doc.get("total_transactions", 0),
+                        "statement_period": doc.get("statement_period") or doc.get("period") or "Full Year",
+                        "total_transactions": doc.get("total_transactions") or doc.get("tx_count") or 0,
                         "processing_time": doc.get("processing_time", 0.0),
                         "upload_date": doc.get("upload_date", "").strftime("%Y-%m-%d %H:%M") if isinstance(doc.get("upload_date"), datetime.datetime) else str(doc.get("upload_date", ""))
                     })
-                if statements:
-                    return statements
             except Exception as e:
-                print(f"AdminService: Error fetching statements ({e})")
+                print(f"AdminService: Error fetching MongoDB statements ({e})")
+
+        # 2. Fetch from Local HistoryService fallback
+        try:
+            from services.history_service import HistoryService
+            local_logs = HistoryService.get_user_history("all")
+            for item in local_logs:
+                item_id = str(item.get("_id") or item.get("id") or "")
+                if item_id and item_id not in seen_ids:
+                    seen_ids.add(item_id)
+                    statements.append({
+                        "id": item_id,
+                        "user_id": item.get("user_id") or item.get("user") or "admin@gmail.com",
+                        "bank_name": item.get("bank_name", "Bank Statement"),
+                        "statement_period": item.get("statement_period") or "Recent Period",
+                        "total_transactions": item.get("total_transactions") or item.get("transaction_count") or 0,
+                        "processing_time": item.get("processing_time", 1.2),
+                        "upload_date": str(item.get("upload_date") or "").replace("T", " ")[:16]
+                    })
+        except Exception as e:
+            print(f"AdminService: Error fetching local history logs ({e})")
+
+        if statements:
+            return statements[:limit]
 
         # Fallback sample statement logs if DB collection is empty
         now = datetime.datetime.now()
@@ -152,7 +168,7 @@ class AdminService:
                 "processing_time": 1.45 + (idx * 0.3),
                 "upload_date": (now - datetime.timedelta(days=idx*2, hours=idx*3)).strftime("%Y-%m-%d %H:%M")
             })
-        return statements
+        return statements[:limit]
 
     @classmethod
     def get_audit_logs(cls, limit=50):
@@ -176,21 +192,23 @@ class AdminService:
                             "details": doc.get("details", ""),
                             "timestamp": ts_str
                         })
-                    if logs:
-                        return logs
             except Exception as e:
                 print(f"AdminService: Error fetching audit logs ({e})")
 
-        # Fallback synthetic/recent log sample if database logs collection is not populated
+        # Include user logins and activity events if DB logs are sparse
         now = datetime.datetime.now()
         users = AuthDB.get_all_users()
-        for u in users[:5]:
+        for u in users:
+            u_email = u.get("email", "admin@gmail.com")
             raw_login = u.get("last_login", now.strftime("%Y-%m-%d %H:%M:%S"))
             login_ts = str(raw_login).replace("T", " ").split(".")[0]
-            logs.append({
-                "user": u.get("email", "System"),
-                "action": "User Login",
-                "details": f"Authenticated successfully as {u.get('role', 'user')}",
-                "timestamp": login_ts
-            })
-        return logs
+            if not any(l.get("user") == u_email and l.get("action") == "User Login" for l in logs):
+                logs.append({
+                    "user": u_email,
+                    "action": "User Login",
+                    "details": f"Authenticated successfully as {u.get('role', 'user')}",
+                    "timestamp": login_ts
+                })
+
+        logs.sort(key=lambda x: str(x.get("timestamp", "")), reverse=True)
+        return logs[:limit]

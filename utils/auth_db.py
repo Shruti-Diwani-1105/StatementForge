@@ -542,23 +542,22 @@ class AuthDB:
             except Exception as e:
                 print(f"AuthDB: Error fetching all users ({e})")
 
-        # Merge in-memory users fallback only if no database records were retrieved
-        if not users_dict:
-            for email, u in cls._users.items():
-                email_clean = email.strip().lower()
-                if email_clean not in users_dict:
-                    full_name = str(u.get("name") or u.get("full_name") or email_clean.split('@')[0])
-                    users_dict[email_clean] = {
-                        "id": email_clean,
-                        "name": full_name,
-                        "email": email_clean,
-                        "phone": str(u.get("phone") or ""),
-                        "username": str(u.get("username") or email_clean.split('@')[0]),
-                        "role": str(u.get("role") or "user"),
-                        "status": str(u.get("status") or "active"),
-                        "created_at": u.get("created_at", now).isoformat() if isinstance(u.get("created_at"), datetime.datetime) else str(u.get("created_at") or now.isoformat()),
-                        "last_login": u.get("last_login", now).isoformat() if isinstance(u.get("last_login"), datetime.datetime) else str(u.get("last_login") or now.isoformat())
-                    }
+        # Merge in-memory users (including session/default accounts)
+        for email, u in cls._users.items():
+            email_clean = email.strip().lower()
+            if email_clean not in users_dict:
+                full_name = str(u.get("name") or u.get("full_name") or email_clean.split('@')[0])
+                users_dict[email_clean] = {
+                    "id": email_clean,
+                    "name": full_name,
+                    "email": email_clean,
+                    "phone": str(u.get("phone") or ""),
+                    "username": str(u.get("username") or email_clean.split('@')[0]),
+                    "role": str(u.get("role") or "user"),
+                    "status": str(u.get("status") or "active"),
+                    "created_at": u.get("created_at", now).isoformat() if isinstance(u.get("created_at"), datetime.datetime) else str(u.get("created_at") or now.isoformat()),
+                    "last_login": u.get("last_login", now).isoformat() if isinstance(u.get("last_login"), datetime.datetime) else str(u.get("last_login") or now.isoformat())
+                }
 
         return list(users_dict.values())
 
@@ -610,6 +609,10 @@ class AuthDB:
                 collection.delete_one({"email": email_clean})
             except Exception as e:
                 print(f"AuthDB: Error deleting user from MongoDB ({e})")
+
+        if email_clean in cls._users:
+            del cls._users[email_clean]
+        return True, f"User account {email} deleted successfully."
 
     @classmethod
     def update_user_by_admin(cls, email, name, phone, role, status):

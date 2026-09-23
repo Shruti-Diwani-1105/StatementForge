@@ -235,6 +235,7 @@ class DashboardScreen(QWidget):
                 if hasattr(self, "admin_panel_widget") and self.admin_panel_widget:
                     tab_target = key.replace("admin_", "")
                     self.admin_panel_widget.switch_tab(tab_target)
+                    self.admin_panel_widget.reload_data()
             elif key == "settings":
                 if hasattr(self, "settings_window") and self.settings_window:
                     self.settings_window.sync_user_profile_directly()

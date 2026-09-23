@@ -16,18 +16,9 @@
             <div class="admin-title-group">
                 <h1>
                     <span>Admin Control Center</span>
-                    <span class="badge-admin-tag">Enterprise Admin</span>
                 </h1>
                 <p>System metrics, user management, global bank statement audits, and security logging.</p>
             </div>
-            <button class="btn btn-primary" style="white-space: nowrap;" onclick="if (typeof sendAppCommand === 'function') sendAppCommand('get_admin_data', ''); loadSystemStats(); loadUsers(); loadStatements(); loadAuditLogs(); showToast('Data refreshed successfully!');">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 4v6h-6"></path>
-                    <path d="M1 20v-6h6"></path>
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-                <span>Refresh System Data</span>
-            </button>
         </div>
 
         <!-- Metric Summary Cards -->
