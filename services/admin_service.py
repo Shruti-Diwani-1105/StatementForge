@@ -81,18 +81,38 @@ class AdminService:
 
     @classmethod
     def get_system_stats(cls):
-        """Calculates system metrics including user counts, statement counts, and database status."""
+        """Calculates system metrics fast using direct collection counts and aggregation."""
         users = AuthDB.get_all_users()
         total_users = len(users)
         active_users = sum(1 for u in users if str(u.get("status", "active")).lower() == "active")
         admin_count = sum(1 for u in users if str(u.get("role", "")).lower() in ["admin", "administrator"])
 
         db = MongoDBService.get_db()
+        col = MongoDBService.get_collection()
         db_connected = (db is not None)
-        
-        all_stmts = cls.get_all_statements(limit=500)
-        total_statements = len(all_stmts)
-        total_transactions = sum(int(s.get("total_transactions", 0)) for s in all_stmts)
+
+        total_statements = 0
+        total_transactions = 0
+
+        if col is not None:
+            try:
+                total_statements = col.count_documents({})
+                pipeline = [{"$group": {"_id": None, "total": {"$sum": "$total_transactions"}}}]
+                agg_res = list(col.aggregate(pipeline))
+                if agg_res and len(agg_res) > 0:
+                    total_transactions = int(agg_res[0].get("total", 0) or 0)
+            except Exception as e:
+                print(f"AdminService: Error calculating fast stats ({e})")
+
+        # Fallback to local history service count if MongoDB returned 0
+        if total_statements == 0:
+            try:
+                from services.history_service import HistoryService
+                local_logs = HistoryService.get_user_history("all")
+                total_statements = len(local_logs)
+                total_transactions = sum(int(s.get("total_transactions", 0) or s.get("transaction_count", 0)) for s in local_logs)
+            except Exception:
+                pass
 
         return {
             "total_users": total_users,
@@ -105,10 +125,50 @@ class AdminService:
         }
 
     @classmethod
+    def _resolve_user_display(cls, raw_user_id, user_lookup=None):
+        if not raw_user_id or str(raw_user_id).strip() == "":
+            return "admin@gmail.com"
+
+        raw_str = str(raw_user_id).strip().lower()
+        if "@" in raw_str:
+            return raw_str
+
+        if user_lookup and raw_str in user_lookup:
+            return user_lookup[raw_str]
+
+        try:
+            from utils.user_session import UserSession
+            current_u = UserSession.get_current_user()
+            if current_u and current_u.get("email"):
+                return current_u["email"].lower()
+        except Exception:
+            pass
+
+        return "admin@gmail.com"
+
+    @classmethod
     def get_all_statements(cls, limit=50):
         """Fetches statement logs across all users (MongoDB + Local History)."""
         statements = []
         seen_ids = set()
+
+        # Build in-memory user lookup map once to avoid looping DB queries
+        user_lookup = {}
+        try:
+            all_users = AuthDB.get_all_users()
+            for u in all_users:
+                u_email = str(u.get("email", "")).strip().lower()
+                if not u_email:
+                    continue
+                u_id = str(u.get("id", "")).strip().lower()
+                u_mongo_id = str(u.get("_id", "")).strip().lower()
+                u_username = str(u.get("username", "")).strip().lower()
+                if u_id: user_lookup[u_id] = u_email
+                if u_mongo_id: user_lookup[u_mongo_id] = u_email
+                if u_username: user_lookup[u_username] = u_email
+                user_lookup[u_email] = u_email
+        except Exception:
+            pass
 
         # 1. Fetch from MongoDB
         col = MongoDBService.get_collection()
@@ -118,9 +178,11 @@ class AdminService:
                 for doc in cursor:
                     doc_id = str(doc.get("_id", ""))
                     seen_ids.add(doc_id)
+                    raw_id = doc.get("user_id") or doc.get("user") or doc.get("email")
+                    resolved_user = cls._resolve_user_display(raw_id, user_lookup)
                     statements.append({
                         "id": doc_id,
-                        "user_id": doc.get("user_id") or doc.get("user") or doc.get("email") or "admin@gmail.com",
+                        "user_id": resolved_user,
                         "bank_name": doc.get("bank_name", "Unknown Bank"),
                         "statement_period": doc.get("statement_period") or doc.get("period") or "Full Year",
                         "total_transactions": doc.get("total_transactions") or doc.get("tx_count") or 0,
@@ -138,9 +200,11 @@ class AdminService:
                 item_id = str(item.get("_id") or item.get("id") or "")
                 if item_id and item_id not in seen_ids:
                     seen_ids.add(item_id)
+                    raw_id = item.get("user_id") or item.get("user") or item.get("email")
+                    resolved_user = cls._resolve_user_display(raw_id, user_lookup)
                     statements.append({
                         "id": item_id,
-                        "user_id": item.get("user_id") or item.get("user") or "admin@gmail.com",
+                        "user_id": resolved_user,
                         "bank_name": item.get("bank_name", "Bank Statement"),
                         "statement_period": item.get("statement_period") or "Recent Period",
                         "total_transactions": item.get("total_transactions") or item.get("transaction_count") or 0,

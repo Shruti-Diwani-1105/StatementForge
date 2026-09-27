@@ -895,16 +895,17 @@ class GSTReportWidget(QWidget):
             self.statement_combo.addItem("Select a GST Statement...", "")
             
             self._statement_paths = {}
+            seen_keys = set()
             for log in logs:
                 excel_path = log.get("excel_path")
                 if excel_path and os.path.exists(excel_path):
-                    filename = os.path.basename(log.get("pdf_path", "Statement.pdf"))
-                    upload_date = log.get("upload_date")
-                    if hasattr(upload_date, "strftime"):
-                        date_str = upload_date.strftime("%Y-%m-%d")
-                    else:
-                        date_str = str(upload_date or "")[:10]
-                    display_text = f"{log.get('bank_name', 'Bank')} ({date_str}) - {filename}"
+                    display_text = HistoryService.format_statement_display(log)
+
+                    unique_key = (display_text, excel_path)
+                    if unique_key in seen_keys:
+                        continue
+                    seen_keys.add(unique_key)
+
                     self.statement_combo.addItem(display_text, excel_path)
                     self._statement_paths[display_text] = excel_path
             self.statement_combo.blockSignals(False)

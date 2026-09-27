@@ -59,7 +59,7 @@ class SplashScreen(QWidget):
             font-size: 32px;
             font-weight: 800;
             color: #FFFFFF;
-            font-family: 'Segoe UI', 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             letter-spacing: -0.5px;
             background: transparent;
             border: none;
@@ -74,7 +74,7 @@ class SplashScreen(QWidget):
             font-weight: 700;
             color: #3B82F6;
             letter-spacing: 2px;
-            font-family: 'Segoe UI', 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             background: transparent;
             border: none;
         """)
@@ -88,7 +88,7 @@ class SplashScreen(QWidget):
             font-weight: 500;
             color: #94A3B8;
             letter-spacing: 1px;
-            font-family: 'Segoe UI', 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             background: transparent;
             border: none;
         """)
@@ -125,7 +125,7 @@ class SplashScreen(QWidget):
             font-size: 11px;
             font-weight: 500;
             color: #64748B;
-            font-family: 'Segoe UI', 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, sans-serif;
             background: transparent;
             border: none;
         """)

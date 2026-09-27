@@ -105,6 +105,12 @@ class DuplicateFinderService:
             net_amt = debit_amt if debit_amt > 0 else credit_amt
             tx_type = "Debit" if debit_amt > 0 else ("Credit" if credit_amt > 0 else "Neutral")
             
+            raw_date = cls._clean_str(tx.get("date", ""))
+            if date_obj:
+                clean_date_str = date_obj.strftime("%Y-%m-%d")
+            else:
+                clean_date_str = raw_date.replace(" 00:00:00", "").replace("T00:00:00", "").strip()
+            
             raw_narr = cls._clean_str(tx.get("narration", ""))
             norm_narr = cls._normalize_text(raw_narr)
             ref_no = cls._clean_str(tx.get("ref_no", ""))
@@ -114,7 +120,7 @@ class DuplicateFinderService:
                 "id": f"tx_{idx}",
                 "original_index": idx,
                 "raw": tx,
-                "date_str": cls._clean_str(tx.get("date", "")),
+                "date_str": clean_date_str,
                 "date_obj": date_obj,
                 "raw_narration": raw_narr,
                 "norm_narration": norm_narr,

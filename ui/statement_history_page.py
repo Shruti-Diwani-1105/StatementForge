@@ -413,8 +413,7 @@ class StatementHistoryPage(QWidget):
             self.history_table.setItem(row_idx, 0, date_item)
 
             # 2. File Name
-            pdf_path = log.get("pdf_path", "")
-            file_name = os.path.basename(pdf_path) if pdf_path else "Statement.pdf"
+            file_name = HistoryService.get_display_filename(log)
             file_item = QTableWidgetItem(file_name)
             file_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             file_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)

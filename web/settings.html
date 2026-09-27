@@ -30,7 +30,7 @@
                 <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 About
             </button>
-            <button type="button" class="nav-pill" id="pill-admin" onclick="switchSettingsTab('admin')">
+            <button type="button" class="nav-pill" id="pill-admin" onclick="switchSettingsTab('admin')" style="display: none;">
                 <svg class="pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 System Admin
             </button>
@@ -466,7 +466,7 @@
             </section>
 
             <!-- TAB 6: SYSTEM ADMIN CONTROLS -->
-            <section class="tab-panel" id="panel-admin">
+            <section class="tab-panel" id="panel-admin" style="display: none;">
                 <header class="panel-header">
                     <h2 class="panel-title">System Admin Controls</h2>
                     <p class="panel-subtitle">Manage essential system security policies, database health, and data maintenance tools.</p>
@@ -568,23 +568,35 @@
 
         function applyAdminSettingsMode(isAdmin) {
             const pillbar = document.querySelector('.settings-nav-pillbar');
-            const allPills = ['pill-general', 'pill-appearance', 'pill-notifications', 'pill-about', 'pill-admin'];
+            const pillGeneral = document.getElementById('pill-general');
+            const pillAccount = document.getElementById('pill-account');
+            const pillNotifications = document.getElementById('pill-notifications');
+            const pillAbout = document.getElementById('pill-about');
+            const pillAdmin = document.getElementById('pill-admin');
+
             if (isAdmin) {
+                // In admin panel / for admin users: hide top tab navigation bar completely since only Account section is used
                 if (pillbar) pillbar.style.display = 'none';
-                allPills.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.style.display = 'none';
-                });
-                const accPill = document.getElementById('pill-account');
-                if (accPill) accPill.style.display = 'inline-flex';
+
+                if (pillGeneral) pillGeneral.style.display = 'none';
+                if (pillNotifications) pillNotifications.style.display = 'none';
+                if (pillAbout) pillAbout.style.display = 'none';
+                if (pillAdmin) pillAdmin.style.display = 'none';
 
                 switchSettingsTab('account');
             } else {
+                // For standard users: display standard settings tabs
                 if (pillbar) pillbar.style.display = 'flex';
-                allPills.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el && id !== 'pill-admin') el.style.display = 'inline-flex';
-                });
+                if (pillGeneral) pillGeneral.style.display = 'inline-flex';
+                if (pillAccount) pillAccount.style.display = 'inline-flex';
+                if (pillNotifications) pillNotifications.style.display = 'inline-flex';
+                if (pillAbout) pillAbout.style.display = 'inline-flex';
+                if (pillAdmin) pillAdmin.style.display = 'none';
+
+                const activePill = document.querySelector('.nav-pill.active');
+                if (!activePill || activePill.style.display === 'none') {
+                    switchSettingsTab('general');
+                }
             }
         }
 

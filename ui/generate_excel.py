@@ -724,18 +724,16 @@ class GenerateExcelWidget(QWidget):
             self.recent_list.addItem("No Excel files found in history.", None)
         else:
             self.recent_list.addItem("Choose a recently generated Excel...", None)
+            seen_keys = set()
             for log in completed_logs:
                 excel_path = log.get("excel_path", "")
-                filename = os.path.basename(excel_path) if excel_path else "Parsed_Sheet.xlsx"
-                upload_date = log.get("upload_date")
-                if hasattr(upload_date, "strftime"):
-                    date_str = upload_date.strftime("%Y-%m-%d")
-                elif isinstance(upload_date, str):
-                    date_str = upload_date[:10]
-                else:
-                    date_str = str(upload_date or "")[:10]
-                bank = log.get("bank_name", "Unknown Bank")
-                display_text = f"{bank} ({date_str}) - {filename}"
+                display_text = HistoryService.format_statement_display(log)
+
+                unique_key = (display_text, excel_path)
+                if unique_key in seen_keys:
+                    continue
+                seen_keys.add(unique_key)
+
                 self.recent_list.addItem(display_text, excel_path)
                 
         self.recent_list.blockSignals(False)
