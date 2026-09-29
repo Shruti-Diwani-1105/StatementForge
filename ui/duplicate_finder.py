@@ -329,83 +329,122 @@ class DuplicateFinderWidget(QWidget):
         # 6. BOTTOM ACTION & EXPORT BAR
         # ==========================================
         bottom_bar = QFrame()
-        bottom_bar.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 6px;")
-        bot_layout = QHBoxLayout(bottom_bar)
-        bot_layout.setContentsMargins(14, 8, 14, 8)
+        bottom_bar.setObjectName("DuplicateBottomBar")
+        bottom_bar.setStyleSheet("""
+            QFrame#DuplicateBottomBar {
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
+                border-radius: 12px;
+            }
+        """)
+        shadow_bot = QGraphicsDropShadowEffect()
+        shadow_bot.setBlurRadius(10)
+        shadow_bot.setColor(QColor(0, 0, 0, 10))
+        shadow_bot.setOffset(0, 2)
+        bottom_bar.setGraphicsEffect(shadow_bot)
+
+        bot_layout = QVBoxLayout(bottom_bar)
+        bot_layout.setContentsMargins(14, 10, 14, 10)
         bot_layout.setSpacing(10)
 
         self.resolution_status_lbl = QLabel("Select a statement and click Scan to begin.")
+        self.resolution_status_lbl.setWordWrap(True)
         self.resolution_status_lbl.setStyleSheet("""
             background-color: #F1F5F9;
             color: #1E293B;
             font-weight: 600;
             font-size: 12px;
-            padding: 5px 12px;
-            border-radius: 16px;
+            padding: 6px 12px;
+            border-radius: 8px;
             border: 1px solid #E2E8F0;
         """)
-        bot_layout.addWidget(self.resolution_status_lbl, 1)
+        bot_layout.addWidget(self.resolution_status_lbl)
+
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(8)
+        btn_row.addStretch()
 
         self.btn_export_audit = QPushButton("Export Audit (.xlsx)")
-        self.btn_export_audit.setFixedHeight(36)
+        self.btn_export_audit.setFixedHeight(34)
         self.btn_export_audit.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_export_audit.setStyleSheet("""
             QPushButton {
                 background-color: #059669;
                 color: #FFFFFF;
                 font-weight: 700;
-                font-size: 12px;
+                font-size: 11.5px;
                 border-radius: 6px;
                 border: none;
-                padding: 0px 14px;
+                padding: 0px 12px;
             }
             QPushButton:hover {
                 background-color: #047857;
             }
         """)
         self.btn_export_audit.clicked.connect(self.export_audit_excel)
-        bot_layout.addWidget(self.btn_export_audit)
+        btn_row.addWidget(self.btn_export_audit)
+
+        self.btn_export_highlighted = QPushButton("Export Highlighted (.xlsx)")
+        self.btn_export_highlighted.setFixedHeight(34)
+        self.btn_export_highlighted.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_export_highlighted.setStyleSheet("""
+            QPushButton {
+                background-color: #D97706;
+                color: #FFFFFF;
+                font-weight: 700;
+                font-size: 11.5px;
+                border-radius: 6px;
+                border: none;
+                padding: 0px 12px;
+            }
+            QPushButton:hover {
+                background-color: #B45309;
+            }
+        """)
+        self.btn_export_highlighted.clicked.connect(self.export_highlighted_excel)
+        btn_row.addWidget(self.btn_export_highlighted)
 
         self.btn_export_cleaned = QPushButton("Export Cleaned (.xlsx)")
-        self.btn_export_cleaned.setFixedHeight(36)
+        self.btn_export_cleaned.setFixedHeight(34)
         self.btn_export_cleaned.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_export_cleaned.setStyleSheet("""
             QPushButton {
                 background-color: #2563EB;
                 color: #FFFFFF;
                 font-weight: 700;
-                font-size: 12px;
+                font-size: 11.5px;
                 border-radius: 6px;
                 border: none;
-                padding: 0px 14px;
+                padding: 0px 12px;
             }
             QPushButton:hover {
                 background-color: #1D4ED8;
             }
         """)
         self.btn_export_cleaned.clicked.connect(self.export_cleaned_excel)
-        bot_layout.addWidget(self.btn_export_cleaned)
+        btn_row.addWidget(self.btn_export_cleaned)
 
         self.btn_send_email = QPushButton("✉ Send Email")
-        self.btn_send_email.setFixedHeight(36)
+        self.btn_send_email.setFixedHeight(34)
         self.btn_send_email.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_send_email.setStyleSheet("""
             QPushButton {
                 background-color: #7C3AED;
                 color: #FFFFFF;
                 font-weight: 700;
-                font-size: 12px;
+                font-size: 11.5px;
                 border-radius: 6px;
                 border: none;
-                padding: 0px 14px;
+                padding: 0px 12px;
             }
             QPushButton:hover {
                 background-color: #6D28D9;
             }
         """)
         self.btn_send_email.clicked.connect(self.open_email_composer)
-        bot_layout.addWidget(self.btn_send_email)
+        btn_row.addWidget(self.btn_send_email)
 
+        bot_layout.addLayout(btn_row)
         main_layout.addWidget(bottom_bar)
 
         self.main_scroll.setWidget(scroll_content)
@@ -790,16 +829,17 @@ class DuplicateFinderWidget(QWidget):
 
         head_lay.addStretch()
 
-        if cluster.get("reason"):
-            reason_lbl = QLabel(cluster.get("reason"))
-            reason_lbl.setStyleSheet("font-size: 11.5px; color: #475569; background-color: #F1F5F9; border: 1px solid #E2E8F0; padding: 4px 10px; border-radius: 6px;")
-            head_lay.addWidget(reason_lbl)
-
         items_cnt_lbl = QLabel(f"{len(cluster['items'])} Entries")
         items_cnt_lbl.setStyleSheet("font-size: 11px; font-weight: 700; color: #64748B; background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 4px 8px; border-radius: 6px;")
         head_lay.addWidget(items_cnt_lbl)
 
         layout.addLayout(head_lay)
+
+        if cluster.get("reason"):
+            reason_lbl = QLabel(cluster.get("reason"))
+            reason_lbl.setWordWrap(True)
+            reason_lbl.setStyleSheet("font-size: 11.5px; color: #475569; background-color: #F1F5F9; border: 1px solid #E2E8F0; padding: 4px 10px; border-radius: 6px;")
+            layout.addWidget(reason_lbl)
 
         # Items Layout Container
         items_frame = QFrame()
@@ -892,7 +932,7 @@ class DuplicateFinderWidget(QWidget):
             action_combo.activated.connect(lambda idx, item_id=it_id: self._on_item_action_changed(item_id, idx))
             r_lay.addWidget(action_combo)
 
-            raw_d = str(item.get("date_str", "")).strip().replace(" 00:00:00", "").replace("T00:00:00", "")
+            raw_d = DuplicateFinderService._format_dd_mm_yyyy(item.get("date_str", ""))
             lbl_date = QLabel(raw_d)
             lbl_date.setFixedWidth(110)
             lbl_date.setToolTip(raw_d)
@@ -1036,11 +1076,40 @@ class DuplicateFinderWidget(QWidget):
         try:
             clusters = self.analysis_result.get("clusters", [])
             stats = self.analysis_result.get("stats", {})
-            DuplicateFinderService.export_duplicate_report(clusters, stats, out_path)
+            DuplicateFinderService.export_duplicate_report(
+                clusters,
+                stats,
+                out_path,
+                analysis_result=self.analysis_result,
+                user_decisions=self.user_decisions
+            )
             Toast.display_toast(self, "Duplicate Audit Report exported successfully!", toast_type="success")
             QMessageBox.information(self, "Export Successful", f"Audit report saved to:\n{out_path}")
         except Exception as e:
             QMessageBox.critical(self, "Export Error", f"Failed to export audit report:\n{e}")
+
+    def export_highlighted_excel(self):
+        """Exports full statement Excel file with color-highlighted duplicate rows and audit status flags."""
+        if not self.analysis_result or not self.analysis_result.get("annotated_transactions"):
+            Toast.display_toast(self, "No statement scan data loaded for export.", toast_type="warning")
+            return
+
+        out_path, _ = QFileDialog.getSaveFileName(self, "Save Statement with Highlighted Duplicates", "Statement_Highlighted_Duplicates.xlsx", "Excel Files (*.xlsx)")
+        if not out_path:
+            return
+
+        try:
+            bank_name = self.loaded_statements[0].get("bank_name", "Bank") if self.loaded_statements else "Bank"
+            DuplicateFinderService.export_highlighted_statement(
+                self.analysis_result,
+                self.user_decisions,
+                out_path,
+                bank_name
+            )
+            Toast.display_toast(self, "Highlighted Statement exported successfully!", toast_type="success")
+            QMessageBox.information(self, "Export Successful", f"Statement with highlighted duplicates saved to:\n{out_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Export Error", f"Failed to export highlighted statement:\n{e}")
 
     def export_cleaned_excel(self):
         """Exports clean statement Excel file with user-flagged duplicates removed."""
