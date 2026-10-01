@@ -16,9 +16,18 @@
             <div class="admin-title-group">
                 <h1>
                     <span>Admin Control Center</span>
+                    <span class="badge-admin-tag">Enterprise Admin</span>
                 </h1>
                 <p>System metrics, user management, global bank statement audits, and security logging.</p>
             </div>
+            <button class="btn btn-primary" style="white-space: nowrap;" onclick="if (typeof sendAppCommand === 'function') sendAppCommand('get_admin_data', ''); loadSystemStats(); loadUsers(); loadStatements(); loadAuditLogs(); showToast('Data refreshed successfully!');">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>Refresh System Data</span>
+            </button>
         </div>
 
         <!-- Metric Summary Cards -->
@@ -62,7 +71,7 @@
                 <span>📁 Statement Audit Log</span>
             </button>
             <button class="tab-btn" data-tab="tab-logs">
-                <span>🛡️ Activity Logs</span>
+                <span>🛡️ Security & Activity Logs</span>
             </button>
         </div>
 
@@ -147,23 +156,11 @@
             </div>
         </div>
 
-        <!-- TAB 3: ACTIVITY LOGS -->
+        <!-- TAB 3: ACTIVITY & SECURITY LOGS -->
         <div id="tab-logs" class="tab-content" style="display:none;">
             <div class="admin-card">
                 <div class="card-header-bar">
-                    <h2>Activity &amp; Audit Trail</h2>
-                    <div class="search-filter-box">
-                        <input type="text" id="log-search-input" class="search-input" placeholder="Search by user or event details...">
-                        <select id="log-action-filter" class="select-filter">
-                            <option value="all">All Events</option>
-                            <option value="login">User Login</option>
-                            <option value="password">Password Reset</option>
-                            <option value="role">Role Update</option>
-                            <option value="status">Status Change</option>
-                            <option value="create">Account Created</option>
-                            <option value="delete">Account Deleted</option>
-                        </select>
-                    </div>
+                    <h2>Security & Audit Trail</h2>
                 </div>
                 <div class="table-responsive">
                     <table class="data-table">

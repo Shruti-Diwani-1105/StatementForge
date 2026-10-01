@@ -19,31 +19,27 @@ from workers.email_worker import EmailSendWorker
 
 
 class GmailAutoPasteThread(QThread):
-    """Background worker that waits for browser window to open and sends Ctrl+V to attach clipboard file in Gmail (Windows only)."""
+    """Background worker that waits for browser window to open and sends Ctrl+V to attach clipboard file in Gmail."""
     def run(self):
         time.sleep(2.8)
-        if hasattr(ctypes, "windll"):
-            try:
-                # Send Ctrl+V using Windows keybd_event
-                ctypes.windll.user32.keybd_event(0x11, 0, 0, 0)
-                time.sleep(0.05)
-                ctypes.windll.user32.keybd_event(0x56, 0, 0, 0)
-                time.sleep(0.05)
-                ctypes.windll.user32.keybd_event(0x56, 0, 0x0002, 0)
-                time.sleep(0.05)
-                ctypes.windll.user32.keybd_event(0x11, 0, 0x0002, 0)
-                
-                # Second backup paste after 1.5s in case of slow page rendering
-                time.sleep(1.5)
-                ctypes.windll.user32.keybd_event(0x11, 0, 0, 0)
-                time.sleep(0.05)
-                ctypes.windll.user32.keybd_event(0x56, 0, 0, 0)
-                time.sleep(0.05)
-                ctypes.windll.user32.keybd_event(0x56, 0, 0x0002, 0)
-                time.sleep(0.05)
-                ctypes.windll.user32.keybd_event(0x11, 0, 0x0002, 0)
-            except Exception as e:
-                print(f"GmailAutoPasteThread: {e}")
+        # Send Ctrl+V using Windows keybd_event
+        ctypes.windll.user32.keybd_event(0x11, 0, 0, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x56, 0, 0, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x56, 0, 0x0002, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x11, 0, 0x0002, 0)
+        
+        # Second backup paste after 1.5s in case of slow page rendering
+        time.sleep(1.5)
+        ctypes.windll.user32.keybd_event(0x11, 0, 0, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x56, 0, 0, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x56, 0, 0x0002, 0)
+        time.sleep(0.05)
+        ctypes.windll.user32.keybd_event(0x11, 0, 0x0002, 0)
 
 
 

@@ -39,18 +39,8 @@ class HistoryService:
         cls._load_local_fallback()
         now = datetime.datetime.utcnow()
         
-        user_email = str(user_id) if user_id else "admin@gmail.com"
-        if "@" not in user_email and user_id:
-            try:
-                from utils.auth_db import AuthDB
-                u = AuthDB.get_user_profile(user_id)
-                if u and u.get("email"):
-                    user_email = u["email"].lower()
-            except Exception:
-                pass
-
         doc = {
-            "user_id": user_email,
+            "user_id": str(user_id) if user_id else "guest",
             "pdf_path": pdf_path,
             "excel_path": "",
             "bank_name": bank_name,
@@ -298,73 +288,6 @@ class HistoryService:
                 cls._save_local_fallback()
                 return True
         return False
-
-    @classmethod
-    def get_display_filename(cls, log):
-        """Returns the appropriate filename with format extension (.xlsx, .csv, .json, .pdf) for display."""
-        if not isinstance(log, dict):
-            return "Statement.xlsx"
-            
-        pdf_filename = log.get("pdf_filename") or ""
-        excel_path = log.get("excel_path") or ""
-        pdf_path = log.get("pdf_path") or ""
-        out_fmt = (log.get("output_format") or "").upper()
-
-        # 1. If pdf_filename is explicitly set and has non-pdf extension (e.g. .xlsx, .csv, .json)
-        if pdf_filename and not pdf_filename.lower().endswith(".pdf"):
-            return os.path.basename(pdf_filename)
-
-        # 2. If excel_path is available (e.g. /path/to/AU.xlsx, AU.csv, AU.json)
-        if excel_path:
-            base_excel = os.path.basename(excel_path)
-            if out_fmt == "CSV" and not base_excel.lower().endswith(".csv"):
-                return os.path.splitext(base_excel)[0] + ".csv"
-            elif out_fmt == "JSON" and not base_excel.lower().endswith(".json"):
-                return os.path.splitext(base_excel)[0] + ".json"
-            return base_excel
-
-        # 3. If pdf_filename is set
-        if pdf_filename:
-            base_pdf = os.path.basename(pdf_filename)
-            if out_fmt == "CSV":
-                return os.path.splitext(base_pdf)[0] + ".csv"
-            elif out_fmt == "JSON":
-                return os.path.splitext(base_pdf)[0] + ".json"
-            elif out_fmt in ("EXCEL", "XLSX"):
-                return os.path.splitext(base_pdf)[0] + ".xlsx"
-            return base_pdf
-
-        # 4. Fallback to pdf_path
-        if pdf_path:
-            base_path = os.path.basename(pdf_path)
-            if out_fmt == "CSV":
-                return os.path.splitext(base_path)[0] + ".csv"
-            elif out_fmt == "JSON":
-                return os.path.splitext(base_path)[0] + ".json"
-            elif out_fmt in ("EXCEL", "XLSX"):
-                return os.path.splitext(base_path)[0] + ".xlsx"
-            return base_path
-
-        return "Statement.xlsx"
-
-    @classmethod
-    def format_statement_display(cls, log):
-        """Formats statement history item into clean display label with file format extension and tx count."""
-        if not isinstance(log, dict):
-            return "Bank Statement"
-        bank = log.get("bank_name", "Unknown Bank")
-        upload_date = log.get("upload_date")
-        if hasattr(upload_date, "strftime"):
-            date_str = upload_date.strftime("%Y-%m-%d")
-        elif isinstance(upload_date, str):
-            date_str = upload_date[:10]
-        else:
-            date_str = str(upload_date or "")[:10]
-            
-        tx_count = log.get("total_transactions", 0)
-        filename = cls.get_display_filename(log)
-        
-        return f"{bank} ({date_str}) - {tx_count} txs [{filename}]" if filename else f"{bank} ({date_str}) - {tx_count} txs"
 
     @classmethod
     def save_record(cls, user_id, pdf_path, excel_path, bank_name, statement_period, processing_time, total_transactions):

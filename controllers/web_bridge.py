@@ -122,11 +122,6 @@ class WebBridge(QObject):
 
     # --- Admin Panel Slots ---
 
-    def _notify_admin_update(self):
-        p = self.parent()
-        if p and hasattr(p, "push_admin_data"):
-            p.push_admin_data()
-
     @pyqtSlot(result=list)
     def getAdminUsers(self):
         """Returns all registered users for admin panel management."""
@@ -138,7 +133,6 @@ class WebBridge(QObject):
         """Creates a new user from Admin Panel."""
         from services.admin_service import AdminService
         success, message = AdminService.create_user(name, email, phone, password, role, status)
-        self._notify_admin_update()
         return {"success": success, "message": message}
 
     @pyqtSlot(str, str, str, str, str, result=dict)
@@ -146,7 +140,6 @@ class WebBridge(QObject):
         """Updates user account details from Admin Panel."""
         from services.admin_service import AdminService
         success, message = AdminService.update_user(email, name, phone, role, status)
-        self._notify_admin_update()
         return {"success": success, "message": message}
 
     @pyqtSlot(str, str, result=dict)
@@ -154,7 +147,6 @@ class WebBridge(QObject):
         """Resets user password from Admin Panel."""
         from services.admin_service import AdminService
         success, message = AdminService.reset_user_password(email, new_password)
-        self._notify_admin_update()
         return {"success": success, "message": message}
 
     @pyqtSlot(str, str, result=dict)
@@ -162,7 +154,6 @@ class WebBridge(QObject):
         """Updates user role to admin or user."""
         from services.admin_service import AdminService
         success, message = AdminService.update_user_role(email, role)
-        self._notify_admin_update()
         return {"success": success, "message": message}
 
     @pyqtSlot(str, str, result=dict)
@@ -170,7 +161,6 @@ class WebBridge(QObject):
         """Updates account status to active or disabled."""
         from services.admin_service import AdminService
         success, message = AdminService.update_user_status(email, status)
-        self._notify_admin_update()
         return {"success": success, "message": message}
 
     @pyqtSlot(str, result=dict)
@@ -178,7 +168,6 @@ class WebBridge(QObject):
         """Deletes specified user account."""
         from services.admin_service import AdminService
         success, message = AdminService.delete_user(email)
-        self._notify_admin_update()
         return {"success": success, "message": message}
 
     @pyqtSlot(result=dict)

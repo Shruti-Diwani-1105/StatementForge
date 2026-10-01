@@ -63,7 +63,7 @@ function switchTab(tabName) {
         const targetEl = document.getElementById('tab-logs');
         if (targetEl) targetEl.style.display = 'block';
 
-        if (titleEl) titleEl.textContent = 'Activity Logs';
+        if (titleEl) titleEl.textContent = 'Security & Activity Logs';
         if (descEl) descEl.textContent = 'System access logs, authentication history, and administrative activity.';
         if (cardUsers) cardUsers.style.display = 'flex';
         if (cardActive) cardActive.style.display = 'flex';
@@ -111,27 +111,16 @@ window.renderAdminStatementsData = function(statements) {
 
 function applyStatementFilters() {
     const query = (document.getElementById('stmt-search-input')?.value || '').toLowerCase().trim();
-    const bankVal = (document.getElementById('stmt-bank-filter')?.value || 'all').toLowerCase().trim();
+    const bankVal = document.getElementById('stmt-bank-filter')?.value || 'all';
 
     const filtered = allStatementsData.filter(s => {
-        const bankName = (s.bank_name || '').toLowerCase();
-        const userId = (s.user_id || '').toLowerCase();
-        const period = (s.statement_period || '').toLowerCase();
-
         const matchesSearch = !query || 
-            bankName.includes(query) || 
-            userId.includes(query) ||
-            period.includes(query);
+            (s.bank_name && s.bank_name.toLowerCase().includes(query)) || 
+            (s.user_id && s.user_id.toLowerCase().includes(query)) ||
+            (s.statement_period && s.statement_period.toLowerCase().includes(query));
 
-        let matchesBank = (bankVal === 'all');
-        if (!matchesBank) {
-            if (bankVal === 'hdfc' && bankName.includes('hdfc')) matchesBank = true;
-            else if (bankVal === 'icici' && bankName.includes('icici')) matchesBank = true;
-            else if (bankVal === 'sbi' && (bankName.includes('sbi') || bankName.includes('state bank'))) matchesBank = true;
-            else if (bankVal === 'axis' && bankName.includes('axis')) matchesBank = true;
-            else if (bankVal === 'kotak' && bankName.includes('kotak')) matchesBank = true;
-            else if (bankName.includes(bankVal)) matchesBank = true;
-        }
+        const matchesBank = (bankVal === 'all') ||
+            (s.bank_name && s.bank_name.toLowerCase().includes(bankVal.toLowerCase()));
 
         return matchesSearch && matchesBank;
     });
@@ -163,45 +152,7 @@ function renderStatementsTable(statements) {
     });
 }
 
-let allAuditLogsData = [];
-
 window.renderAdminLogsData = function(logs) {
-    allAuditLogsData = logs || [];
-    applyLogFilters();
-};
-
-function applyLogFilters() {
-    const query = (document.getElementById('log-search-input')?.value || '').toLowerCase().trim();
-    const actionVal = (document.getElementById('log-action-filter')?.value || 'all').toLowerCase().trim();
-
-    const filtered = allAuditLogsData.filter(l => {
-        const userStr = (l.user || '').toLowerCase();
-        const actionStr = (l.action || '').toLowerCase();
-        const detailsStr = (l.details || '').toLowerCase();
-
-        const matchesSearch = !query || 
-            userStr.includes(query) || 
-            actionStr.includes(query) ||
-            detailsStr.includes(query);
-
-        let matchesAction = (actionVal === 'all');
-        if (!matchesAction) {
-            if (actionVal === 'login' && actionStr.includes('login')) matchesAction = true;
-            else if (actionVal === 'password' && actionStr.includes('password')) matchesAction = true;
-            else if (actionVal === 'role' && actionStr.includes('role')) matchesAction = true;
-            else if (actionVal === 'status' && actionStr.includes('status')) matchesAction = true;
-            else if (actionVal === 'create' && (actionStr.includes('create') || actionStr.includes('account created'))) matchesAction = true;
-            else if (actionVal === 'delete' && (actionStr.includes('delete') || actionStr.includes('purge'))) matchesAction = true;
-            else if (actionStr.includes(actionVal)) matchesAction = true;
-        }
-
-        return matchesSearch && matchesAction;
-    });
-
-    renderLogsTable(filtered);
-}
-
-function renderLogsTable(logs) {
     const tbody = document.getElementById('audit-table-body');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -213,27 +164,15 @@ function renderLogsTable(logs) {
 
     logs.forEach(log => {
         const tr = document.createElement('tr');
-        const actionStr = (log.action || 'Event').toLowerCase();
-        let badgeClass = 'badge-role-user';
-        if (actionStr.includes('login') || actionStr.includes('create')) {
-            badgeClass = 'badge-status-active';
-        } else if (actionStr.includes('password') || actionStr.includes('role') || actionStr.includes('status') || actionStr.includes('profile')) {
-            badgeClass = 'badge-role-admin';
-        } else if (actionStr.includes('delete') || actionStr.includes('disable')) {
-            badgeClass = 'badge-status-disabled';
-        }
-
-        const cleanTs = log.timestamp ? String(log.timestamp).replace('T', ' ').split('.')[0] : 'N/A';
-
         tr.innerHTML = `
-            <td style="font-size:12px; color:var(--text-muted);">${escapeHtml(cleanTs)}</td>
+            <td>${escapeHtml(log.timestamp)}</td>
             <td><strong>${escapeHtml(log.user)}</strong></td>
-            <td><span class="badge ${badgeClass}">${escapeHtml(log.action)}</span></td>
+            <td><span class="badge badge-status-active">${escapeHtml(log.action)}</span></td>
             <td>${escapeHtml(log.details)}</td>
         `;
         tbody.appendChild(tr);
     });
-}
+};
 
 window.onAdminActionComplete = function(actionType, success, message) {
     if (message) showToast(message);
@@ -281,12 +220,6 @@ function initAdminPanel() {
 
     if (stmtSearch) stmtSearch.addEventListener('input', applyStatementFilters);
     if (bankFilter) bankFilter.addEventListener('change', applyStatementFilters);
-
-    const logSearch = document.getElementById('log-search-input');
-    const actionFilter = document.getElementById('log-action-filter');
-
-    if (logSearch) logSearch.addEventListener('input', applyLogFilters);
-    if (actionFilter) actionFilter.addEventListener('change', applyLogFilters);
 }
 
 function applyUserFilters() {
@@ -316,19 +249,14 @@ function applyUserFilters() {
     renderUsersTable(filtered);
 }
 
-let toastTimeout = null;
-
 function showToast(msg) {
     const toast = document.getElementById('toast-notification');
     if (toast) {
         toast.textContent = msg;
         toast.style.display = 'block';
-        if (toastTimeout) {
-            clearTimeout(toastTimeout);
-        }
-        toastTimeout = setTimeout(() => {
+        setTimeout(() => {
             toast.style.display = 'none';
-        }, 5000);
+        }, 3000);
     }
 }
 
@@ -469,30 +397,17 @@ function submitAddUser(e) {
     const role = document.getElementById('add-user-role').value;
     const status = document.getElementById('add-user-status').value;
 
-    const newUser = {
-        id: email,
-        name: name,
-        email: email,
-        phone: phone,
-        username: email.split('@')[0],
-        role: role,
-        status: status,
-        created_at: new Date().toISOString().split('T')[0],
-        last_login: 'Never'
-    };
-    allUsersData.unshift(newUser);
-    applyUserFilters();
-    closeModal('modal-add-user');
-    showToast(`User account ${email} created successfully.`);
-
     const payload = { name, email, phone, password, role, status };
     const bridge = getBridge();
     if (bridge && typeof bridge.createAdminUser === 'function') {
         bridge.createAdminUser(name, email, phone, password, role, status, (res) => {
-            if (res && res.message) {
+            if (res && res.success) {
                 showToast(res.message);
+                closeModal('modal-add-user');
+                sendAppCommand('get_admin_data', '');
+            } else {
+                showToast(res ? res.message : 'Failed to create user account.');
             }
-            sendAppCommand('get_admin_data', '');
         });
     } else if (typeof sendAppCommand === 'function') {
         sendAppCommand('create_admin_user', payload);
@@ -507,25 +422,17 @@ function submitEditUser(e) {
     const role = document.getElementById('edit-user-role').value;
     const status = document.getElementById('edit-user-status').value;
 
-    const targetUser = allUsersData.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (targetUser) {
-        targetUser.name = name;
-        targetUser.phone = phone;
-        targetUser.role = role;
-        targetUser.status = status;
-        applyUserFilters();
-    }
-    closeModal('modal-edit-user');
-    showToast(`User details for ${email} updated successfully.`);
-
     const payload = { email, name, phone, role, status };
     const bridge = getBridge();
     if (bridge && typeof bridge.updateAdminUser === 'function') {
         bridge.updateAdminUser(email, name, phone, role, status, (res) => {
-            if (res && res.message) {
+            if (res && res.success) {
                 showToast(res.message);
+                closeModal('modal-edit-user');
+                sendAppCommand('get_admin_data', '');
+            } else {
+                showToast(res ? res.message : 'Failed to update user details.');
             }
-            sendAppCommand('get_admin_data', '');
         });
     } else if (typeof sendAppCommand === 'function') {
         sendAppCommand('update_admin_user', payload);
@@ -537,17 +444,16 @@ function submitResetPassword(e) {
     const email = document.getElementById('reset-pwd-email').value;
     const newPassword = document.getElementById('reset-pwd-new').value;
 
-    closeModal('modal-reset-pwd');
-    showToast(`Password for ${email} reset successfully.`);
-
     const payload = { email, new_password: newPassword };
     const bridge = getBridge();
     if (bridge && typeof bridge.resetAdminUserPassword === 'function') {
         bridge.resetAdminUserPassword(email, newPassword, (res) => {
-            if (res && res.message) {
+            if (res && res.success) {
                 showToast(res.message);
+                closeModal('modal-reset-pwd');
+            } else {
+                showToast(res ? res.message : 'Failed to reset password.');
             }
-            sendAppCommand('get_admin_data', '');
         });
     } else if (typeof sendAppCommand === 'function') {
         sendAppCommand('reset_admin_password', payload);
@@ -555,23 +461,16 @@ function submitResetPassword(e) {
 }
 
 function toggleUserRole(email, newRole) {
-    const cleanEmail = (email || '').trim().toLowerCase();
-    const targetUser = allUsersData.find(u => (u.email || '').trim().toLowerCase() === cleanEmail);
-    if (targetUser) {
-        targetUser.role = newRole;
-        applyUserFilters();
-    }
-    const roleLabel = (newRole === 'admin' || newRole === 'Administrator') ? 'Administrator' : 'User';
-    showToast(`User role for ${email} updated to ${roleLabel}.`);
-
     const payload = { email, role: newRole };
     const bridge = getBridge();
     if (bridge && typeof bridge.updateUserRole === 'function') {
         bridge.updateUserRole(email, newRole, (res) => {
-            if (res && res.message) {
+            if (res && res.success) {
                 showToast(res.message);
+                sendAppCommand('get_admin_data', '');
+            } else {
+                showToast(res ? res.message : 'Failed to update user role.');
             }
-            sendAppCommand('get_admin_data', '');
         });
     } else if (typeof sendAppCommand === 'function') {
         sendAppCommand('update_user_role', payload);
@@ -579,23 +478,16 @@ function toggleUserRole(email, newRole) {
 }
 
 function toggleUserStatus(email, newStatus) {
-    const cleanEmail = (email || '').trim().toLowerCase();
-    const targetUser = allUsersData.find(u => (u.email || '').trim().toLowerCase() === cleanEmail);
-    if (targetUser) {
-        targetUser.status = newStatus;
-        applyUserFilters();
-    }
-    const statusLabel = newStatus === 'active' ? 'Active' : 'Disabled';
-    showToast(`User status for ${email} updated to ${statusLabel}.`);
-
     const payload = { email, status: newStatus };
     const bridge = getBridge();
     if (bridge && typeof bridge.updateUserStatus === 'function') {
         bridge.updateUserStatus(email, newStatus, (res) => {
-            if (res && res.message) {
+            if (res && res.success) {
                 showToast(res.message);
+                sendAppCommand('get_admin_data', '');
+            } else {
+                showToast(res ? res.message : 'Failed to update user status.');
             }
-            sendAppCommand('get_admin_data', '');
         });
     } else if (typeof sendAppCommand === 'function') {
         sendAppCommand('update_user_status', payload);
@@ -606,19 +498,16 @@ function deleteUser(email) {
     if (!confirm(`Are you sure you want to delete account ${email}? This action cannot be undone.`)) {
         return;
     }
-    const cleanEmail = (email || '').trim().toLowerCase();
-    allUsersData = allUsersData.filter(u => (u.email || '').trim().toLowerCase() !== cleanEmail);
-    applyUserFilters();
-    showToast(`User account ${email} deleted successfully.`);
-
     const payload = { email };
     const bridge = getBridge();
     if (bridge && typeof bridge.deleteUserAccount === 'function') {
         bridge.deleteUserAccount(email, (res) => {
-            if (res && res.message) {
+            if (res && res.success) {
                 showToast(res.message);
+                sendAppCommand('get_admin_data', '');
+            } else {
+                showToast(res ? res.message : 'Failed to delete user.');
             }
-            sendAppCommand('get_admin_data', '');
         });
     } else if (typeof sendAppCommand === 'function') {
         sendAppCommand('delete_user_account', payload);

@@ -97,15 +97,14 @@ class DuplicateFinderWidget(QWidget):
         self.main_scroll = QScrollArea()
         self.main_scroll.setWidgetResizable(True)
         self.main_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.main_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.main_scroll.setStyleSheet("background: transparent;")
 
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background: transparent;")
         
         main_layout = QVBoxLayout(scroll_content)
-        main_layout.setContentsMargins(28, 20, 28, 24)
-        main_layout.setSpacing(16)
+        main_layout.setContentsMargins(32, 24, 32, 32)
+        main_layout.setSpacing(20)
 
         # ==========================================
         # 1. TOP BAR: TITLE & DASHBOARD BACK BUTTON
@@ -115,11 +114,11 @@ class DuplicateFinderWidget(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         
         text_layout = QVBoxLayout()
-        text_layout.setSpacing(2)
+        text_layout.setSpacing(4)
         self.title_lbl = QLabel("Duplicate Transaction Finder & Audit Hub")
-        self.title_lbl.setStyleSheet("font-size: 22px; font-weight: 700; color: #0F172A;")
+        self.title_lbl.setStyleSheet("font-size: 24px; font-weight: 700; color: #0F172A;")
         self.subtitle_lbl = QLabel("Detect double-billing, duplicate uploads, and recurring entry anomalies across your bank statements.")
-        self.subtitle_lbl.setStyleSheet("font-size: 12.5px; color: #64748B;")
+        self.subtitle_lbl.setStyleSheet("font-size: 13px; color: #64748B;")
         
         text_layout.addWidget(self.title_lbl)
         text_layout.addWidget(self.subtitle_lbl)
@@ -127,7 +126,7 @@ class DuplicateFinderWidget(QWidget):
         header_layout.addStretch()
         
         self.close_btn = QPushButton("Back to Dashboard")
-        self.close_btn.setFixedWidth(140)
+        self.close_btn.setFixedWidth(150)
         self.close_btn.setFixedHeight(34)
         self.close_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.close_btn.setStyleSheet("""
@@ -136,7 +135,7 @@ class DuplicateFinderWidget(QWidget):
                 color: #334155;
                 border: 1px solid #CBD5E1;
                 border-radius: 6px;
-                padding: 0px 12px;
+                padding: 0px 14px;
                 font-size: 12px;
                 font-weight: 600;
                 min-height: 34px;
@@ -161,18 +160,18 @@ class DuplicateFinderWidget(QWidget):
             QFrame#ConfigCard {
                 background-color: #FFFFFF;
                 border: 1px solid #E2E8F0;
-                border-radius: 12px;
+                border-radius: 14px;
             }
         """)
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(14)
-        shadow.setColor(QColor(0, 0, 0, 12))
-        shadow.setOffset(0, 2)
+        shadow.setBlurRadius(16)
+        shadow.setColor(QColor(0, 0, 0, 14))
+        shadow.setOffset(0, 3)
         config_card.setGraphicsEffect(shadow)
 
         cfg_layout = QHBoxLayout(config_card)
-        cfg_layout.setContentsMargins(16, 12, 16, 12)
-        cfg_layout.setSpacing(12)
+        cfg_layout.setContentsMargins(22, 16, 22, 16)
+        cfg_layout.setSpacing(16)
 
         # 1. Statement Selection
         stmt_label = QLabel("Statement:")
@@ -180,9 +179,42 @@ class DuplicateFinderWidget(QWidget):
         cfg_layout.addWidget(stmt_label)
 
         self.history_combo = QComboBox()
-        self.history_combo.setMinimumWidth(200)
+        self.history_combo.setMinimumWidth(320)
         self.history_combo.setFixedHeight(36)
         self.history_combo.setStyleSheet("""
+            QComboBox {
+                background-color: #F8FAFC;
+                border: 1px solid #CBD5E1;
+                border-radius: 6px;
+                padding: 0px 12px;
+                font-size: 12px;
+                color: #0F172A;
+                min-height: 36px;
+                max-height: 36px;
+            }
+            QComboBox:hover {
+                border-color: #2563EB;
+                background-color: #FFFFFF;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+        """)
+        self.history_combo.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        cfg_layout.addWidget(self.history_combo, 1)
+
+        # 2. Similarity Dropdown
+        sim_lbl = QLabel("Similarity:")
+        sim_lbl.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
+        cfg_layout.addWidget(sim_lbl)
+
+        self.combo_sim = QComboBox()
+        self.combo_sim.addItems(["Strict (85%)", "Standard (75%)", "Flexible (60%)"])
+        self.combo_sim.setCurrentIndex(1) # Default Standard 75%
+        self.combo_sim.setFixedWidth(140)
+        self.combo_sim.setFixedHeight(36)
+        self.combo_sim.setStyleSheet("""
             QComboBox {
                 background-color: #F8FAFC;
                 border: 1px solid #CBD5E1;
@@ -199,40 +231,7 @@ class DuplicateFinderWidget(QWidget):
             }
             QComboBox::drop-down {
                 border: none;
-                width: 18px;
-            }
-        """)
-        self.history_combo.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        cfg_layout.addWidget(self.history_combo, 1)
-
-        # 2. Similarity Dropdown
-        sim_lbl = QLabel("Similarity:")
-        sim_lbl.setStyleSheet("font-weight: 700; color: #0F172A; font-size: 13px;")
-        cfg_layout.addWidget(sim_lbl)
-
-        self.combo_sim = QComboBox()
-        self.combo_sim.addItems(["Strict (85%)", "Standard (75%)", "Flexible (60%)"])
-        self.combo_sim.setCurrentIndex(1) # Default Standard 75%
-        self.combo_sim.setFixedWidth(130)
-        self.combo_sim.setFixedHeight(36)
-        self.combo_sim.setStyleSheet("""
-            QComboBox {
-                background-color: #F8FAFC;
-                border: 1px solid #CBD5E1;
-                border-radius: 6px;
-                padding: 0px 8px;
-                font-size: 12px;
-                color: #0F172A;
-                min-height: 36px;
-                max-height: 36px;
-            }
-            QComboBox:hover {
-                border-color: #2563EB;
-                background-color: #FFFFFF;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 18px;
+                width: 20px;
             }
         """)
         self.combo_sim.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -240,7 +239,7 @@ class DuplicateFinderWidget(QWidget):
 
         # 3. Primary Scan Button
         self.btn_run_scan = QPushButton("Scan")
-        self.btn_run_scan.setFixedWidth(100)
+        self.btn_run_scan.setFixedWidth(120)
         self.btn_run_scan.setFixedHeight(36)
         self.btn_run_scan.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_run_scan.setStyleSheet("""
@@ -249,7 +248,7 @@ class DuplicateFinderWidget(QWidget):
                 color: #FFFFFF;
                 border: none;
                 border-radius: 6px;
-                padding: 0px 14px;
+                padding: 0px 18px;
                 font-size: 13px;
                 font-weight: 700;
                 min-height: 36px;
@@ -268,7 +267,7 @@ class DuplicateFinderWidget(QWidget):
         # 3. KPI SUMMARY METRIC CARDS ROW
         # ==========================================
         kpi_row = QHBoxLayout()
-        kpi_row.setSpacing(12)
+        kpi_row.setSpacing(16)
 
         self.card_total_tx = self._create_kpi_card("Transactions Scanned", "0", "Total items in statement", "#EFF6FF", "#2563EB")
         self.card_dup_clusters = self._create_kpi_card("Duplicate Clusters", "0", "Identified anomaly sets", "#FEF2F2", "#EF4444")
@@ -286,28 +285,28 @@ class DuplicateFinderWidget(QWidget):
         # 4. FILTER & AUTO-RESOLVE TOOLBAR
         # ==========================================
         filter_card = QFrame()
-        filter_card.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 2px;")
+        filter_card.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 4px;")
         filter_lay = QHBoxLayout(filter_card)
-        filter_lay.setContentsMargins(12, 6, 12, 6)
-        filter_lay.setSpacing(10)
+        filter_lay.setContentsMargins(14, 8, 14, 8)
+        filter_lay.setSpacing(12)
 
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍 Search clusters by narration, amount, ref no...")
-        self.search_input.setFixedHeight(34)
+        self.search_input.setFixedHeight(36)
         self.search_input.textChanged.connect(self.render_clusters)
-        filter_lay.addWidget(self.search_input, 1)
+        filter_lay.addWidget(self.search_input)
+
+        filter_lay.addStretch()
 
         # Preset Auto-Resolution Action Buttons
         self.btn_resolve_first = SecondaryButton("Keep First Entry")
-        self.btn_resolve_first.setFixedHeight(34)
-        self.btn_resolve_first.setFixedWidth(125)
+        self.btn_resolve_first.setFixedHeight(36)
         self.btn_resolve_first.setEnabled(False)
         self.btn_resolve_first.clicked.connect(lambda: self.apply_preset_resolution("keep_first"))
         filter_lay.addWidget(self.btn_resolve_first)
 
         self.btn_resolve_last = SecondaryButton("Keep Last Entry")
-        self.btn_resolve_last.setFixedHeight(34)
-        self.btn_resolve_last.setFixedWidth(125)
+        self.btn_resolve_last.setFixedHeight(36)
         self.btn_resolve_last.setEnabled(False)
         self.btn_resolve_last.clicked.connect(lambda: self.apply_preset_resolution("keep_last"))
         filter_lay.addWidget(self.btn_resolve_last)
@@ -321,7 +320,7 @@ class DuplicateFinderWidget(QWidget):
         self.clusters_container.setStyleSheet("background: transparent;")
         self.clusters_layout = QVBoxLayout(self.clusters_container)
         self.clusters_layout.setContentsMargins(0, 0, 0, 0)
-        self.clusters_layout.setSpacing(14)
+        self.clusters_layout.setSpacing(16)
 
         main_layout.addWidget(self.clusters_container)
 
@@ -329,35 +328,37 @@ class DuplicateFinderWidget(QWidget):
         # 6. BOTTOM ACTION & EXPORT BAR
         # ==========================================
         bottom_bar = QFrame()
-        bottom_bar.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; padding: 6px;")
+        bottom_bar.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px;")
         bot_layout = QHBoxLayout(bottom_bar)
-        bot_layout.setContentsMargins(14, 8, 14, 8)
-        bot_layout.setSpacing(10)
+        bot_layout.setContentsMargins(20, 10, 20, 10)
+        bot_layout.setSpacing(16)
 
         self.resolution_status_lbl = QLabel("Select a statement and click Scan to begin.")
         self.resolution_status_lbl.setStyleSheet("""
             background-color: #F1F5F9;
             color: #1E293B;
             font-weight: 600;
-            font-size: 12px;
-            padding: 5px 12px;
-            border-radius: 16px;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 20px;
             border: 1px solid #E2E8F0;
         """)
-        bot_layout.addWidget(self.resolution_status_lbl, 1)
+        bot_layout.addWidget(self.resolution_status_lbl)
 
-        self.btn_export_audit = QPushButton("Export Audit (.xlsx)")
-        self.btn_export_audit.setFixedHeight(36)
+        bot_layout.addStretch()
+
+        self.btn_export_audit = QPushButton("Export Audit Report (.xlsx)")
+        self.btn_export_audit.setFixedWidth(220)
+        self.btn_export_audit.setFixedHeight(40)
         self.btn_export_audit.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_export_audit.setStyleSheet("""
             QPushButton {
                 background-color: #059669;
                 color: #FFFFFF;
                 font-weight: 700;
-                font-size: 12px;
-                border-radius: 6px;
+                font-size: 13px;
+                border-radius: 8px;
                 border: none;
-                padding: 0px 14px;
             }
             QPushButton:hover {
                 background-color: #047857;
@@ -366,18 +367,18 @@ class DuplicateFinderWidget(QWidget):
         self.btn_export_audit.clicked.connect(self.export_audit_excel)
         bot_layout.addWidget(self.btn_export_audit)
 
-        self.btn_export_cleaned = QPushButton("Export Cleaned (.xlsx)")
-        self.btn_export_cleaned.setFixedHeight(36)
+        self.btn_export_cleaned = QPushButton("Export Cleaned Excel (.xlsx)")
+        self.btn_export_cleaned.setFixedWidth(230)
+        self.btn_export_cleaned.setFixedHeight(40)
         self.btn_export_cleaned.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_export_cleaned.setStyleSheet("""
             QPushButton {
                 background-color: #2563EB;
                 color: #FFFFFF;
                 font-weight: 700;
-                font-size: 12px;
-                border-radius: 6px;
+                font-size: 13px;
+                border-radius: 8px;
                 border: none;
-                padding: 0px 14px;
             }
             QPushButton:hover {
                 background-color: #1D4ED8;
@@ -386,18 +387,18 @@ class DuplicateFinderWidget(QWidget):
         self.btn_export_cleaned.clicked.connect(self.export_cleaned_excel)
         bot_layout.addWidget(self.btn_export_cleaned)
 
-        self.btn_send_email = QPushButton("✉ Send Email")
-        self.btn_send_email.setFixedHeight(36)
+        self.btn_send_email = QPushButton("✉ Send via Email")
+        self.btn_send_email.setFixedWidth(170)
+        self.btn_send_email.setFixedHeight(40)
         self.btn_send_email.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_send_email.setStyleSheet("""
             QPushButton {
                 background-color: #7C3AED;
                 color: #FFFFFF;
                 font-weight: 700;
-                font-size: 12px;
-                border-radius: 6px;
+                font-size: 13px;
+                border-radius: 8px;
                 border: none;
-                padding: 0px 14px;
             }
             QPushButton:hover {
                 background-color: #6D28D9;
@@ -470,16 +471,29 @@ class DuplicateFinderWidget(QWidget):
 
         seen_keys = set()
         for log in completed_logs:
-            disp = HistoryService.format_statement_display(log)
-            excel_path = log.get("excel_path", "")
+            clean_log = {}
+            for k, v in log.items():
+                if isinstance(v, (datetime.datetime, datetime.date)):
+                    clean_log[k] = v.strftime("%Y-%m-%d")
+                else:
+                    clean_log[k] = str(v) if not isinstance(v, (str, int, float, bool, list, dict, type(None))) else v
 
+            bank = clean_log.get("bank_name", "Unknown Bank")
+            date_str = str(clean_log.get("upload_date") or "")[:10]
+            tx_count = clean_log.get("total_transactions", 0)
+            excel_path = clean_log.get("excel_path", "")
+            pdf_name = os.path.basename(clean_log.get("pdf_filename") or excel_path or "")
+
+            # Create clean, unique display label
+            disp = f"{bank} ({date_str}) - {tx_count} txs [{pdf_name}]" if pdf_name else f"{bank} ({date_str}) - {tx_count} txs"
+            
             # Avoid duplicate identical entries in dropdown
-            unique_key = (disp, excel_path)
+            unique_key = (bank, date_str, tx_count, excel_path)
             if unique_key in seen_keys:
                 continue
             seen_keys.add(unique_key)
 
-            self.history_combo.addItem(disp, log)
+            self.history_combo.addItem(disp, clean_log)
 
     def run_duplicate_scan(self):
         """Runs the DuplicateFinderService analysis strictly against the selected statement."""
@@ -743,9 +757,8 @@ class DuplicateFinderWidget(QWidget):
         left_accent = "#10B981" if m_type == "Exact Match" else ("#F59E0B" if m_type == "Potential Duplicate" else "#6366F1")
 
         card = QFrame()
-        card.setObjectName("DuplicateClusterCard")
         card.setStyleSheet(f"""
-            QFrame#DuplicateClusterCard {{
+            QFrame {{
                 background-color: #FFFFFF;
                 border: 1px solid #E2E8F0;
                 border-left: 5px solid {left_accent};
@@ -760,39 +773,34 @@ class DuplicateFinderWidget(QWidget):
         card.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(12)
 
         # Header Row
         head_lay = QHBoxLayout()
         head_lay.setSpacing(10)
 
-        badge_bg = cluster.get('badge_bg', '#EFF6FF')
-        badge_color = cluster.get('badge_color', '#2563EB')
         badge = QLabel(m_type.upper())
         badge.setStyleSheet(f"""
-            QLabel {{
-                background-color: {badge_bg};
-                color: {badge_color};
-                font-weight: 800;
-                font-size: 10px;
-                letter-spacing: 0.5px;
-                padding: 4px 10px;
-                border-radius: 10px;
-                border: 1px solid {badge_color};
-            }}
+            background-color: {cluster.get('badge_bg', '#E0F2FE')};
+            color: {cluster.get('badge_color', '#0369A1')};
+            font-weight: 800;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            padding: 4px 12px;
+            border-radius: 12px;
         """)
         head_lay.addWidget(badge)
 
         title_lbl = QLabel(f"{cluster['title']}  •  {cluster['confidence']}% Confidence")
-        title_lbl.setStyleSheet("font-weight: 700; font-size: 14px; color: #0F172A; border: none; background: transparent;")
+        title_lbl.setStyleSheet("font-weight: 700; font-size: 15px; color: #0F172A;")
         head_lay.addWidget(title_lbl)
 
         head_lay.addStretch()
 
         if cluster.get("reason"):
             reason_lbl = QLabel(cluster.get("reason"))
-            reason_lbl.setStyleSheet("font-size: 11.5px; color: #475569; background-color: #F1F5F9; border: 1px solid #E2E8F0; padding: 4px 10px; border-radius: 6px;")
+            reason_lbl.setStyleSheet("font-size: 12px; color: #475569; background-color: #F1F5F9; padding: 4px 10px; border-radius: 6px;")
             head_lay.addWidget(reason_lbl)
 
         items_cnt_lbl = QLabel(f"{len(cluster['items'])} Entries")
@@ -803,88 +811,54 @@ class DuplicateFinderWidget(QWidget):
 
         # Items Layout Container
         items_frame = QFrame()
-        items_frame.setObjectName("DuplicateItemsFrame")
-        items_frame.setStyleSheet("""
-            QFrame#DuplicateItemsFrame {
-                background-color: #F8FAFC;
-                border: 1px solid #E2E8F0;
-                border-radius: 8px;
-            }
-        """)
+        items_frame.setStyleSheet("background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px;")
         items_lay = QVBoxLayout(items_frame)
-        items_lay.setContentsMargins(8, 8, 8, 8)
+        items_lay.setContentsMargins(10, 8, 10, 8)
         items_lay.setSpacing(6)
 
         # Table Header Row (Dark Slate Bar)
         hdr_row = QFrame()
-        hdr_row.setObjectName("DuplicateHdrRow")
-        hdr_row.setStyleSheet("""
-            QFrame#DuplicateHdrRow {
-                background-color: #1E293B;
-                border-radius: 6px;
-                border: none;
-            }
-        """)
+        hdr_row.setStyleSheet("background-color: #1E293B; border-radius: 6px;")
         hdr_lay = QHBoxLayout(hdr_row)
-        hdr_lay.setContentsMargins(10, 6, 10, 6)
-        hdr_lay.setSpacing(10)
+        hdr_lay.setContentsMargins(12, 6, 12, 6)
+        hdr_lay.setSpacing(12)
 
         def make_hdr(txt, width=None):
             lbl = QLabel(txt)
-            lbl.setStyleSheet("QLabel { background: transparent; border: none; font-weight: 700; font-size: 10.5px; color: #FFFFFF; letter-spacing: 0.5px; }")
+            lbl.setStyleSheet("font-weight: 700; font-size: 11px; color: #FFFFFF; letter-spacing: 0.5px;")
             if width: lbl.setFixedWidth(width)
             return lbl
 
-        hdr_lay.addWidget(make_hdr("ACTION", 80))
-        hdr_lay.addWidget(make_hdr("DATE", 110))
-        hdr_lay.addWidget(make_hdr("SOURCE STATEMENT", 140))
+        hdr_lay.addWidget(make_hdr("ACTION", 95))
+        hdr_lay.addWidget(make_hdr("DATE", 95))
+        hdr_lay.addWidget(make_hdr("SOURCE STATEMENT", 150))
         hdr_lay.addWidget(make_hdr("NARRATION / DESCRIPTION", None), stretch=1)
-        hdr_lay.addWidget(make_hdr("AMOUNT (₹)", 125))
-        hdr_lay.addWidget(make_hdr("REF NO", 75))
+        hdr_lay.addWidget(make_hdr("AMOUNT (₹)", 130))
+        hdr_lay.addWidget(make_hdr("REF NO", 100))
         items_lay.addWidget(hdr_row)
 
         for r_idx, item in enumerate(cluster["items"]):
             it_id = item["id"]
             row_frame = QFrame()
-            row_frame.setObjectName(f"DuplicateRowFrame_{r_idx}")
-            row_frame.setStyleSheet(f"""
-                QFrame#DuplicateRowFrame_{r_idx} {{
+            row_frame.setStyleSheet("""
+                QFrame {
                     background-color: #FFFFFF;
                     border: 1px solid #E2E8F0;
                     border-radius: 6px;
-                }}
-                QFrame#DuplicateRowFrame_{r_idx}:hover {{
+                }
+                QFrame:hover {
                     border-color: #CBD5E1;
-                    background-color: #F8FAFC;
-                }}
+                    background-color: #FFFFFF;
+                }
             """)
             r_lay = QHBoxLayout(row_frame)
-            r_lay.setContentsMargins(10, 6, 10, 6)
-            r_lay.setSpacing(10)
+            r_lay.setContentsMargins(10, 8, 10, 8)
+            r_lay.setSpacing(12)
 
             action_combo = QComboBox()
             action_combo.addItems(["Keep", "Remove"])
-            action_combo.setFixedWidth(80)
-            action_combo.setFixedHeight(28)
-            action_combo.setStyleSheet("""
-                QComboBox {
-                    background-color: #F8FAFC;
-                    border: 1px solid #CBD5E1;
-                    border-radius: 6px;
-                    padding: 2px 2px 2px 6px;
-                    font-size: 11px;
-                    font-weight: 600;
-                    color: #0F172A;
-                }
-                QComboBox:hover {
-                    border-color: #2563EB;
-                    background-color: #FFFFFF;
-                }
-                QComboBox::drop-down {
-                    border: none;
-                    width: 12px;
-                }
-            """)
+            action_combo.setFixedWidth(95)
+            action_combo.setFixedHeight(30)
             action_combo.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
             current_dec = self.user_decisions.get(it_id, "keep" if r_idx == 0 else "remove")
@@ -892,24 +866,21 @@ class DuplicateFinderWidget(QWidget):
             action_combo.activated.connect(lambda idx, item_id=it_id: self._on_item_action_changed(item_id, idx))
             r_lay.addWidget(action_combo)
 
-            raw_d = str(item.get("date_str", "")).strip().replace(" 00:00:00", "").replace("T00:00:00", "")
-            lbl_date = QLabel(raw_d)
-            lbl_date.setFixedWidth(110)
-            lbl_date.setToolTip(raw_d)
-            lbl_date.setStyleSheet("QLabel { font-size: 11.5px; font-weight: 600; color: #334155; border: none; background: transparent; }")
+            lbl_date = QLabel(item.get("date_str", ""))
+            lbl_date.setFixedWidth(95)
+            lbl_date.setStyleSheet("font-size: 12px; font-weight: 600; color: #334155;")
             r_lay.addWidget(lbl_date)
 
             src_filename = item.get("source_file", "")
-            disp_src = src_filename[:20] + "..." if len(src_filename) > 20 else src_filename
-            lbl_src = QLabel(disp_src)
+            lbl_src = QLabel(src_filename[:22] + "..." if len(src_filename) > 22 else src_filename)
             lbl_src.setToolTip(src_filename)
-            lbl_src.setFixedWidth(140)
-            lbl_src.setStyleSheet("QLabel { font-size: 10.5px; font-weight: 600; color: #1E40AF; background-color: #EFF6FF; border: 1px solid #DBEAFE; padding: 2px 4px; border-radius: 4px; }")
+            lbl_src.setFixedWidth(150)
+            lbl_src.setStyleSheet("font-size: 11px; font-weight: 600; color: #1E40AF; background-color: #EFF6FF; border: 1px solid #DBEAFE; padding: 2px 6px; border-radius: 4px;")
             r_lay.addWidget(lbl_src)
 
             lbl_narr = QLabel(item.get("raw_narration", ""))
             lbl_narr.setWordWrap(True)
-            lbl_narr.setStyleSheet("QLabel { font-size: 11.5px; color: #0F172A; font-weight: 600; border: none; background: transparent; }")
+            lbl_narr.setStyleSheet("font-size: 12px; color: #0F172A; font-weight: 600;")
             r_lay.addWidget(lbl_narr, stretch=1)
 
             tx_type = item.get("type", "").lower()
@@ -919,15 +890,15 @@ class DuplicateFinderWidget(QWidget):
             amt_str = f"{amt_prefix}₹ {abs(amt_val):,.2f}"
             
             lbl_amt = QLabel(amt_str)
-            lbl_amt.setFixedWidth(125)
+            lbl_amt.setFixedWidth(130)
             lbl_amt.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            lbl_amt.setStyleSheet(f"QLabel {{ font-size: 12px; font-weight: 800; color: {amt_color}; border: none; background: transparent; padding-right: 4px; }}")
+            lbl_amt.setStyleSheet(f"font-size: 13px; font-weight: 800; color: {amt_color}; padding-right: 8px;")
             r_lay.addWidget(lbl_amt)
 
             ref_str = item.get("ref_no", "-")
             lbl_ref = QLabel(ref_str if ref_str else "-")
-            lbl_ref.setFixedWidth(75)
-            lbl_ref.setStyleSheet("QLabel { font-size: 10.5px; color: #64748B; background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 2px 4px; border-radius: 4px; }")
+            lbl_ref.setFixedWidth(100)
+            lbl_ref.setStyleSheet("font-size: 11px; color: #64748B; background-color: #F8FAFC; padding: 2px 6px; border-radius: 4px;")
             r_lay.addWidget(lbl_ref)
 
             items_lay.addWidget(row_frame)

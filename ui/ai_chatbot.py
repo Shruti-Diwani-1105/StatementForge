@@ -1,7 +1,5 @@
 import os
 import json
-import datetime
-import html
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QMessageBox
 from PyQt6.QtCore import pyqtSignal, QThread, QTimer
 
@@ -290,19 +288,21 @@ class AIChatbotWidget(QWidget):
                 options_js += "cb.innerHTML += `<option value=''>No parsed statements found in history.</option>`;"
             else:
                 options_js += "cb.innerHTML += `<option value=''>Select from parsed statement history...</option>`;"
-                seen_keys = set()
                 for log in completed_logs:
+                    pdf_path = log.get("pdf_path", "")
                     excel_path = log.get("excel_path", "")
-                    display_text = HistoryService.format_statement_display(log)
-
-                    unique_key = (display_text, excel_path)
-                    if unique_key in seen_keys:
-                        continue
-                    seen_keys.add(unique_key)
-
+                    filename = os.path.basename(pdf_path) if pdf_path else "Statement.pdf"
+                    upload_date = log.get("upload_date")
+                    if hasattr(upload_date, "strftime"):
+                        date_str = upload_date.strftime("%Y-%m-%d")
+                    elif isinstance(upload_date, str):
+                        date_str = upload_date[:10]
+                    else:
+                        date_str = str(upload_date or "")[:10]
+                    bank = log.get("bank_name", "Unknown Bank")
+                    display_text = f"{bank} ({date_str}) - {filename}"
                     escaped_path = json.dumps(excel_path)
-                    escaped_text = html.escape(display_text)
-                    options_js += f"cb.innerHTML += `<option value={escaped_path}>{escaped_text}</option>`;"
+                    options_js += f"cb.innerHTML += `<option value={escaped_path}>{display_text}</option>`;"
             options_js += "})();"
             self.html_wrapper.eval_js(options_js)
 
