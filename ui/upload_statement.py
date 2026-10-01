@@ -43,6 +43,23 @@ class UploadStatementWidget(QWidget):
 
         # Connect document title / WebBridge IPC commands
         self.html_wrapper.web_view.titleChanged.connect(self.handle_web_commands)
+        self.html_wrapper.web_view.loadFinished.connect(lambda ok: self.load_recent_activity())
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.load_recent_activity()
+
+    def load_recent_activity(self):
+        """Fetches persistent recent statement activity for active user and updates HTML UI."""
+        user = UserSession.get_current_user()
+        user_id = user["id"] if user else "guest"
+        try:
+            logs = HistoryService.get_recent_activity(user_id=user_id, limit=20)
+            import json
+            logs_json = json.dumps(logs if isinstance(logs, list) else [])
+            self.html_wrapper.eval_js(f"if(typeof setRecentActivityLogs === 'function') setRecentActivityLogs({logs_json});")
+        except Exception as e:
+            print(f"UploadStatementWidget: Failed to load recent activity: {e}")
 
     def eventFilter(self, watched, event):
         from PyQt6.QtCore import QEvent
@@ -226,19 +243,54 @@ class UploadStatementWidget(QWidget):
                                 payload = PDFStatementParser.parse(self.file_path)
                                 txs = payload.get("transactions", [])
                                 if txs:
+                                    user = UserSession.get_current_user()
+                                    user_id = user["id"] if user else "guest"
+                                    rec_id = HistoryService.create_record(
+                                        user_id=user_id,
+                                        pdf_path=self.file_path,
+                                        bank_name=payload.get("bank_name", getattr(self, "detected_bank", "Bank")),
+                                        status="Completed",
+                                        output_format="Duplicate Finder"
+                                    )
+                                    HistoryService.update_record_completed(
+                                        record_id=rec_id,
+                                        excel_path="",
+                                        period=payload.get("period", "Unknown"),
+                                        processing_time=payload.get("processing_time", 0),
+                                        total_transactions=len(txs)
+                                    )
                                     p.duplicate_finder_widget.loaded_statements = [{
                                         "file_name": os.path.basename(self.file_path),
                                         "bank_name": payload.get("bank_name", getattr(self, "detected_bank", "Bank")),
                                         "transactions": txs
                                     }]
                                     p.duplicate_finder_widget.run_duplicate_scan()
+                                    self.load_recent_activity()
                             except Exception as e:
                                 print(f"Error loading statement into duplicate finder: {e}")
                     break
                 p = p.parent()
         elif module_key == "email":
-            from ui.email_composer_dialog import EmailComposerDialog
+            user = UserSession.get_current_user()
+            user_id = user["id"] if user else "guest"
             att_path = getattr(self, "file_path", None)
+            if att_path:
+                rec_id = HistoryService.create_record(
+                    user_id=user_id,
+                    pdf_path=att_path,
+                    bank_name=getattr(self, "detected_bank", "Bank"),
+                    status="Completed",
+                    output_format="Email Report"
+                )
+                HistoryService.update_record_completed(
+                    record_id=rec_id,
+                    excel_path=att_path,
+                    period="",
+                    processing_time=0.0,
+                    total_transactions=0
+                )
+                self.load_recent_activity()
+            from ui.email_composer_dialog import EmailComposerDialog
             dialog = EmailComposerDialog(
                 report_type="Bank Statement",
                 default_attachment=att_path,
@@ -393,6 +445,7 @@ class UploadStatementWidget(QWidget):
                 print(f"CSV Export notification error: {e}")
 
             self.html_wrapper.eval_js(f"addRecentActivity('{bank_name}', '{file_name}', {tx_len}, '{time_str}', 'Completed');")
+            self.load_recent_activity()
             self.processingCompleted.emit()
             self.reset_to_upload()
             
@@ -498,6 +551,7 @@ class UploadStatementWidget(QWidget):
                 print(f"JSON Export notification error: {e}")
 
             self.html_wrapper.eval_js(f"addRecentActivity('{bank_name}', '{file_name}', {tx_len}, '{time_str}', 'Completed');")
+            self.load_recent_activity()
             self.processingCompleted.emit()
             self.reset_to_upload()
             
@@ -581,6 +635,7 @@ class UploadStatementWidget(QWidget):
                 print(f"UploadStatementWidget: Notification trigger error: {e}")
 
             self.html_wrapper.eval_js(f"addRecentActivity('{bank_name}', '{file_name}', {tx_len}, '{time_str}', 'Completed');")
+            self.load_recent_activity()
             self.processingCompleted.emit()
             
             # Sync Dashboard Stats and TopBar Badge in real time

@@ -186,12 +186,25 @@ class HistoryService:
                 records = list(col.find(query).sort("upload_date", -1).limit(limit))
                 mapped = []
                 for doc in records:
+                    upload_dt = doc.get("upload_date")
+                    if isinstance(upload_dt, datetime.datetime):
+                        time_str = upload_dt.strftime("%H:%M")
+                        date_str = upload_dt.strftime("%Y-%m-%d %H:%M")
+                    elif isinstance(upload_dt, str):
+                        time_str = upload_dt.split("T")[-1][:5] if "T" in upload_dt else (upload_dt[:5] if upload_dt else "00:00")
+                        date_str = upload_dt[:16]
+                    else:
+                        time_str = "00:00"
+                        date_str = ""
                     mapped.append({
                         "id": str(doc.get("_id", "")),
                         "file_name": os.path.basename(doc.get("pdf_path", "")) or "Statement.pdf",
                         "bank_name": doc.get("bank_name", "Unknown Bank"),
-                        "upload_date": doc.get("upload_date"),
-                        "status": doc.get("status", "Completed")
+                        "upload_date": date_str,
+                        "time_str": time_str,
+                        "total_transactions": int(doc.get("total_transactions", 0)),
+                        "status": doc.get("status", "Completed"),
+                        "output_format": doc.get("output_format", "Excel")
                     })
                 return mapped
             except Exception as e:
@@ -205,12 +218,25 @@ class HistoryService:
 
         mapped = []
         for log in filtered:
+            upload_dt = log.get("upload_date", "")
+            if isinstance(upload_dt, str) and "T" in upload_dt:
+                time_str = upload_dt.split("T")[-1][:5]
+                date_str = upload_dt[:16]
+            elif isinstance(upload_dt, str):
+                time_str = upload_dt[:5] if upload_dt else "00:00"
+                date_str = upload_dt[:16]
+            else:
+                time_str = "00:00"
+                date_str = ""
             mapped.append({
                 "id": str(log.get("_id", "")),
                 "file_name": os.path.basename(log.get("pdf_path", "")) or "Statement.pdf",
                 "bank_name": log.get("bank_name", "Unknown Bank"),
-                "upload_date": log.get("upload_date"),
-                "status": log.get("status", "Completed")
+                "upload_date": date_str,
+                "time_str": time_str,
+                "total_transactions": int(log.get("total_transactions", 0)),
+                "status": log.get("status", "Completed"),
+                "output_format": log.get("output_format", "Excel")
             })
         return mapped
 

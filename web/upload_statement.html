@@ -484,6 +484,60 @@
             `;
             tbody.prepend(tr);
         }
+
+        function setRecentActivityLogs(logsArray) {
+            const tbody = document.getElementById('recentActivityBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            if (!logsArray || logsArray.length === 0) {
+                activityTotalCount = 0;
+                const countElem = document.getElementById('activityCount');
+                if (countElem) countElem.innerText = '0 Entries';
+                tbody.innerHTML = `
+                    <tr class="empty-state-row" id="emptyRow">
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <div class="empty-icon-wrapper">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                    </svg>
+                                </div>
+                                <h3 class="empty-title">No recent statement activity</h3>
+                                <p class="empty-subtitle">Drag and drop your bank statement PDF above to automatically parse transactions.</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            activityTotalCount = logsArray.length;
+            const countElem = document.getElementById('activityCount');
+            if (countElem) countElem.innerText = activityTotalCount + (activityTotalCount === 1 ? ' Entry' : ' Entries');
+
+            logsArray.forEach(log => {
+                const tr = document.createElement('tr');
+                const statusStr = log.status || 'Completed';
+                const statusClass = statusStr.toLowerCase() === 'completed' ? 'status-completed' : (statusStr.toLowerCase() === 'failed' ? 'status-failed' : 'status-processing');
+                const bank = log.bank_name || 'Unknown Bank';
+                const fileName = log.file_name || 'Statement.pdf';
+                const count = log.total_transactions !== undefined ? log.total_transactions : 0;
+                const timeStr = log.time_str || (log.upload_date ? log.upload_date.slice(-5) : '00:00');
+
+                tr.innerHTML = `
+                    <td><strong class="bank-name">${bank}</strong></td>
+                    <td class="file-name">${fileName}</td>
+                    <td>${count} txs</td>
+                    <td class="time-col">${timeStr}</td>
+                    <td><span class="status-badge ${statusClass}">${statusStr}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
     </script>
 </body>
 
